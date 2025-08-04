@@ -362,6 +362,68 @@
                 </div>
             </div>
 
+            <!-- Data Export/Import Section -->
+<div class="bg-base-100 rounded-xl shadow-lg p-6 mt-6">
+    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+        <i data-lucide="database" class="w-5 h-5"></i>
+        Daten verwalten
+    </h3>
+    <div class="flex flex-col sm:flex-row gap-3">
+        <button id="export-data-btn" class="btn btn-outline btn-primary flex-1">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            Daten exportieren
+        </button>
+        <button id="import-data-btn" class="btn btn-outline btn-secondary flex-1">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            Daten importieren
+        </button>
+        <input type="file" id="import-file" accept=".json" class="hidden">
+    </div>
+    <p class="text-sm text-base-content/60 mt-2">
+        Sichere deine Gesundheitsdaten oder stelle sie wieder her.
+    </p>
+</div>
+
+<!-- Zusätzlich: Loading Spinner falls noch nicht vorhanden -->
+<div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-base-100 rounded-lg p-6 flex flex-col items-center gap-4">
+        <div class="loading loading-spinner loading-lg"></div>
+        <p class="text-base-content">Verarbeite Daten...</p>
+    </div>
+</div>
+
+<!-- Toast Container für Benachrichtigungen -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<script>
+// Ergänzung für showLoading und showToast Methoden falls nicht vorhanden
+if (typeof window.healthTracker !== 'undefined') {
+    window.healthTracker.showLoading = function(show) {
+        const loader = document.getElementById('loading');
+        if (loader) {
+            loader.classList.toggle('hidden', !show);
+        }
+    };
+    
+    window.healthTracker.showToast = function(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} shadow-lg mb-2`;
+        toast.innerHTML = `
+            <div>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        const container = document.getElementById('toast-container') || document.body;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 4000);
+    };
+}
+</script>
+
             <!-- Recent Activities & Goals -->
             <div class="space-y-6">
                 <!-- Recent Activities -->

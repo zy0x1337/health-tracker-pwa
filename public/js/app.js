@@ -17,6 +17,22 @@ class HealthTrackerPro {
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
+
+        setTimeout(() => {
+    // Export/Import UI hinzufügen
+    const dashboard = document.querySelector('main .container');
+    if (dashboard) {
+        dashboard.insertAdjacentHTML('beforeend', exportImportHTML);
+        
+        // Lucide Icons aktualisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // DataManager initialisieren
+        new DataManager(window.healthTracker);
+    }
+}, 1000);
     }
 
     async initializeAllCharts() {
@@ -1204,21 +1220,3 @@ const exportImportHTML = `
     </p>
 </div>
 `;
-
-// Initialisierung in der HealthTrackerPro Klasse ergänzen
-// In der constructor-Methode nach den bestehenden Initialisierungen:
-setTimeout(() => {
-    // Export/Import UI hinzufügen
-    const dashboard = document.querySelector('main .container');
-    if (dashboard) {
-        dashboard.insertAdjacentHTML('beforeend', exportImportHTML);
-        
-        // Lucide Icons aktualisieren
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-        
-        // DataManager initialisieren
-        new DataManager(window.healthTracker);
-    }
-}, 1000);

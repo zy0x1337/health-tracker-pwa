@@ -684,30 +684,22 @@ class HealthTrackerPro {
     }
 
     openGoalsModal() {
-    const modal = document.getElementById('goals-modal');
-    if (!modal) return;
-    
-    // Pre-fill form with current goals
-    const weightInput = document.getElementById('weight-goal-input');
-    const stepsInput = document.getElementById('steps-goal-input');
-    const waterInput = document.getElementById('water-goal-input');
-    const sleepInput = document.getElementById('sleep-goal-input');
-    
-    if (weightInput) weightInput.value = this.goals.weightGoal || '';
-    if (stepsInput) stepsInput.value = this.goals.stepsGoal;
-    if (waterInput) waterInput.value = this.goals.waterGoal;
-    if (sleepInput) sleepInput.value = this.goals.sleepGoal;
-    
-    // Show modal using DaisyUI method
-    modal.classList.add('modal-open');
-}
-
-closeGoalsModal() {
-    const modal = document.getElementById('goals-modal');
-    if (modal) {
-        modal.classList.remove('modal-open');
+        const modal = document.getElementById('goals-modal');
+        if (!modal) return;
+        
+        // Pre-fill form with current goals
+        const weightInput = document.getElementById('weight-goal-input');
+        const stepsInput = document.getElementById('steps-goal-input');
+        const waterInput = document.getElementById('water-goal-input');
+        const sleepInput = document.getElementById('sleep-goal-input');
+        
+        if (weightInput) weightInput.value = this.goals.weightGoal || '';
+        if (stepsInput) stepsInput.value = this.goals.stepsGoal;
+        if (waterInput) waterInput.value = this.goals.waterGoal;
+        if (sleepInput) sleepInput.value = this.goals.sleepGoal;
+        
+        modal.classList.remove('hidden');
     }
-}
 
     closeGoalsModal() {
         const modal = document.getElementById('goals-modal');

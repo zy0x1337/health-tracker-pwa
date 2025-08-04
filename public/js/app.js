@@ -1,4 +1,4 @@
-// Enhanced app.js with Goals and Progress Tracking
+// Enhanced app.js with Goals, Progress Tracking AND Blood Pressure/Pulse Tracking
 class HealthTrackerPro {
     constructor() {
         this.userId = this.getUserId();
@@ -30,16 +30,17 @@ class HealthTrackerPro {
                 console.warn('Chart.js not available');
                 return;
             }
-
+            
             Chart.defaults.responsive = true;
             Chart.defaults.maintainAspectRatio = false;
             Chart.defaults.animation = false;
             Chart.defaults.plugins.legend.display = false;
-
+            
             this.initWeightChart();
             this.initActivityChart();
             this.initSleepChart();
             this.initMoodChart();
+            this.initBloodPressureChart(); // NEW
             
             this.chartInitialized = true;
             console.log('✅ Charts initialized with empty data');
@@ -198,7 +199,9 @@ class HealthTrackerPro {
                         beginAtZero: true,
                         position: 'right',
                         max: Math.max(4, (this.goals?.waterGoal || 2.0) + 1),
-                        grid: { drawOnChartArea: false },
+                        grid: {
+                            drawOnChartArea: false
+                        },
                         ticks: {
                             color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
                             callback: function(value) {
@@ -325,13 +328,164 @@ class HealthTrackerPro {
         });
     }
 
+    // NEW: Blood Pressure & Pulse Chart
+    initBloodPressureChart() {
+        const canvas = document.getElementById('bpChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        this.charts.bloodPressure = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Systolisch',
+                    data: [],
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Diastolisch',
+                    data: [],
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Puls',
+                    data: [],
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return `Systolisch: ${context.parsed.y} mmHg`;
+                                } else if (context.datasetIndex === 1) {
+                                    return `Diastolisch: ${context.parsed.y} mmHg`;
+                                } else {
+                                    return `Puls: ${context.parsed.y} bpm`;
+                                }
+                            },
+                            afterLabel: function(context) {
+                                if (context.datasetIndex === 0 || context.datasetIndex === 1) {
+                                    // Get both systolic and diastolic for BP category
+                                    const dataIndex = context.dataIndex;
+                                    const systolic = context.chart.data.datasets[0].data[dataIndex];
+                                    const diastolic = context.chart.data.datasets[1].data[dataIndex];
+                                    if (systolic && diastolic) {
+                                        const category = this.getBloodPressureCategory(systolic, diastolic);
+                                        return `Kategorie: ${category}`;
+                                    }
+                                }
+                                return '';
+                            }.bind(this)
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 40,
+                        max: 200,
+                        position: 'left',
+                        grid: {
+                            color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                            callback: function(value) {
+                                return value + ' mmHg';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Blutdruck (mmHg)',
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                        }
+                    },
+                    y1: {
+                        beginAtZero: false,
+                        min: 40,
+                        max: 120,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                            callback: function(value) {
+                                return value + ' bpm';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Puls (bpm)',
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     async loadAndUpdateCharts() {
         if (!this.chartInitialized) return;
         
         console.log('🔄 Loading chart data...');
+        
         try {
             let allData = [];
             
+            // Try to fetch from server first
             if (navigator.onLine) {
                 try {
                     const url = `/api/health-data/${this.userId}`;
@@ -380,6 +534,7 @@ class HealthTrackerPro {
             
             // Charts aktualisieren
             this.updateChartsWithData(allData);
+            
         } catch (error) {
             console.error('❌ Error loading chart data:', error);
         }
@@ -390,20 +545,20 @@ class HealthTrackerPro {
             console.log('⚠️ Charts not initialized yet');
             return;
         }
-        
+
         if (!allData || !Array.isArray(allData)) {
             console.log('⚠️ Invalid data provided to updateChartsWithData:', typeof allData);
             return;
         }
-        
+
         if (allData.length === 0) {
             console.log('ℹ️ No data available for charts');
             return;
         }
-        
+
         console.log('📈 Updating charts with', allData.length, 'data points');
-        const last7Days = allData.slice(-7);
         
+        const last7Days = allData.slice(-7);
         if (last7Days.length === 0) {
             console.log('⚠️ No recent data found');
             return;
@@ -442,7 +597,7 @@ class HealthTrackerPro {
                     console.log('ℹ️ No valid weight data found');
                 }
             }
-            
+
             // 2. Activity Chart Update WITH GOAL INDICATORS
             if (this.charts.activity) {
                 const stepsData = last7Days.map(d => {
@@ -467,7 +622,7 @@ class HealthTrackerPro {
                 this.charts.activity.update('none');
                 console.log('✅ Activity chart updated');
             }
-            
+
             // 3. Sleep Chart Update WITH GOAL-BASED COLORS
             if (this.charts.sleep) {
                 const sleepData = last7Days.map(d => {
@@ -496,8 +651,34 @@ class HealthTrackerPro {
                 this.charts.sleep.update('none');
                 console.log('✅ Sleep chart updated');
             }
-            
-            // 4. Mood Chart Update (unchanged)
+
+            // 4. NEW: Blood Pressure & Pulse Chart Update
+            if (this.charts.bloodPressure) {
+                const systolicData = last7Days.map(d => {
+                    const systolic = d.systolic || null;
+                    return (systolic && !isNaN(systolic)) ? systolic : null;
+                });
+                
+                const diastolicData = last7Days.map(d => {
+                    const diastolic = d.diastolic || null;
+                    return (diastolic && !isNaN(diastolic)) ? diastolic : null;
+                });
+                
+                const pulseData = last7Days.map(d => {
+                    const pulse = d.pulse || null;
+                    return (pulse && !isNaN(pulse)) ? pulse : null;
+                });
+                
+                this.charts.bloodPressure.data.labels = labels;
+                this.charts.bloodPressure.data.datasets[0].data = systolicData;
+                this.charts.bloodPressure.data.datasets[1].data = diastolicData;
+                this.charts.bloodPressure.data.datasets[2].data = pulseData;
+                
+                this.charts.bloodPressure.update('none');
+                console.log('✅ Blood pressure chart updated');
+            }
+
+            // 5. Mood Chart Update (unchanged)
             if (this.charts.mood) {
                 const moodCounts = [0, 0, 0, 0, 0];
                 const moodMapping = ['terrible', 'bad', 'neutral', 'good', 'excellent'];
@@ -518,6 +699,45 @@ class HealthTrackerPro {
             
         } catch (error) {
             console.error('❌ Error updating charts:', error);
+        }
+    }
+
+    // NEW: Blood Pressure Category Helper
+    getBloodPressureCategory(systolic, diastolic) {
+        if (systolic < 90 || diastolic < 60) {
+            return 'Niedrig';
+        } else if (systolic < 120 && diastolic < 80) {
+            return 'Normal';
+        } else if (systolic < 130 && diastolic < 80) {
+            return 'Erhöht';
+        } else if (systolic < 140 || diastolic < 90) {
+            return 'Hoch Stufe 1';
+        } else if (systolic < 180 || diastolic < 120) {
+            return 'Hoch Stufe 2';
+        } else {
+            return 'Kritisch';
+        }
+    }
+
+    // NEW: Blood Pressure Status Badge Helper  
+    getBloodPressureStatus(systolic, diastolic) {
+        const category = this.getBloodPressureCategory(systolic, diastolic);
+        
+        switch (category) {
+            case 'Niedrig':
+                return { class: 'badge-warning', text: 'Niedrig' };
+            case 'Normal':
+                return { class: 'badge-success', text: 'Normal' };
+            case 'Erhöht':
+                return { class: 'badge-warning', text: 'Erhöht' };
+            case 'Hoch Stufe 1':
+                return { class: 'badge-error', text: 'Hoch' };
+            case 'Hoch Stufe 2':
+                return { class: 'badge-error', text: 'Sehr Hoch' };
+            case 'Kritisch':
+                return { class: 'badge-error', text: 'Kritisch' };
+            default:
+                return { class: 'badge-ghost', text: 'Unbekannt' };
         }
     }
 
@@ -569,7 +789,7 @@ class HealthTrackerPro {
             goalsForm.addEventListener('submit', (e) => this.handleGoalsSubmit(e));
         }
 
-        // Input event listeners
+        // Input event listeners for progress updates
         const stepsInput = document.getElementById('steps');
         if (stepsInput) {
             stepsInput.addEventListener('input', (e) => {
@@ -591,16 +811,72 @@ class HealthTrackerPro {
             });
         }
 
+        // NEW: Blood Pressure Input Listeners
+        const systolicInput = document.getElementById('systolic');
+        const diastolicInput = document.getElementById('diastolic');
+        if (systolicInput && diastolicInput) {
+            const updateBP = () => {
+                const systolic = parseFloat(systolicInput.value) || 0;
+                const diastolic = parseFloat(diastolicInput.value) || 0;
+                if (systolic > 0 && diastolic > 0) {
+                    this.updateBloodPressureDisplay(systolic, diastolic);
+                }
+            };
+            
+            systolicInput.addEventListener('input', updateBP);
+            diastolicInput.addEventListener('input', updateBP);
+        }
+
+        const pulseInput = document.getElementById('pulse');
+        if (pulseInput) {
+            pulseInput.addEventListener('input', (e) => {
+                const pulse = parseFloat(e.target.value) || 0;
+                if (pulse > 0) {
+                    this.updatePulseDisplay(pulse);
+                }
+            });
+        }
+
         window.addEventListener('resize', () => this.handleResize());
         window.addEventListener('online', () => this.updateConnectionStatus(true));
         window.addEventListener('offline', () => this.updateConnectionStatus(false));
     }
 
-    // NEW: Goals Management Methods
+    // NEW: Update Blood Pressure Display
+    updateBloodPressureDisplay(systolic, diastolic) {
+        const bpEl = document.getElementById('today-bp');
+        const statusEl = document.getElementById('bp-status');
+        const categoryEl = document.getElementById('bp-category');
+        
+        if (bpEl) bpEl.textContent = `${systolic}/${diastolic} mmHg`;
+        
+        const category = this.getBloodPressureCategory(systolic, diastolic);
+        const status = this.getBloodPressureStatus(systolic, diastolic);
+        
+        if (statusEl) {
+            statusEl.textContent = status.text;
+            statusEl.className = `badge badge-sm ${status.class}`;
+        }
+        
+        if (categoryEl) {
+            categoryEl.textContent = `Kategorie: ${category}`;
+        }
+    }
+
+    // NEW: Update Pulse Display
+    updatePulseDisplay(pulse) {
+        const pulseEl = document.getElementById('today-pulse');
+        if (pulseEl) {
+            pulseEl.textContent = `${pulse} bpm`;
+        }
+    }
+
+    // Goals Management Methods
     async loadGoals() {
         try {
             let goals = null;
             
+            // Try server first
             if (navigator.onLine) {
                 try {
                     const response = await fetch(`/api/goals/${this.userId}`);
@@ -662,25 +938,6 @@ class HealthTrackerPro {
         if (sleepGoalEl) {
             sleepGoalEl.textContent = `${this.goals.sleepGoal} h`;
         }
-        
-        // Update stats section goal displays
-        const weightGoalStatEl = document.getElementById('weight-goal-stat');
-        const stepsGoalStatEl = document.getElementById('steps-goal-stat');
-        const waterGoalStatEl = document.getElementById('water-goal-stat');
-        const sleepGoalStatEl = document.getElementById('sleep-goal-stat');
-        
-        if (weightGoalStatEl) {
-            weightGoalStatEl.textContent = this.goals.weightGoal ? `${this.goals.weightGoal} kg` : '--';
-        }
-        if (stepsGoalStatEl) {
-            stepsGoalStatEl.textContent = this.goals.stepsGoal.toLocaleString();
-        }
-        if (waterGoalStatEl) {
-            waterGoalStatEl.textContent = `${this.goals.waterGoal} L`;
-        }
-        if (sleepGoalStatEl) {
-            sleepGoalStatEl.textContent = `${this.goals.sleepGoal} h`;
-        }
     }
 
     openGoalsModal() {
@@ -735,13 +992,7 @@ class HealthTrackerPro {
                 this.showToast('🎯 Ziele offline gespeichert!', 'success');
             }
             
-            this.goals = {
-                stepsGoal,
-                waterGoal,
-                sleepGoal,
-                weightGoal
-            };
-            
+            this.goals = { stepsGoal, waterGoal, sleepGoal, weightGoal };
             this.updateGoalsDisplay();
             this.closeGoalsModal();
             
@@ -759,9 +1010,7 @@ class HealthTrackerPro {
     async saveGoalsToServer(goalsData) {
         const response = await fetch('/api/goals', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(goalsData)
         });
         
@@ -792,7 +1041,7 @@ class HealthTrackerPro {
         this.theme = this.theme === 'light' ? 'dark' : 'light';
         localStorage.setItem('theme', this.theme);
         document.documentElement.setAttribute('data-theme', this.theme);
-
+        
         const themeToggle = document.getElementById('theme-toggle');
         const icon = this.theme === 'dark' ? 'sun' : 'moon';
         if (themeToggle) {
@@ -801,14 +1050,14 @@ class HealthTrackerPro {
                 lucide.createIcons();
             }
         }
-
+        
         this.updateChartsTheme();
     }
 
     async handleSubmit(e) {
         e.preventDefault();
         this.showLoading(true);
-
+        
         const formData = {
             userId: this.userId,
             date: new Date().toISOString().split('T')[0],
@@ -816,12 +1065,16 @@ class HealthTrackerPro {
             steps: parseInt(document.getElementById('steps').value) || null,
             waterIntake: parseFloat(document.getElementById('water').value) || null,
             sleepHours: parseFloat(document.getElementById('sleep').value) || null,
+            // NEW: Blood Pressure & Pulse fields
+            systolic: parseInt(document.getElementById('systolic').value) || null,
+            diastolic: parseInt(document.getElementById('diastolic').value) || null,
+            pulse: parseInt(document.getElementById('pulse').value) || null,
             mood: document.getElementById('mood').value || null,
             notes: document.getElementById('notes').value || null
         };
-
+        
         console.log('💾 Saving data:', formData);
-
+        
         try {
             if (navigator.onLine) {
                 await this.saveToServer(formData);
@@ -830,18 +1083,18 @@ class HealthTrackerPro {
                 this.saveToLocal(formData);
                 this.showToast('Daten offline gespeichert!', 'success');
             }
-
+            
             this.updateDashboard(formData);
             this.checkGoalAchievements(formData);
             this.loadRecentActivities();
-
+            
             setTimeout(() => {
                 console.log('🔄 Reloading charts after data save...');
                 this.loadAndUpdateCharts();
             }, 500);
-
+            
             this.resetForm();
-
+            
         } catch (error) {
             console.error('❌ Fehler beim Speichern:', error);
             this.showToast('Fehler beim Speichern der Daten', 'error');
@@ -850,12 +1103,12 @@ class HealthTrackerPro {
         }
     }
 
-    // NEW: Goal Achievement Check
+    // Goal Achievement Check
     checkGoalAchievements(data) {
         const achievements = [];
         
         if (data.steps && data.steps >= this.goals.stepsGoal) {
-            achievements.push(`🚶‍♂️ Schrittziel erreicht: ${data.steps.toLocaleString()} Schritte!`);
+            achievements.push(`🚶♂️ Schrittziel erreicht: ${data.steps.toLocaleString()} Schritte!`);
         }
         
         if (data.waterIntake && data.waterIntake >= this.goals.waterGoal) {
@@ -874,6 +1127,14 @@ class HealthTrackerPro {
             }
         }
         
+        // NEW: Blood Pressure Achievement
+        if (data.systolic && data.diastolic) {
+            const category = this.getBloodPressureCategory(data.systolic, data.diastolic);
+            if (category === 'Normal') {
+                achievements.push(`❤️ Perfekter Blutdruck: ${data.systolic}/${data.diastolic} mmHg!`);
+            }
+        }
+        
         // Show achievement notifications
         achievements.forEach((achievement, index) => {
             setTimeout(() => {
@@ -885,12 +1146,10 @@ class HealthTrackerPro {
     async saveToServer(data) {
         const response = await fetch('/api/health-data', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-
+        
         if (!response.ok) {
             let errorMessage = `Server error: ${response.status}`;
             try {
@@ -901,7 +1160,7 @@ class HealthTrackerPro {
             }
             throw new Error(errorMessage);
         }
-
+        
         return response.json();
     }
 
@@ -924,15 +1183,11 @@ class HealthTrackerPro {
                     localData = [];
                 }
             }
-
-            localData.push({
-                ...data,
-                _id: 'local_' + Date.now()
-            });
-
+            
+            localData.push({ ...data, _id: 'local_' + Date.now() });
             localStorage.setItem('healthData', JSON.stringify(localData));
             console.log('💾 Data saved locally, total entries:', localData.length);
-
+            
         } catch (error) {
             console.error('❌ Error saving to local storage:', error);
         }
@@ -944,23 +1199,32 @@ class HealthTrackerPro {
             if (weightEl) weightEl.textContent = data.weight + ' kg';
             this.updateWeightProgress(data.weight);
         }
-
+        
         if (data.steps) {
             const stepsEl = document.getElementById('today-steps');
             if (stepsEl) stepsEl.textContent = data.steps.toLocaleString();
             this.updateStepsProgress(data.steps);
         }
-
+        
         if (data.waterIntake) {
             const waterEl = document.getElementById('today-water');
             if (waterEl) waterEl.textContent = data.waterIntake + ' L';
             this.updateWaterProgress(data.waterIntake);
         }
-
+        
         if (data.sleepHours) {
             const sleepEl = document.getElementById('today-sleep');
             if (sleepEl) sleepEl.textContent = data.sleepHours + ' h';
             this.updateSleepProgress(data.sleepHours);
+        }
+        
+        // NEW: Update BP/Pulse dashboard
+        if (data.systolic && data.diastolic) {
+            this.updateBloodPressureDisplay(data.systolic, data.diastolic);
+        }
+        
+        if (data.pulse) {
+            this.updatePulseDisplay(data.pulse);
         }
     }
 
@@ -968,110 +1232,110 @@ class HealthTrackerPro {
         const goal = this.goals.stepsGoal;
         const percentage = Math.min((steps / goal) * 100, 100);
         
-        const stepsProgressElement = document.getElementById('steps-progress');
+        const stepsProgressElement = document.getElementById('steps-progress-circle');
         const stepsPercentageElement = document.getElementById('steps-percentage');
         
         if (stepsProgressElement && stepsPercentageElement) {
-            stepsProgressElement.setAttribute('stroke-dasharray', `${percentage}, 100`);
+            stepsProgressElement.style.setProperty('--value', percentage);
             stepsPercentageElement.textContent = Math.round(percentage) + '%';
         }
     }
 
     updateWaterProgress(waterIntake) {
-    const goal = this.goals.waterGoal;
-    const percentage = Math.min((waterIntake / goal) * 100, 100);
-    
-    // Update glasses visualization
-    const glasses = Math.min(Math.ceil(waterIntake / 0.25), 8);
-    const container = document.getElementById('water-glasses');
-    if (container) {
-        container.innerHTML = '';
-        for (let i = 0; i < 8; i++) {
-            const glass = document.createElement('div');
-            glass.className = `w-4 h-6 rounded-sm transition-colors duration-300 ${i < glasses ? 'bg-info' : 'bg-base-300'}`;
-            container.appendChild(glass);
+        const goal = this.goals.waterGoal;
+        const percentage = Math.min((waterIntake / goal) * 100, 100);
+        
+        // Update glasses visualization
+        const glasses = Math.min(Math.ceil(waterIntake / 0.25), 8);
+        const container = document.getElementById('water-glasses');
+        if (container) {
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const glass = document.createElement('div');
+                glass.className = `w-4 h-6 rounded-sm transition-colors duration-300 ${i < glasses ? 'bg-info' : 'bg-base-300'}`;
+                container.appendChild(glass);
+            }
+        }
+        
+        // Update DaisyUI progress bar
+        const progressEl = document.getElementById('water-progress');
+        const progressTextEl = document.getElementById('water-progress-text');
+        
+        if (progressEl) {
+            progressEl.value = percentage;
+        }
+        if (progressTextEl) {
+            progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
         }
     }
-    
-    // Update DaisyUI progress bar
-    const progressEl = document.getElementById('water-progress');
-    const progressTextEl = document.getElementById('water-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
-        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
-    }
-}
 
     updateSleepProgress(sleepHours) {
-    const goal = this.goals.sleepGoal;
-    const percentage = Math.min((sleepHours / goal) * 100, 100);
-    
-    // Update star quality visualization
-    const quality = Math.min(Math.ceil(sleepHours / 2), 5);
-    const container = document.getElementById('sleep-quality');
-    if (container) {
-        container.innerHTML = '';
-        for (let i = 0; i < 5; i++) {
-            const star = document.createElement('i');
-            star.setAttribute('data-lucide', 'star');
-            star.className = `w-3 h-3 transition-colors duration-300 ${i < quality ? 'text-warning fill-current' : 'text-base-300'}`;
-            container.appendChild(star);
+        const goal = this.goals.sleepGoal;
+        const percentage = Math.min((sleepHours / goal) * 100, 100);
+        
+        // Update star quality visualization
+        const quality = Math.min(Math.ceil(sleepHours / 2), 5);
+        const container = document.getElementById('sleep-quality');
+        if (container) {
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const star = document.createElement('i');
+                star.setAttribute('data-lucide', 'star');
+                star.className = `w-3 h-3 transition-colors duration-300 ${i < quality ? 'text-warning fill-current' : 'text-base-300'}`;
+                container.appendChild(star);
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
+        
+        // Update DaisyUI progress bar
+        const progressEl = document.getElementById('sleep-progress');
+        const progressTextEl = document.getElementById('sleep-progress-text');
+        
+        if (progressEl) {
+            progressEl.value = percentage;
+        }
+        if (progressTextEl) {
+            progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
         }
     }
-    
-    // Update DaisyUI progress bar
-    const progressEl = document.getElementById('sleep-progress');
-    const progressTextEl = document.getElementById('sleep-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
-        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
-    }
-}
 
     updateWeightProgress(currentWeight) {
-    if (!this.goals.weightGoal || !currentWeight) return;
-    
-    const goal = this.goals.weightGoal;
-    const diff = Math.abs(currentWeight - goal);
-    const maxDiff = goal * 0.2; // 20% of goal weight as max difference for progress calculation
-    
-    let percentage;
-    if (diff <= 1) {
-        percentage = 100; // Very close to goal
-    } else {
-        percentage = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
-    }
-    
-    const progressEl = document.getElementById('weight-progress');
-    const progressTextEl = document.getElementById('weight-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
+        if (!this.goals.weightGoal || !currentWeight) return;
+        
+        const goal = this.goals.weightGoal;
+        const diff = Math.abs(currentWeight - goal);
+        const maxDiff = goal * 0.2; // 20% of goal weight as max difference for progress calculation
+        
+        let percentage;
         if (diff <= 1) {
-            progressTextEl.textContent = 'Ziel erreicht! 🎉';
+            percentage = 100; // Very close to goal
         } else {
-            progressTextEl.textContent = `${diff.toFixed(1)}kg zum Ziel`;
+            percentage = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
+        }
+        
+        const progressEl = document.getElementById('weight-progress');
+        const progressTextEl = document.getElementById('weight-progress-text');
+        
+        if (progressEl) {
+            progressEl.value = percentage;
+        }
+        if (progressTextEl) {
+            if (diff <= 1) {
+                progressTextEl.textContent = 'Ziel erreicht! 🎉';
+            } else {
+                progressTextEl.textContent = `${diff.toFixed(1)}kg zum Ziel`;
+            }
         }
     }
-}
 
     updateChartsTheme() {
         if (!this.chartInitialized) return;
-
+        
         const gridColor = this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
         const tickColor = this.theme === 'dark' ? '#9CA3AF' : '#6B7280';
-
+        
         Object.values(this.charts).forEach(chart => {
             if (chart && chart.options && chart.options.scales) {
                 Object.values(chart.options.scales).forEach(scale => {
@@ -1080,6 +1344,7 @@ class HealthTrackerPro {
                 });
                 chart.update('none');
             }
+            
             if (chart.options && chart.options.plugins && chart.options.plugins.legend) {
                 chart.options.plugins.legend.labels.color = tickColor;
             }
@@ -1129,7 +1394,6 @@ class HealthTrackerPro {
             if (Array.isArray(localData)) {
                 const today = new Date().toISOString().split('T')[0];
                 const todayData = localData.find(entry => entry.date === today);
-                
                 if (todayData) {
                     this.updateDashboard(todayData);
                 }
@@ -1201,7 +1465,7 @@ class HealthTrackerPro {
             console.log('ℹ️ No activities to display');
             return;
         }
-
+        
         try {
             container.innerHTML = activities.map(activity => {
                 if (!activity || typeof activity !== 'object') {
@@ -1210,41 +1474,54 @@ class HealthTrackerPro {
                 
                 const date = activity.date ? new Date(activity.date).toLocaleDateString('de-DE', {
                     weekday: 'short',
-                    day: 'numeric',
+                    day: 'numeric', 
                     month: 'short'
                 }) : 'N/A';
                 
                 const mood = this.getMoodEmoji(activity.mood);
                 
+                // NEW: Add BP/Pulse to activity display
+                let healthMetrics = [];
+                if (activity.weight) healthMetrics.push(`${activity.weight}kg`);
+                if (activity.steps) healthMetrics.push(`${activity.steps.toLocaleString()} Schritte`);
+                if (activity.waterIntake) healthMetrics.push(`${activity.waterIntake}L Wasser`);
+                if (activity.sleepHours) healthMetrics.push(`${activity.sleepHours}h Schlaf`);
+                if (activity.systolic && activity.diastolic) {
+                    healthMetrics.push(`${activity.systolic}/${activity.diastolic} mmHg`);
+                }
+                if (activity.pulse) healthMetrics.push(`${activity.pulse} bpm`);
+                
                 return `
-                    <div class="activity-item bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">${date}</span>
-                            <span class="text-lg">${mood}</span>
+                    <div class="activity-item bg-base-100 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span class="text-lg">${mood}</span>
+                            </div>
+                            <div>
+                                <div class="font-medium">${date}</div>
+                                <div class="text-sm text-base-content/70">
+                                    ${healthMetrics.join(' • ') || 'Keine Daten'}
+                                </div>
+                                ${activity.notes ? `<div class="text-xs text-base-content/60 mt-1">"${activity.notes}"</div>` : ''}
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            ${activity.weight ? `<div>⚖️ ${activity.weight}kg</div>` : ''}
-                            ${activity.steps ? `<div>👣 ${activity.steps.toLocaleString()}</div>` : ''}
-                            ${activity.waterIntake ? `<div>💧 ${activity.waterIntake}L</div>` : ''}
-                            ${activity.sleepHours ? `<div>😴 ${activity.sleepHours}h</div>` : ''}
+                        <div class="text-xs text-base-content/50">
+                            ${activity.createdAt ? new Date(activity.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : ''}
                         </div>
-                        ${activity.notes ? `<div class="mt-2 text-xs text-gray-600 dark:text-gray-300 italic">"${activity.notes}"</div>` : ''}
                     </div>
                 `;
             }).join('');
             
-            console.log('✅ Recent activities displayed:', activities.length, 'items');
-            
         } catch (error) {
             console.error('❌ Error displaying activities:', error);
-            container.innerHTML = '<p class="text-center text-gray-500 py-4">Fehler beim Anzeigen der Aktivitäten</p>';
+            container.innerHTML = '<div class="text-center py-4 text-red-500">Fehler beim Anzeigen der Aktivitäten</div>';
         }
     }
 
     getMoodEmoji(mood) {
         const moodEmojis = {
             'excellent': '😄',
-            'good': '😊',
+            'good': '😊', 
             'neutral': '😐',
             'bad': '😔',
             'terrible': '😞'
@@ -1255,14 +1532,16 @@ class HealthTrackerPro {
     showLoading(show) {
         this.isLoading = show;
         const submitBtn = document.querySelector('#health-form button[type="submit"]');
+        
         if (submitBtn) {
             if (show) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> Speichern...';
+                submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Speichern...';
             } else {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i> Speichern';
+                submitBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Speichern';
             }
+            
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
@@ -1277,12 +1556,11 @@ class HealthTrackerPro {
             warning: 'bg-yellow-500',
             info: 'bg-blue-500'
         }[type] || 'bg-gray-500';
-
+        
         toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 transform ${bgClass}`;
         toast.textContent = message;
-
         document.body.appendChild(toast);
-
+        
         // Auto remove after 4 seconds
         setTimeout(() => {
             toast.style.transform = 'translateY(-100%)';
@@ -1295,6 +1573,20 @@ class HealthTrackerPro {
         if (form) {
             form.reset();
         }
+        
+        // Reset BP/Pulse display 
+        const bpEl = document.getElementById('today-bp');
+        const pulseEl = document.getElementById('today-pulse');
+        const statusEl = document.getElementById('bp-status');
+        const categoryEl = document.getElementById('bp-category');
+        
+        if (bpEl) bpEl.textContent = '--/-- mmHg';
+        if (pulseEl) pulseEl.textContent = '-- bpm';
+        if (statusEl) {
+            statusEl.textContent = 'Keine Daten';
+            statusEl.className = 'badge badge-sm badge-ghost';
+        }
+        if (categoryEl) categoryEl.textContent = 'Kategorie: --';
     }
 
     initAnimations() {
@@ -1303,7 +1595,7 @@ class HealthTrackerPro {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
         };
-
+        
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -1312,7 +1604,7 @@ class HealthTrackerPro {
                 }
             });
         }, observerOptions);
-
+        
         document.querySelectorAll('.stat-card, .activity-item').forEach(card => {
             card.style.opacity = '0';
             card.style.transform = 'translateY(20px)';
@@ -1339,5 +1631,5 @@ class HealthTrackerPro {
 // App initialisieren wenn DOM bereit ist
 document.addEventListener('DOMContentLoaded', () => {
     window.healthTracker = new HealthTrackerPro();
-    console.log('🚀 Health Tracker Pro mit Goals-System initialisiert');
+    console.log('🚀 Health Tracker Pro mit Goals-System und Blutdruck-Tracking initialisiert'); 
 });

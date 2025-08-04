@@ -3,598 +3,427 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Tracker Pro - Professioneller Gesundheits-Tracker</title>
+    <title>Health Tracker Pro - Deine Gesundheit im Blick</title>
+    <meta name="description" content="Verfolge deine Gesundheitsziele und bleibe motiviert mit deinem persönlichen Health Tracker.">
     
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Verfolge deine Gesundheitsziele mit diesem modernen, professionellen Health Tracker. Offline-fähig und benutzerfreundlich.">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Health Tracker Pro">
     
-    <!-- Icons -->
+    <!-- Favicons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <link rel="manifest" href="/manifest.json">
     
-    <!-- CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#667eea',
-                        secondary: '#764ba2',
-                        accent: '#f093fb'
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Styles -->
+    <link href="/dist/output.css" rel="stylesheet">
     
-    <!-- Chart.js -->
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
-
-<body class="min-h-screen bg-base-100">
-    <!-- Navigation -->
-    <div class="navbar bg-base-100 shadow-sm border-b border-base-300">
-        <div class="navbar-start">
-            <div class="dropdown lg:hidden">
-                <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
-                    <i data-lucide="menu" class="w-5 h-5"></i>
-                </div>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-300">
-                    <li><a class="flex items-center gap-2"><i data-lucide="home" class="w-4 h-4"></i>Dashboard</a></li>
-                    <li><a class="flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4"></i>Analytics</a></li>
-                    <li><a class="flex items-center gap-2"><i data-lucide="target" class="w-4 h-4"></i>Ziele</a></li>
-                </ul>
-            </div>
-            <a class="btn btn-ghost text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Health Tracker Pro
-            </a>
-        </div>
-        
-        <div class="navbar-center hidden lg:flex">
-            <ul class="menu menu-horizontal px-1 gap-2">
-                <li><a class="btn btn-ghost btn-sm"><i data-lucide="home" class="w-4 h-4"></i>Dashboard</a></li>
-                <li><a class="btn btn-ghost btn-sm"><i data-lucide="bar-chart-3" class="w-4 h-4"></i>Analytics</a></li>
-                <li><a class="btn btn-ghost btn-sm"><i data-lucide="target" class="w-4 h-4"></i>Ziele</a></li>
-            </ul>
-        </div>
-        
-        <div class="navbar-end gap-2">
-            <!-- Connection Status -->
-            <div class="badge badge-success gap-1 hidden sm:flex" id="connection-status">
-                <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                <span class="text-xs">Online</span>
-            </div>
-            
-            <!-- Theme Toggle -->
-            <button class="btn btn-ghost btn-circle" id="theme-toggle">
-                <i data-lucide="sun" class="w-5 h-5"></i>
-            </button>
-            
-            <!-- Install Button -->
-            <button class="btn btn-primary btn-sm hidden" id="install-btn">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Installieren</span>
-            </button>
-        </div>
-    </div>
-
-    <div class="container mx-auto px-4 py-6 max-w-7xl">
-        <!-- Welcome Section -->
-        <div class="hero bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl mb-8">
-            <div class="hero-content text-center py-12">
-                <div class="max-w-md">
-                    <h1 class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        Willkommen zurück!
-                    </h1>
-                    <p class="py-6 text-base-content/70">
-                        Verfolge deine Gesundheitsziele und bleibe motiviert mit deinem persönlichen Health Tracker.
-                    </p>
-                    <div class="flex justify-center gap-2">
-                        <div class="badge badge-success gap-1">
-                            <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                            Heute aktiv
-                        </div>
-                        <div class="badge badge-primary">7-Tage Streak</div>
+<body class="bg-base-100 text-base-content min-h-screen">
+    <!-- Header -->
+    <header class="bg-base-200 border-b border-base-300">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                        <i data-lucide="heart-pulse" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Health Tracker Pro
+                        </h1>
+                        <p class="text-sm text-base-content/70">Deine Gesundheit im Blick</p>
                     </div>
                 </div>
+                
+                <div class="flex items-center space-x-3">
+                    <div id="connection-status" class="text-xs text-green-600">🌐 Online</div>
+                    <button id="theme-toggle" class="btn btn-ghost btn-circle" title="Theme wechseln">
+                        <i data-lucide="moon" class="w-5 h-5"></i>
+                    </button>
+                    <button id="install-btn" class="btn btn-primary btn-sm hidden" title="App installieren">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Installieren
+                    </button>
+                </div>
             </div>
         </div>
+    </header>
 
-        <!-- Goals Setting Section -->
-<div class="hero bg-gradient-to-r from-primary to-secondary rounded-2xl mb-8">
-    <div class="hero-content text-center text-primary-content w-full">
-        <div class="w-full">
+    <main class="container mx-auto px-4 py-8 space-y-8">
+        <!-- Today's Stats -->
+        <section class="bg-base-200 rounded-2xl p-6">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-3xl font-bold flex items-center">
-                    🎯 Meine Ziele
-                </h2>
-                <button id="edit-goals-btn" class="btn btn-outline btn-sm text-primary-content border-primary-content hover:bg-primary-content hover:text-primary">
-                    <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>
+                <h2 class="text-2xl font-bold">Heutige Werte</h2>
+                <button id="edit-goals-btn" class="btn btn-outline btn-sm">
+                    <i data-lucide="target" class="w-4 h-4"></i>
                     Ziele bearbeiten
                 </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
-                    <div class="card-body p-4 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i data-lucide="target" class="w-6 h-6 text-primary-content"></i>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <!-- Gewicht -->
+                <div class="stat-card bg-base-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                            <i data-lucide="scale" class="w-5 h-5 text-purple-600"></i>
                         </div>
-                        <h3 class="font-semibold text-primary-content text-sm mb-1">Gewicht</h3>
-                        <div class="text-2xl font-bold text-primary-content" id="weight-goal-display">-- kg</div>
+                        <span class="text-xs text-base-content/60">Gewicht</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-2xl font-bold" id="today-weight">-- kg</div>
+                        <div class="text-xs text-base-content/70">
+                            Ziel: <span id="weight-goal-display">--</span>
+                        </div>
+                        <progress id="weight-progress" class="progress progress-purple w-full" value="0" max="100"></progress>
+                        <div class="text-xs text-base-content/60" id="weight-progress-text">Fortschritt wird berechnet...</div>
                     </div>
                 </div>
-                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
-                    <div class="card-body p-4 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i data-lucide="footprints" class="w-6 h-6 text-primary-content"></i>
-                        </div>
-                        <h3 class="font-semibold text-primary-content text-sm mb-1">Schritte</h3>
-                        <div class="text-2xl font-bold text-primary-content" id="steps-goal-display">10.000</div>
-                    </div>
-                </div>
-                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
-                    <div class="card-body p-4 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i data-lucide="droplets" class="w-6 h-6 text-primary-content"></i>
-                        </div>
-                        <h3 class="font-semibold text-primary-content text-sm mb-1">Wasser</h3>
-                        <div class="text-2xl font-bold text-primary-content" id="water-goal-display">2,0 L</div>
-                    </div>
-                </div>
-                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
-                    <div class="card-body p-4 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i data-lucide="moon" class="w-6 h-6 text-primary-content"></i>
-                        </div>
-                        <h3 class="font-semibold text-primary-content text-sm mb-1">Schlaf</h3>
-                        <div class="text-2xl font-bold text-primary-content" id="sleep-goal-display">8 h</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Goals Edit Modal -->
-<div id="goals-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
-        <div class="relative bg-base-100 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-base-content">🎯 Ziele bearbeiten</h3>
-                <button id="close-goals-modal" class="btn btn-ghost btn-sm">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+                <!-- Schritte -->
+                <div class="stat-card bg-base-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                            <i data-lucide="footprints" class="w-5 h-5 text-green-600"></i>
+                        </div>
+                        <span class="text-xs text-base-content/60">Schritte</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-2xl font-bold" id="today-steps">0</div>
+                        <div class="text-xs text-base-content/70">
+                            Ziel: <span id="steps-goal-display">10.000</span>
+                        </div>
+                        <div class="radial-progress text-success" style="--value:0" id="steps-progress-circle">
+                            <span class="text-xs" id="steps-percentage">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wasser -->
+                <div class="stat-card bg-base-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <i data-lucide="droplets" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                        <span class="text-xs text-base-content/60">Wasser</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-2xl font-bold" id="today-water">0 L</div>
+                        <div class="text-xs text-base-content/70">
+                            Ziel: <span id="water-goal-display">2,0 L</span>
+                        </div>
+                        <div class="flex space-x-1" id="water-glasses">
+                            <!-- Dynamisch generierte Gläser -->
+                        </div>
+                        <progress id="water-progress" class="progress progress-info w-full" value="0" max="100"></progress>
+                        <div class="text-xs text-base-content/60" id="water-progress-text">0% des Tagesziels</div>
+                    </div>
+                </div>
+
+                <!-- Schlaf -->
+                <div class="stat-card bg-base-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                            <i data-lucide="moon" class="w-5 h-5 text-indigo-600"></i>
+                        </div>
+                        <span class="text-xs text-base-content/60">Schlaf</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-2xl font-bold" id="today-sleep">0 h</div>
+                        <div class="text-xs text-base-content/70">
+                            Ziel: <span id="sleep-goal-display">8 h</span>
+                        </div>
+                        <div class="flex space-x-1" id="sleep-quality">
+                            <!-- Dynamisch generierte Sterne -->
+                        </div>
+                        <progress id="sleep-progress" class="progress progress-warning w-full" value="0" max="100"></progress>
+                        <div class="text-xs text-base-content/60" id="sleep-progress-text">0% des Tagesziels</div>
+                    </div>
+                </div>
+
+                <!-- NEU: Blutdruck -->
+                <div class="stat-card bg-base-100 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                            <i data-lucide="heart" class="w-5 h-5 text-red-600"></i>
+                        </div>
+                        <span class="text-xs text-base-content/60">Blutdruck</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-lg font-bold" id="today-bp">--/-- mmHg</div>
+                        <div class="text-sm font-semibold" id="today-pulse">-- bpm</div>
+                        <div class="badge badge-sm" id="bp-status">Keine Daten</div>
+                        <div class="text-xs text-base-content/60" id="bp-category">Kategorie: --</div>
+                    </div>
+                </div>
             </div>
-            <form id="goals-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-base-content">Gewichtsziel (kg)</label>
-                    <input type="number" id="weight-goal-input" step="0.1" min="0" 
-                           class="input input-bordered w-full" placeholder="Optional">
+        </section>
+
+        <!-- Data Input Form -->
+        <section class="bg-base-200 rounded-2xl p-6">
+            <h2 class="text-2xl font-bold mb-6">Daten eingeben</h2>
+            
+            <form id="health-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Gewicht -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="scale" class="w-4 h-4 inline mr-2"></i>
+                                Gewicht (kg)
+                            </span>
+                        </label>
+                        <input type="number" id="weight" step="0.1" min="0" max="300" 
+                               class="input input-bordered" placeholder="z.B. 70.5">
+                    </div>
+
+                    <!-- Schritte -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="footprints" class="w-4 h-4 inline mr-2"></i>
+                                Schritte
+                            </span>
+                        </label>
+                        <input type="number" id="steps" min="0" max="100000" 
+                               class="input input-bordered" placeholder="z.B. 8500">
+                    </div>
+
+                    <!-- Wasser -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="droplets" class="w-4 h-4 inline mr-2"></i>
+                                Wasseraufnahme (L)
+                            </span>
+                        </label>
+                        <input type="number" id="water" step="0.1" min="0" max="10" 
+                               class="input input-bordered" placeholder="z.B. 2.5">
+                    </div>
+
+                    <!-- Schlaf -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="moon" class="w-4 h-4 inline mr-2"></i>
+                                Schlafstunden
+                            </span>
+                        </label>
+                        <input type="number" id="sleep" step="0.5" min="0" max="24" 
+                               class="input input-bordered" placeholder="z.B. 7.5">
+                    </div>
+
+                    <!-- NEU: Blutdruck Systolisch -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="trending-up" class="w-4 h-4 inline mr-2"></i>
+                                Systolisch (mmHg)
+                            </span>
+                        </label>
+                        <input type="number" id="systolic" min="60" max="250" 
+                               class="input input-bordered" placeholder="z.B. 120">
+                    </div>
+
+                    <!-- NEU: Blutdruck Diastolisch -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="trending-down" class="w-4 h-4 inline mr-2"></i>
+                                Diastolisch (mmHg)
+                            </span>
+                        </label>
+                        <input type="number" id="diastolic" min="40" max="150" 
+                               class="input input-bordered" placeholder="z.B. 80">
+                    </div>
+
+                    <!-- NEU: Puls -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="heart-pulse" class="w-4 h-4 inline mr-2"></i>
+                                Puls (bpm)
+                            </span>
+                        </label>
+                        <input type="number" id="pulse" min="30" max="200" 
+                               class="input input-bordered" placeholder="z.B. 72">
+                    </div>
+
+                    <!-- Stimmung -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="smile" class="w-4 h-4 inline mr-2"></i>
+                                Stimmung
+                            </span>
+                        </label>
+                        <select id="mood" class="select select-bordered">
+                            <option value="">Wähle deine Stimmung</option>
+                            <option value="excellent">😄 Ausgezeichnet</option>
+                            <option value="good">😊 Gut</option>
+                            <option value="neutral">😐 Neutral</option>
+                            <option value="bad">😔 Schlecht</option>
+                            <option value="terrible">😞 Furchtbar</option>
+                        </select>
+                    </div>
+
+                    <!-- Notizen -->
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text font-medium">
+                                <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>
+                                Notizen (optional)
+                            </span>
+                        </label>
+                        <textarea id="notes" class="textarea textarea-bordered h-20" 
+                                placeholder="Zusätzliche Notizen zu deinem heutigen Tag..."></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-base-content">Schritte pro Tag</label>
-                    <input type="number" id="steps-goal-input" min="0" 
-                           class="input input-bordered w-full" value="10000" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-base-content">Wasseraufnahme (L)</label>
-                    <input type="number" id="water-goal-input" step="0.1" min="0" 
-                           class="input input-bordered w-full" value="2.0" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-base-content">Schlafstunden</label>
-                    <input type="number" id="sleep-goal-input" step="0.5" min="0" max="24" 
-                           class="input input-bordered w-full" value="8" required>
-                </div>
-                <div class="flex justify-end space-x-2 pt-4">
-                    <button type="button" id="cancel-goals" class="btn btn-ghost">Abbrechen</button>
+
+                <div class="flex justify-end">
                     <button type="submit" class="btn btn-primary">
-                        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                        <i data-lucide="save" class="w-4 h-4"></i>
                         Speichern
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-<!-- Today's Stats with Progress -->
-<div class="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="stat-card card bg-base-100 shadow-xl">
-        <div class="card-body p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <div class="p-3 bg-primary bg-opacity-10 rounded-xl">
-                        <i data-lucide="weight" class="w-6 h-6 text-primary"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-base-content opacity-70">Gewicht</p>
-                        <p class="text-2xl font-bold text-base-content" id="today-weight">-- kg</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-base-content opacity-50">Ziel</p>
-                    <p class="text-sm font-semibold text-base-content" id="weight-goal-stat">--</p>
-                </div>
-            </div>
-            <progress class="progress progress-primary w-full" id="weight-progress" value="0" max="100"></progress>
-            <p class="text-xs text-base-content opacity-50 mt-1" id="weight-progress-text">Fortschritt wird berechnet...</p>
-        </div>
-    </div>
-
-    <div class="stat-card card bg-base-100 shadow-xl">
-        <div class="card-body p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <div class="p-3 bg-success bg-opacity-10 rounded-xl">
-                        <i data-lucide="footprints" class="w-6 h-6 text-success"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-base-content opacity-70">Schritte</p>
-                        <p class="text-2xl font-bold text-base-content" id="today-steps">0</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-base-content opacity-50">Ziel</p>
-                    <p class="text-sm font-semibold text-base-content" id="steps-goal-stat">10.000</p>
-                </div>
-            </div>
-            <!-- Progress Circle bleibt wie es ist -->
-            <div class="relative w-16 h-16 mx-auto">
-                <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="0, 100"
-                          class="text-base-300" />
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                          class="text-success" id="steps-progress" stroke-dasharray="0, 100" />
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <span class="text-sm font-bold text-base-content" id="steps-percentage">0%</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-card card bg-base-100 shadow-xl">
-        <div class="card-body p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <div class="p-3 bg-info bg-opacity-10 rounded-xl">
-                        <i data-lucide="droplets" class="w-6 h-6 text-info"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-base-content opacity-70">Wasser</p>
-                        <p class="text-2xl font-bold text-base-content" id="today-water">0 L</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-base-content opacity-50">Ziel</p>
-                    <p class="text-sm font-semibold text-base-content" id="water-goal-stat">2,0 L</p>
-                </div>
-            </div>
-            <div class="flex justify-center mb-2">
-                <div class="flex space-x-1" id="water-glasses">
-                    <!-- Dynamisch generiert -->
-                </div>
-            </div>
-            <progress class="progress progress-info w-full" id="water-progress" value="0" max="100"></progress>
-            <p class="text-xs text-base-content opacity-50 mt-1 text-center" id="water-progress-text">0% des Tagesziels</p>
-        </div>
-    </div>
-
-    <div class="stat-card card bg-base-100 shadow-xl">
-        <div class="card-body p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <div class="p-3 bg-secondary bg-opacity-10 rounded-xl">
-                        <i data-lucide="moon" class="w-6 h-6 text-secondary"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-base-content opacity-70">Schlaf</p>
-                        <p class="text-2xl font-bold text-base-content" id="today-sleep">0 h</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-base-content opacity-50">Ziel</p>
-                    <p class="text-sm font-semibold text-base-content" id="sleep-goal-stat">8 h</p>
-                </div>
-            </div>
-            <div class="flex justify-center mb-2">
-                <div class="flex space-x-1" id="sleep-quality">
-                    <!-- Dynamisch generiert -->
-                </div>
-            </div>
-            <progress class="progress progress-secondary w-full" id="sleep-progress" value="0" max="100"></progress>
-            <p class="text-xs text-base-content opacity-50 mt-1 text-center" id="sleep-progress-text">0% des Tagesziels</p>
-        </div>
-    </div>
-</div>
+        </section>
 
         <!-- Charts Section -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-base-content mb-6">Verlauf & Trends</h2>
+        <section class="space-y-6">
+            <h2 class="text-2xl font-bold">Visualisierung (Letzte 7 Tage)</h2>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Weight Chart -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title justify-between">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
-                                Gewichtsverlauf
-                            </div>
-                            <div class="badge badge-outline">7 Tage</div>
-                        </div>
-                        <div class="h-64 relative">
-                            <canvas id="weightChart"></canvas>
-                        </div>
+                <!-- Gewicht Chart -->
+                <div class="bg-base-200 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="trending-up" class="w-5 h-5 mr-2 text-purple-600"></i>
+                        Gewichtsverlauf
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="weightChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Activity Chart -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title justify-between">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="activity" class="w-5 h-5 text-green-600"></i>
-                                Aktivitätsübersicht
-                            </div>
-                            <div class="badge badge-outline">Schritte & Wasser</div>
-                        </div>
-                        <div class="h-64 relative">
-                            <canvas id="activityChart"></canvas>
-                        </div>
+                <div class="bg-base-200 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="activity" class="w-5 h-5 mr-2 text-green-600"></i>
+                        Aktivität & Wasser
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="activityChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Sleep Analysis -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title justify-between">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="moon" class="w-5 h-5 text-purple-600"></i>
-                                Schlafanalyse
-                            </div>
-                            <div class="badge badge-outline">Dauer & Qualität</div>
-                        </div>
-                        <div class="h-64 relative">
-                            <canvas id="sleepChart"></canvas>
-                        </div>
-                        
-                        <!-- Sleep Stats -->
-                        <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-base-300">
-                            <div class="stat px-0">
-                                <div class="stat-title text-xs">Qualität</div>
-                                <div class="stat-value text-lg text-success">Gut</div>
-                            </div>
-                            <div class="stat px-0">
-                                <div class="stat-title text-xs">Durchschnitt</div>
-                                <div class="stat-value text-lg">7.2h</div>
-                            </div>
-                            <div class="stat px-0">
-                                <div class="stat-title text-xs">Zieltage</div>
-                                <div class="stat-value text-lg text-primary">5/7</div>
-                            </div>
-                        </div>
+                <!-- Sleep Chart -->
+                <div class="bg-base-200 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="moon" class="w-5 h-5 mr-2 text-indigo-600"></i>
+                        Schlafqualität
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="sleepChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- NEU: Blood Pressure & Pulse Chart -->
+                <div class="bg-base-200 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="heart" class="w-5 h-5 mr-2 text-red-600"></i>
+                        Blutdruck & Puls
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="bpChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Mood Chart -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title justify-between">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="smile" class="w-5 h-5 text-yellow-500"></i>
-                                Stimmungsverteilung
-                            </div>
-                            <div class="badge badge-outline">7 Tage</div>
-                        </div>
-                        <div class="h-64 relative">
-                            <canvas id="moodChart"></canvas>
-                        </div>
-                        
-                        <!-- Mood Insight -->
-                        <div class="alert alert-info mt-4">
-                            <i data-lucide="lightbulb" class="w-4 h-4"></i>
-                            <span class="text-sm">Deine Stimmung korreliert positiv mit mehr Schlaf!</span>
-                        </div>
+                <div class="bg-base-200 rounded-2xl p-6 lg:col-span-2">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="smile" class="w-5 h-5 mr-2 text-yellow-600"></i>
+                        Stimmungsverteilung
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="moodChart"></canvas>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Data Entry & Recent Activities -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <!-- Data Entry Form -->
-            <div class="xl:col-span-2">
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title">
-                            <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
-                            Gesundheitsdaten eingeben
-                        </div>
-                        <p class="text-base-content/70 mb-4">Verfolge deine täglichen Gesundheitsmetriken</p>
-                        
-                        <form id="health-form" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-medium">Gewicht (kg)</span>
-                                    </label>
-                                    <input type="number" step="0.1" placeholder="75.5" 
-                                           class="input input-bordered focus:input-primary" id="weight">
-                                </div>
-                                
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-medium">Schritte</span>
-                                    </label>
-                                    <input type="number" placeholder="8500" 
-                                           class="input input-bordered focus:input-primary" id="steps">
-                                </div>
-                                
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-medium">Wasser (Liter)</span>
-                                    </label>
-                                    <input type="number" step="0.1" placeholder="2.1" 
-                                           class="input input-bordered focus:input-primary" id="water">
-                                </div>
-                                
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-medium">Schlaf (Stunden)</span>
-                                    </label>
-                                    <input type="number" step="0.1" placeholder="7.5" 
-                                           class="input input-bordered focus:input-primary" id="sleep">
-                                </div>
-                            </div>
-                            
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-medium">Stimmung</span>
-                                </label>
-                                <select class="select select-bordered focus:select-primary" id="mood">
-                                    <option value="">Stimmung wählen</option>
-                                    <option value="excellent">😊 Ausgezeichnet</option>
-                                    <option value="good">🙂 Gut</option>
-                                    <option value="neutral">😐 Neutral</option>
-                                    <option value="bad">😞 Schlecht</option>
-                                    <option value="terrible">😢 Furchtbar</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-medium">Notizen</span>
-                                </label>
-                                <textarea placeholder="Wie war dein Tag?" 
-                                          class="textarea textarea-bordered focus:textarea-primary h-20" id="notes"></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i data-lucide="save" class="w-4 h-4"></i>
-                                Daten speichern
-                            </button>
-                        </form>
-                    </div>
+        <!-- Recent Activities -->
+        <section class="bg-base-200 rounded-2xl p-6">
+            <h2 class="text-2xl font-bold mb-6">Letzte Aktivitäten</h2>
+            <div id="recent-activities" class="space-y-3">
+                <div class="text-center py-8 text-base-content/60">
+                    <i data-lucide="clock" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                    <p>Keine Aktivitäten vorhanden</p>
+                    <p class="text-sm">Füge deine ersten Gesundheitsdaten hinzu!</p>
                 </div>
             </div>
+        </section>
+    </main>
 
-            <!-- Recent Activities & Goals -->
-            <div class="space-y-6">
-                <!-- Recent Activities -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title">
-                            <i data-lucide="clock" class="w-5 h-5 text-primary"></i>
-                            Letzte Aktivitäten
-                        </div>
-                        <div id="recent-activities" class="space-y-3">
-                            <div class="text-center py-8 text-base-content/60">
-                                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                                <p class="font-medium">Keine Aktivitäten vorhanden</p>
-                                <p class="text-sm">Füge deine ersten Gesundheitsdaten hinzu!</p>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Goals Modal -->
+    <div id="goals-modal" class="modal hidden">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">Gesundheitsziele bearbeiten</h3>
+            
+            <form id="goals-form" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Gewichtsziel (kg)</span>
+                    </label>
+                    <input type="number" id="weight-goal-input" step="0.1" min="0" max="300" 
+                           class="input input-bordered" placeholder="z.B. 70">
                 </div>
 
-                <!-- Goals -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title">
-                            <i data-lucide="target" class="w-5 h-5 text-primary"></i>
-                            Gesundheitsziele
-                        </div>
-                        
-                        <!-- Daily Goals -->
-                        <div class="mb-4">
-                            <h4 class="font-semibold mb-2 flex items-center gap-2">
-                                <i data-lucide="calendar-days" class="w-4 h-4"></i>
-                                Tagesziele
-                            </h4>
-                            <div class="flex items-center gap-3">
-                                <div class="radial-progress text-primary text-xs" style="--value:80;">80%</div>
-                                <div class="flex-1">
-                                    <div class="text-sm">Erreicht</div>
-                                    <div class="text-xs text-base-content/60">4 von 5 Zielen</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Weekly Goals -->
-                        <div class="mb-4">
-                            <h4 class="font-semibold mb-2 flex items-center gap-2">
-                                <i data-lucide="calendar-week" class="w-4 h-4"></i>
-                                Wochenziele
-                            </h4>
-                            <div class="space-y-2">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm">Aktive Tage</span>
-                                    <span class="badge badge-success">5/7</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm">Gewichtsziel</span>
-                                    <span class="badge badge-warning">-0.5kg</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Achievements -->
-                        <div>
-                            <h4 class="font-semibold mb-2 flex items-center gap-2">
-                                <i data-lucide="trophy" class="w-4 h-4"></i>
-                                Erfolge
-                            </h4>
-                            <div class="space-y-2">
-                                <div class="badge badge-success gap-1 w-full justify-start">
-                                    <i data-lucide="flame" class="w-3 h-3"></i>
-                                    7-Tage-Streak
-                                </div>
-                                <div class="badge badge-primary gap-1 w-full justify-start">
-                                    <i data-lucide="footprints" class="w-3 h-3"></i>
-                                    15.000 Schritte
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Schrittziel pro Tag</span>
+                    </label>
+                    <input type="number" id="steps-goal-input" min="0" max="50000" 
+                           class="input input-bordered" value="10000">
                 </div>
-            </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Wasserziel pro Tag (L)</span>
+                    </label>
+                    <input type="number" id="water-goal-input" step="0.1" min="0" max="10" 
+                           class="input input-bordered" value="2.0">
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Schlafziel pro Tag (h)</span>
+                    </label>
+                    <input type="number" id="sleep-goal-input" step="0.5" min="0" max="24" 
+                           class="input input-bordered" value="8">
+                </div>
+
+                <div class="modal-action">
+                    <button type="button" id="cancel-goals" class="btn btn-ghost">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+
+            <button id="close-goals-modal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
         </div>
     </div>
 
-    <!-- Loading Spinner -->
-    <div class="loading loading-spinner loading-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-primary hidden" id="loading-spinner"></div>
-
-    <!-- JavaScript -->
+    <!-- Scripts -->
     <script src="/js/app.js"></script>
     <script src="/js/pwa.js"></script>
-    
     <script>
-        // Initialize Lucide Icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-        
-        // Initialize App
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof HealthTrackerPro !== 'undefined') {
-                new HealthTrackerPro();
-            }
-        });
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
 </html>

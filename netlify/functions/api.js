@@ -17,7 +17,6 @@ async function connectToDatabase() {
             socketTimeoutMS: 45000,
             dbName: 'health-tracker'
         });
-
         cachedConnection = connection;
         console.log('✅ MongoDB connected to database: health-tracker');
         return connection;
@@ -42,19 +41,32 @@ const healthDataSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-// EXPLIZIT die richtige Collection 'healthdatas' angeben
-const HealthData = mongoose.models.HealthData || 
+// NEW: Goals Schema
+const goalsSchema = new mongoose.Schema({
+    userId: { type: String, required: true },
+    weightGoal: { type: Number, min: 0 },
+    stepsGoal: { type: Number, min: 0, default: 10000 },
+    waterGoal: { type: Number, min: 0, default: 2.0 },
+    sleepGoal: { type: Number, min: 0, max: 24, default: 8 },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+const HealthData = mongoose.models.HealthData ||
     mongoose.model('HealthData', healthDataSchema, 'healthdatas');
+
+const Goals = mongoose.models.Goals ||
+    mongoose.model('Goals', goalsSchema, 'goals');
 
 // HAUPT-HANDLER FUNCTION
 const handler = async (event, context) => {
     let { httpMethod, path } = event;
-    
+
     // 🔧 KORREKTUR: Entferne /api prefix falls vorhanden (für Redirects)
     if (path.startsWith('/api/')) {
         path = path.replace('/api', '');
     }
-    
+
     console.log(`📞 API Handler: ${httpMethod} ${path}`);
     console.log(`🔍 Original path: ${event.path}`);
 
@@ -62,7 +74,7 @@ const handler = async (event, context) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS'
     };
 
     // OPTIONS Request
@@ -83,7 +95,9 @@ const handler = async (event, context) => {
                         'GET /health - Health Check',
                         'GET /test-db - Database Test',
                         'GET /health-data/{userId} - Get User Data',
-                        'POST /health-data - Save Health Data'
+                        'POST /health-data - Save Health Data',
+                        'GET /goals/{userId} - Get User Goals',
+                        'POST /goals - Save/Update Goals'
                     ]
                 })
             };
@@ -99,7 +113,7 @@ const handler = async (event, context) => {
                     timestamp: new Date().toISOString(),
                     message: 'Health Tracker API with MongoDB support',
                     database: 'health-tracker',
-                    collection: 'healthdatas',
+                    collections: ['healthdatas', 'goals'],
                     mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
                 })
             };
@@ -108,11 +122,87 @@ const handler = async (event, context) => {
         // MongoDB Connection für Daten-Operationen
         await connectToDatabase();
 
+        // NEW: Goals GET Route
+        if (httpMethod === 'GET' && path.startsWith('/goals/')) {
+            const pathSegments = path.split('/').filter(segment => segment.length > 0);
+            if (pathSegments.length < 2) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'Invalid path format. Expected: /goals/{userId}',
+                        receivedPath: path
+                    })
+                };
+            }
+
+            const userId = pathSegments[1];
+            console.log(`🎯 Fetching goals for user: ${userId}`);
+            
+            const goals = await Goals.findOne({ userId }).lean();
+            console.log(`✅ Found goals for user ${userId}:`, goals);
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify(goals || {
+                    userId,
+                    stepsGoal: 10000,
+                    waterGoal: 2.0,
+                    sleepGoal: 8,
+                    weightGoal: null
+                })
+            };
+        }
+
+        // NEW: Goals POST Route (Save/Update)
+        if (httpMethod === 'POST' && (path === '/goals' || path.endsWith('/goals'))) {
+            const body = JSON.parse(event.body || '{}');
+            console.log('🎯 Saving goals:', body);
+
+            if (!body.userId) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'userId is required',
+                        received: body
+                    })
+                };
+            }
+
+            const goalData = {
+                userId: body.userId,
+                weightGoal: body.weightGoal || null,
+                stepsGoal: body.stepsGoal || 10000,
+                waterGoal: body.waterGoal || 2.0,
+                sleepGoal: body.sleepGoal || 8,
+                updatedAt: new Date()
+            };
+
+            const savedGoals = await Goals.findOneAndUpdate(
+                { userId: body.userId },
+                goalData,
+                { upsert: true, new: true, runValidators: true }
+            );
+
+            console.log('✅ Goals saved with ID:', savedGoals._id);
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'Goals saved successfully',
+                    data: savedGoals
+                })
+            };
+        }
+
         // Health Data GET Route - KORRIGIERTES PATH PARSING
         if (httpMethod === 'GET' && path.startsWith('/health-data/')) {
             const pathSegments = path.split('/').filter(segment => segment.length > 0);
             console.log('🔍 Path segments:', pathSegments);
-            
+
             if (pathSegments.length < 2) {
                 return {
                     statusCode: 400,
@@ -144,7 +234,6 @@ const handler = async (event, context) => {
                 .lean();
 
             console.log(`✅ Found ${healthData.length} records for user ${userId} in healthdatas collection`);
-
             return {
                 statusCode: 200,
                 headers,
@@ -197,7 +286,8 @@ const handler = async (event, context) => {
         if (httpMethod === 'GET' && (path === '/test-db' || path.endsWith('/test-db'))) {
             const collections = await mongoose.connection.db.listCollections().toArray();
             const collectionNames = collections.map(c => c.name);
-            const documentCount = await HealthData.countDocuments();
+            const healthDataCount = await HealthData.countDocuments();
+            const goalsCount = await Goals.countDocuments();
 
             return {
                 statusCode: 200,
@@ -206,8 +296,10 @@ const handler = async (event, context) => {
                     message: 'Database test successful',
                     database: 'health-tracker',
                     collections: collectionNames,
-                    targetCollection: 'healthdatas',
-                    documentsInTarget: documentCount,
+                    documentsCount: {
+                        healthdatas: healthDataCount,
+                        goals: goalsCount
+                    },
                     connectionState: mongoose.connection.readyState
                 })
             };
@@ -227,14 +319,15 @@ const handler = async (event, context) => {
                     'GET /health - Health Check',
                     'GET /test-db - Database Test',
                     'GET /health-data/{userId} - Get User Data',
-                    'POST /health-data - Save Health Data'
+                    'POST /health-data - Save Health Data',
+                    'GET /goals/{userId} - Get User Goals',
+                    'POST /goals - Save/Update Goals'
                 ]
             })
         };
 
     } catch (error) {
         console.error('❌ Function error:', error);
-
         return {
             statusCode: 500,
             headers,

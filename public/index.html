@@ -110,86 +110,201 @@
             </div>
         </div>
 
-        <!-- Today's Overview -->
-        <div class="mb-8">
-            <div class="flex items-center gap-3 mb-6">
-                <h2 class="text-2xl font-bold text-base-content">Heutige Übersicht</h2>
-                <div class="badge badge-neutral">
-                    <i data-lucide="calendar" class="w-3 h-3 mr-1"></i>
-                    Heute
+        <!-- Goals Setting Section -->
+<div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 mb-8 text-white">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold">🎯 Meine Ziele</h2>
+        <button id="edit-goals-btn" class="btn btn-ghost btn-sm text-white hover:bg-white hover:bg-opacity-20">
+            <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>
+            Ziele bearbeiten
+        </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+            <div class="flex items-center mb-2">
+                <i data-lucide="target" class="w-5 h-5 mr-2"></i>
+                <span class="font-semibold">Gewicht</span>
+            </div>
+            <div class="text-2xl font-bold" id="weight-goal-display">-- kg</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+            <div class="flex items-center mb-2">
+                <i data-lucide="footprints" class="w-5 h-5 mr-2"></i>
+                <span class="font-semibold">Schritte</span>
+            </div>
+            <div class="text-2xl font-bold" id="steps-goal-display">10.000</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+            <div class="flex items-center mb-2">
+                <i data-lucide="droplets" class="w-5 h-5 mr-2"></i>
+                <span class="font-semibold">Wasser</span>
+            </div>
+            <div class="text-2xl font-bold" id="water-goal-display">2,0 L</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+            <div class="flex items-center mb-2">
+                <i data-lucide="moon" class="w-5 h-5 mr-2"></i>
+                <span class="font-semibold">Schlaf</span>
+            </div>
+            <div class="text-2xl font-bold" id="sleep-goal-display">8 h</div>
+        </div>
+    </div>
+</div>
+
+<!-- Goals Edit Modal -->
+<div id="goals-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">🎯 Ziele bearbeiten</h3>
+                <button id="close-goals-modal" class="btn btn-ghost btn-sm">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form id="goals-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Gewichtsziel (kg)</label>
+                    <input type="number" id="weight-goal-input" step="0.1" min="0" 
+                           class="input input-bordered w-full" placeholder="Optional">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Schritte pro Tag</label>
+                    <input type="number" id="steps-goal-input" min="0" 
+                           class="input input-bordered w-full" value="10000" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Wasseraufnahme (L)</label>
+                    <input type="number" id="water-goal-input" step="0.1" min="0" 
+                           class="input input-bordered w-full" value="2.0" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Schlafstunden</label>
+                    <input type="number" id="sleep-goal-input" step="0.5" min="0" max="24" 
+                           class="input input-bordered w-full" value="8" required>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4">
+                    <button type="button" id="cancel-goals" class="btn btn-ghost">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                        Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Stats with Progress -->
+<div class="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="stat-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-xl">
+                    <i data-lucide="weight" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Gewicht</p>
+                    <p class="text-2xl font-bold" id="today-weight">-- kg</p>
                 </div>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Weight Card -->
-                <div class="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50">
-                    <div class="card-body">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-base-content/70">Gewicht</h3>
-                                <div class="text-2xl font-bold text-blue-600" id="today-weight">--</div>
-                                <div class="text-sm text-success">+0.2 kg</div>
-                            </div>
-                            <div class="avatar placeholder">
-                                <div class="bg-blue-600 text-white rounded-full w-12 h-12">
-                                    <i data-lucide="weight" class="w-6 h-6"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Steps Card -->
-                <div class="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200/50">
-                    <div class="card-body">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-base-content/70">Schritte</h3>
-                                <div class="text-2xl font-bold text-green-600" id="today-steps">--</div>
-                                <div class="text-sm text-base-content/60">Ziel: 10.000</div>
-                            </div>
-                            <div class="flex flex-col items-center">
-                                <div class="radial-progress text-green-600 text-sm" style="--value:0;" id="steps-progress-circle">
-                                    <span class="text-xs font-bold" id="steps-percentage">0%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Water Card -->
-                <div class="card bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 border border-cyan-200/50">
-                    <div class="card-body">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-base-content/70">Wasser</h3>
-                                <div class="text-2xl font-bold text-cyan-600" id="today-water">--</div>
-                                <div class="text-sm text-base-content/60">Ziel: 2.5L</div>
-                            </div>
-                            <div class="flex flex-col gap-1" id="water-glasses">
-                                <!-- Water glasses will be generated by JS -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sleep Card -->
-                <div class="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200/50">
-                    <div class="card-body">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-base-content/70">Schlaf</h3>
-                                <div class="text-2xl font-bold text-purple-600" id="today-sleep">--</div>
-                                <div class="text-sm text-base-content/60">Ziel: 8h</div>
-                            </div>
-                            <div class="flex gap-1" id="sleep-quality">
-                                <!-- Sleep stars will be generated by JS -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500">Ziel</p>
+                <p class="text-sm font-semibold" id="weight-goal-stat">--</p>
             </div>
         </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" id="weight-progress" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1" id="weight-progress-text">Fortschritt wird berechnet...</p>
+    </div>
+
+    <div class="stat-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="p-3 bg-green-100 dark:bg-green-900 rounded-xl">
+                    <i data-lucide="footprints" class="w-6 h-6 text-green-600 dark:text-green-300"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Schritte</p>
+                    <p class="text-2xl font-bold" id="today-steps">0</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500">Ziel</p>
+                <p class="text-sm font-semibold" id="steps-goal-stat">10.000</p>
+            </div>
+        </div>
+        <!-- Progress Circle bleibt wie es ist -->
+        <div class="relative w-16 h-16 mx-auto">
+            <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="0, 100"
+                      class="text-gray-200 dark:text-gray-700" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                      class="text-green-500" id="steps-progress" stroke-dasharray="0, 100" />
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-sm font-bold" id="steps-percentage">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-xl">
+                    <i data-lucide="droplets" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Wasser</p>
+                    <p class="text-2xl font-bold" id="today-water">0 L</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500">Ziel</p>
+                <p class="text-sm font-semibold" id="water-goal-stat">2,0 L</p>
+            </div>
+        </div>
+        <div class="flex justify-center mb-2">
+            <div class="flex space-x-1" id="water-glasses">
+                <!-- Dynamisch generiert -->
+            </div>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" id="water-progress" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1 text-center" id="water-progress-text">0% des Tagesziels</p>
+    </div>
+
+    <div class="stat-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-xl">
+                    <i data-lucide="moon" class="w-6 h-6 text-purple-600 dark:text-purple-300"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Schlaf</p>
+                    <p class="text-2xl font-bold" id="today-sleep">0 h</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500">Ziel</p>
+                <p class="text-sm font-semibold" id="sleep-goal-stat">8 h</p>
+            </div>
+        </div>
+        <div class="flex justify-center mb-2">
+            <div class="flex space-x-1" id="sleep-quality">
+                <!-- Dynamisch generiert -->
+            </div>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div class="bg-purple-500 h-2 rounded-full transition-all duration-300" id="sleep-progress" style="width: 0%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1 text-center" id="sleep-progress-text">0% des Tagesziels</p>
+    </div>
+</div>
 
         <!-- Charts Section -->
         <div class="mb-8">

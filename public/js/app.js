@@ -2,20 +2,18 @@
 class HealthTrackerPro {
     constructor() {
         this.userId = this.getUserId();
-        this.theme = localStorage.getItem('theme') || 'light';
+        this.availableThemes = ['light', 'dark', 'cupcake', 'corporate'];
+        this.theme = localStorage.getItem('healthTheme') || this.detectSystemTheme();
         this.charts = {};
         this.chartInitialized = false;
         this.isLoading = false;
         
         this.initTheme();
         this.initEventListeners();
-        
-        // Initialize without charts first
         this.loadTodaysData();
         this.loadRecentActivities();
         this.initAnimations();
         
-        // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
     }
 
@@ -488,73 +486,499 @@ class HealthTrackerPro {
         return userId;
     }
 
+    // Erweiterte Theme-Initialisierung
     initTheme() {
-  const userTheme = localStorage.getItem('theme');
-  let theme = userTheme
-    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', theme);
-  this.theme = theme;
-}
+        // Theme anwenden
+        document.documentElement.setAttribute('data-theme', this.theme);
+        
+        // Theme-Button aktualisieren
+        this.updateThemeUI();
+        
+        console.log(`🎨 Theme aktiviert: ${this.theme}`);
+    }
 
     initEventListeners() {
-        const form = document.getElementById('health-form');
-        if (form) {
-            form.addEventListener('submit', (e) => this.handleSubmit(e));
-        }
-
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => this.toggleTheme());
-        }
-
-        const stepsInput = document.getElementById('steps');
-        if (stepsInput) {
-            stepsInput.addEventListener('input', (e) => {
-                this.updateStepsProgress(e.target.value || 0);
-            });
-        }
-
-        const waterInput = document.getElementById('water');
-        if (waterInput) {
-            waterInput.addEventListener('input', (e) => {
-                this.updateWaterGlasses(e.target.value || 0);
-            });
-        }
-
-        const sleepInput = document.getElementById('sleep');
-        if (sleepInput) {
-            sleepInput.addEventListener('input', (e) => {
-                this.updateSleepQuality(e.target.value || 0);
-            });
-        }
-
-        window.addEventListener('resize', () => this.handleResize());
-        window.addEventListener('online', () => this.updateConnectionStatus(true));
-        window.addEventListener('offline', () => this.updateConnectionStatus(false));
+    // ========================================
+    // FORM HANDLING
+    // ========================================
+    const form = document.getElementById('health-form');
+    if (form) {
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
-    toggleTheme() {
-  // Wechsle zwischen 'light' und 'dark' Theme
-  this.theme = this.theme === 'light' ? 'dark' : 'light';
-
-  // Speichere die Theme-Auswahl lokal
-  localStorage.setItem('theme', this.theme);
-
-  // Setze das DaisyUI data-theme Attribut
-  document.documentElement.setAttribute('data-theme', this.theme);
-
-  // Aktualisiere das Icon des Theme-Toggles (optional, je nach Implementierung)
-  const themeToggle = document.getElementById('theme-toggle');
-  const icon = this.theme === 'dark' ? 'sun' : 'moon';
-  if (themeToggle) {
-    themeToggle.innerHTML = `<i data-lucide="${icon}"></i>`;
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
+    // ========================================
+    // THEME MANAGEMENT
+    // ========================================
+    
+    // Main Theme Toggle Button (cycles through themes)
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => this.toggleTheme());
     }
-  }
-  
-  this.updateChartsTheme();
+
+    // Individual Theme Selector Buttons
+    const themeButtons = document.querySelectorAll('[data-theme-btn]');
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const selectedTheme = btn.getAttribute('data-theme-btn');
+            this.setTheme(selectedTheme);
+            
+            // Close dropdown after selection (if applicable)
+            const dropdown = btn.closest('.dropdown');
+            if (dropdown) {
+                dropdown.blur(); // Closes DaisyUI dropdown
+            }
+        });
+    });
+
+    // System Theme Change Detection
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+        // Only auto-switch if no manual theme is stored
+        if (!localStorage.getItem('healthTheme')) {
+            this.setTheme(e.matches ? 'dark' : 'light');
+            console.log(`🎨 System theme changed to: ${e.matches ? 'dark' : 'light'}`);
+        }
+    });
+
+    // ========================================
+    // REAL-TIME INPUT UPDATES
+    // ========================================
+    
+    // Steps Input - Update progress circle in real-time
+    const stepsInput = document.getElementById('steps');
+    if (stepsInput) {
+        stepsInput.addEventListener('input', (e) => {
+            const steps = parseInt(e.target.value) || 0;
+            this.updateStepsProgress(steps);
+            
+            // Update steps progress circle
+            const progressCircle = document.getElementById('steps-progress-circle');
+            if (progressCircle) {
+                const percentage = Math.min((steps / 10000) * 100, 100);
+                progressCircle.style.setProperty('--value', percentage);
+            }
+        });
+
+        // Format number on blur
+        stepsInput.addEventListener('blur', (e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value)) {
+                e.target.value = value.toLocaleString();
+            }
+        });
+
+        // Remove formatting on focus
+        stepsInput.addEventListener('focus', (e) => {
+            e.target.value = e.target.value.replace(/,/g, '');
+        });
+    }
+
+    // Water Intake Input - Update glass visualization
+    const waterInput = document.getElementById('water');
+    if (waterInput) {
+        waterInput.addEventListener('input', (e) => {
+            const water = parseFloat(e.target.value) || 0;
+            this.updateWaterGlasses(water);
+        });
+
+        // Step increment with buttons (if you add +/- buttons)
+        waterInput.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const current = parseFloat(e.target.value) || 0;
+                const newValue = Math.min(current + 0.25, 5);
+                e.target.value = newValue;
+                this.updateWaterGlasses(newValue);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const current = parseFloat(e.target.value) || 0;
+                const newValue = Math.max(current - 0.25, 0);
+                e.target.value = newValue;
+                this.updateWaterGlasses(newValue);
+            }
+        });
+    }
+
+    // Sleep Hours Input - Update star quality indicator
+    const sleepInput = document.getElementById('sleep');
+    if (sleepInput) {
+        sleepInput.addEventListener('input', (e) => {
+            const sleep = parseFloat(e.target.value) || 0;
+            this.updateSleepQuality(sleep);
+        });
+    }
+
+    // Weight Input - Validation and formatting
+    const weightInput = document.getElementById('weight');
+    if (weightInput) {
+        weightInput.addEventListener('input', (e) => {
+            // Remove non-numeric characters except decimal point
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            
+            // Ensure only one decimal point
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            e.target.value = value;
+        });
+
+        weightInput.addEventListener('blur', (e) => {
+            const value = parseFloat(e.target.value);
+            if (!isNaN(value)) {
+                e.target.value = value.toFixed(1);
+            }
+        });
+    }
+
+    // Mood Selection - Enhanced feedback
+    const moodSelect = document.getElementById('mood');
+    if (moodSelect) {
+        moodSelect.addEventListener('change', (e) => {
+            // Add visual feedback for mood selection
+            const selectedMood = e.target.value;
+            const moodEmoji = this.getMoodEmoji(selectedMood);
+            
+            // Update a mood indicator if it exists
+            const moodIndicator = document.getElementById('mood-indicator');
+            if (moodIndicator) {
+                moodIndicator.textContent = moodEmoji;
+                moodIndicator.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    moodIndicator.style.transform = 'scale(1)';
+                }, 200);
+            }
+        });
+    }
+
+    // ========================================
+    // WINDOW & CONNECTIVITY EVENTS
+    // ========================================
+    
+    // Window Resize - Update charts
+    window.addEventListener('resize', () => {
+        this.handleResize();
+        
+        // Debounced chart resize
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            if (this.chartInitialized) {
+                Object.values(this.charts).forEach(chart => {
+                    if (chart && chart.resize) {
+                        chart.resize();
+                    }
+                });
+            }
+        }, 250);
+    });
+
+    // Online Status
+    window.addEventListener('online', () => {
+        console.log('🌐 Connection restored');
+        this.updateConnectionStatus(true);
+        
+        // Show success toast
+        this.showToast('🌐 Verbindung wiederhergestellt', 'success');
+        
+        // Sync offline data
+        setTimeout(() => {
+            this.syncOfflineData();
+        }, 1000);
+    });
+
+    // Offline Status
+    window.addEventListener('offline', () => {
+        console.log('📵 Connection lost');
+        this.updateConnectionStatus(false);
+        
+        // Show warning toast
+        this.showToast('📵 Offline-Modus aktiv', 'warning');
+    });
+
+    // ========================================
+    // PWA & INSTALLATION
+    // ========================================
+    
+    // PWA Install Button
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        installBtn.addEventListener('click', () => {
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+            }
+        });
+    }
+
+    // ========================================
+    // KEYBOARD SHORTCUTS
+    // ========================================
+    
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + S = Save form
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            const form = document.getElementById('health-form');
+            if (form) {
+                form.dispatchEvent(new Event('submit'));
+            }
+        }
+        
+        // Ctrl/Cmd + T = Toggle theme
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
+            this.toggleTheme();
+        }
+        
+        // Escape = Close any open dropdowns/modals
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.dropdown').forEach(dropdown => {
+                dropdown.blur();
+            });
+        }
+    });
+
+    // ========================================
+    // NAVIGATION & UI INTERACTIONS
+    // ========================================
+    
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Enhanced button interactions
+    document.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            // Add ripple effect
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+
+    // ========================================
+    // FORM VALIDATION HELPERS
+    // ========================================
+    
+    // Real-time form validation
+    const inputs = form?.querySelectorAll('input, select, textarea');
+    inputs?.forEach(input => {
+        input.addEventListener('blur', () => {
+            this.validateField(input);
+        });
+        
+        input.addEventListener('input', () => {
+            // Clear validation errors on input
+            input.classList.remove('input-error');
+            const errorMsg = input.parentNode.querySelector('.text-error');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        });
+    });
+
+    // ========================================
+    // CUSTOM EVENTS
+    // ========================================
+    
+    // Listen for custom theme change events
+    document.addEventListener('themeChanged', (e) => {
+        console.log(`🎨 Theme changed to: ${e.detail.theme}`);
+        
+        // Update charts theme
+        setTimeout(() => {
+            this.updateChartsTheme();
+        }, 100);
+        
+        // Dispatch to other components if needed
+        if (window.updateComponentThemes) {
+            window.updateComponentThemes(e.detail.theme);
+        }
+    });
+
+    // Listen for data updates
+    document.addEventListener('healthDataUpdated', () => {
+        this.loadRecentActivities();
+        setTimeout(() => {
+            this.loadAndUpdateCharts();
+        }, 300);
+    });
+
+    // ========================================
+    // PERFORMANCE OPTIMIZATIONS
+    // ========================================
+    
+    // Debounced scroll handler for performance
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            // Handle scroll-based animations or lazy loading
+            this.handleScroll();
+        }, 16); // ~60fps
+    });
+
+    console.log('✅ All event listeners initialized successfully');
 }
+
+validateField(field) {
+    const value = field.value.trim();
+    const type = field.type;
+    let isValid = true;
+    let errorMessage = '';
+
+    // Basic validation rules
+    if (field.hasAttribute('required') && !value) {
+        isValid = false;
+        errorMessage = 'Dieses Feld ist erforderlich';
+    } else if (type === 'number') {
+        const num = parseFloat(value);
+        if (value && isNaN(num)) {
+            isValid = false;
+            errorMessage = 'Bitte geben Sie eine gültige Zahl ein';
+        }
+    }
+
+    // Update field appearance
+    if (isValid) {
+        field.classList.remove('input-error');
+        field.classList.add('input-success');
+    } else {
+        field.classList.add('input-error');
+        field.classList.remove('input-success');
+        
+        // Show error message
+        let errorEl = field.parentNode.querySelector('.text-error');
+        if (!errorEl) {
+            errorEl = document.createElement('div');
+            errorEl.className = 'text-error text-sm mt-1';
+            field.parentNode.appendChild(errorEl);
+        }
+        errorEl.textContent = errorMessage;
+    }
+
+    return isValid;
+}
+
+handleScroll() {
+    // Implement scroll-based features like:
+    // - Navbar background opacity
+    // - Parallax effects
+    // - Lazy loading charts
+    const scrollY = window.scrollY;
+    const navbar = document.querySelector('.navbar');
+    
+    if (navbar) {
+        if (scrollY > 50) {
+            navbar.classList.add('backdrop-blur-md', 'bg-base-100/80');
+        } else {
+            navbar.classList.remove('backdrop-blur-md', 'bg-base-100/80');
+        }
+    }
+}
+
+updateConnectionStatus(isOnline) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.className = isOnline 
+            ? 'badge badge-success gap-1 hidden sm:flex'
+            : 'badge badge-warning gap-1 hidden sm:flex';
+        
+        const statusText = statusElement.querySelector('span');
+        const statusDot = statusElement.querySelector('div');
+        
+        if (statusText) {
+            statusText.textContent = isOnline ? 'Online' : 'Offline';
+        }
+        
+        if (statusDot) {
+            statusDot.className = isOnline 
+                ? 'w-2 h-2 bg-success rounded-full animate-pulse'
+                : 'w-2 h-2 bg-warning rounded-full';
+        }
+    }
+}
+
+    // Theme wechseln (Zyklisch durch alle Themes)
+    toggleTheme() {
+        const currentIndex = this.availableThemes.indexOf(this.theme);
+        const nextIndex = (currentIndex + 1) % this.availableThemes.length;
+        this.setTheme(this.availableThemes[nextIndex]);
+    }
+
+    // Bestimmtes Theme setzen
+    setTheme(themeName) {
+        if (!this.availableThemes.includes(themeName)) {
+            console.warn(`Theme "${themeName}" nicht verfügbar`);
+            return;
+        }
+
+        this.theme = themeName;
+        localStorage.setItem('healthTheme', this.theme);
+        document.documentElement.setAttribute('data-theme', this.theme);
+        
+        this.updateThemeUI();
+        this.updateChartsTheme();
+        
+        // Theme-Change Event für andere Komponenten
+        document.dispatchEvent(new CustomEvent('themeChanged', { 
+            detail: { theme: this.theme } 
+        }));
+    }
+
+    // Theme-UI aktualisieren
+    updateThemeUI() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        
+        // Icon und Text je nach Theme
+        const themeConfig = {
+            light: { icon: 'sun', text: 'Hell', class: 'text-yellow-500' },
+            dark: { icon: 'moon', text: 'Dunkel', class: 'text-blue-400' },
+            cupcake: { icon: 'heart', text: 'Cupcake', class: 'text-pink-500' },
+            corporate: { icon: 'briefcase', text: 'Business', class: 'text-gray-600' }
+        };
+
+        const config = themeConfig[this.theme] || themeConfig.light;
+        
+        if (themeIcon) {
+            themeIcon.setAttribute('data-lucide', config.icon);
+            themeIcon.className = `w-5 h-5 ${config.class}`;
+        }
+        
+        if (themeText) {
+            themeText.textContent = config.text;
+        }
+
+        // Theme-Selector aktualisieren
+        const themeButtons = document.querySelectorAll('[data-theme-btn]');
+        themeButtons.forEach(btn => {
+            const btnTheme = btn.getAttribute('data-theme-btn');
+            btn.classList.toggle('btn-primary', btnTheme === this.theme);
+            btn.classList.toggle('btn-ghost', btnTheme !== this.theme);
+        });
+
+        // Lucide Icons neu laden
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
 
     async handleSubmit(e) {
         e.preventDefault();

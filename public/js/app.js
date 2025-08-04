@@ -978,93 +978,93 @@ class HealthTrackerPro {
     }
 
     updateWaterProgress(waterIntake) {
-        const goal = this.goals.waterGoal;
-        const percentage = Math.min((waterIntake / goal) * 100, 100);
-        
-        // Update glasses visualization
-        const glasses = Math.min(Math.ceil(waterIntake / 0.25), 8);
-        const container = document.getElementById('water-glasses');
-        if (container) {
-            container.innerHTML = '';
-            for (let i = 0; i < 8; i++) {
-                const glass = document.createElement('div');
-                glass.className = `w-4 h-6 rounded-sm transition-colors duration-300 ${i < glasses ? 'bg-blue-400' : 'bg-gray-200 dark:bg-gray-600'}`;
-                container.appendChild(glass);
-            }
-        }
-        
-        // Update progress bar
-        const progressEl = document.getElementById('water-progress');
-        const progressTextEl = document.getElementById('water-progress-text');
-        
-        if (progressEl) {
-            progressEl.style.width = `${percentage}%`;
-        }
-        if (progressTextEl) {
-            progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
+    const goal = this.goals.waterGoal;
+    const percentage = Math.min((waterIntake / goal) * 100, 100);
+    
+    // Update glasses visualization
+    const glasses = Math.min(Math.ceil(waterIntake / 0.25), 8);
+    const container = document.getElementById('water-glasses');
+    if (container) {
+        container.innerHTML = '';
+        for (let i = 0; i < 8; i++) {
+            const glass = document.createElement('div');
+            glass.className = `w-4 h-6 rounded-sm transition-colors duration-300 ${i < glasses ? 'bg-info' : 'bg-base-300'}`;
+            container.appendChild(glass);
         }
     }
+    
+    // Update DaisyUI progress bar
+    const progressEl = document.getElementById('water-progress');
+    const progressTextEl = document.getElementById('water-progress-text');
+    
+    if (progressEl) {
+        progressEl.value = percentage;
+    }
+    if (progressTextEl) {
+        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
+    }
+}
 
     updateSleepProgress(sleepHours) {
-        const goal = this.goals.sleepGoal;
-        const percentage = Math.min((sleepHours / goal) * 100, 100);
-        
-        // Update star quality visualization
-        const quality = Math.min(Math.ceil(sleepHours / 2), 5);
-        const container = document.getElementById('sleep-quality');
-        if (container) {
-            container.innerHTML = '';
-            for (let i = 0; i < 5; i++) {
-                const star = document.createElement('i');
-                star.setAttribute('data-lucide', 'star');
-                star.className = `w-3 h-3 transition-colors duration-300 ${i < quality ? 'text-yellow-400 fill-current' : 'text-gray-300 dark:text-gray-600'}`;
-                container.appendChild(star);
-            }
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+    const goal = this.goals.sleepGoal;
+    const percentage = Math.min((sleepHours / goal) * 100, 100);
+    
+    // Update star quality visualization
+    const quality = Math.min(Math.ceil(sleepHours / 2), 5);
+    const container = document.getElementById('sleep-quality');
+    if (container) {
+        container.innerHTML = '';
+        for (let i = 0; i < 5; i++) {
+            const star = document.createElement('i');
+            star.setAttribute('data-lucide', 'star');
+            star.className = `w-3 h-3 transition-colors duration-300 ${i < quality ? 'text-warning fill-current' : 'text-base-300'}`;
+            container.appendChild(star);
         }
-        
-        // Update progress bar
-        const progressEl = document.getElementById('sleep-progress');
-        const progressTextEl = document.getElementById('sleep-progress-text');
-        
-        if (progressEl) {
-            progressEl.style.width = `${percentage}%`;
-        }
-        if (progressTextEl) {
-            progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
         }
     }
+    
+    // Update DaisyUI progress bar
+    const progressEl = document.getElementById('sleep-progress');
+    const progressTextEl = document.getElementById('sleep-progress-text');
+    
+    if (progressEl) {
+        progressEl.value = percentage;
+    }
+    if (progressTextEl) {
+        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
+    }
+}
 
     updateWeightProgress(currentWeight) {
-        if (!this.goals.weightGoal || !currentWeight) return;
-        
-        const goal = this.goals.weightGoal;
-        const diff = Math.abs(currentWeight - goal);
-        const maxDiff = goal * 0.2; // 20% of goal weight as max difference for progress calculation
-        
-        let percentage;
+    if (!this.goals.weightGoal || !currentWeight) return;
+    
+    const goal = this.goals.weightGoal;
+    const diff = Math.abs(currentWeight - goal);
+    const maxDiff = goal * 0.2; // 20% of goal weight as max difference for progress calculation
+    
+    let percentage;
+    if (diff <= 1) {
+        percentage = 100; // Very close to goal
+    } else {
+        percentage = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
+    }
+    
+    const progressEl = document.getElementById('weight-progress');
+    const progressTextEl = document.getElementById('weight-progress-text');
+    
+    if (progressEl) {
+        progressEl.value = percentage;
+    }
+    if (progressTextEl) {
         if (diff <= 1) {
-            percentage = 100; // Very close to goal
+            progressTextEl.textContent = 'Ziel erreicht! 🎉';
         } else {
-            percentage = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
-        }
-        
-        const progressEl = document.getElementById('weight-progress');
-        const progressTextEl = document.getElementById('weight-progress-text');
-        
-        if (progressEl) {
-            progressEl.style.width = `${percentage}%`;
-        }
-        if (progressTextEl) {
-            if (diff <= 1) {
-                progressTextEl.textContent = 'Ziel erreicht! 🎉';
-            } else {
-                progressTextEl.textContent = `${diff.toFixed(1)}kg zum Ziel`;
-            }
+            progressTextEl.textContent = `${diff.toFixed(1)}kg zum Ziel`;
         }
     }
+}
 
     updateChartsTheme() {
         if (!this.chartInitialized) return;

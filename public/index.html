@@ -88,6 +88,122 @@
         </div>
     </div>
 
+    <!-- Hero Section mit Gradient Background -->
+<div class="hero min-h-[80vh] bg-gradient-to-br from-primary to-secondary">
+  <div class="hero-overlay bg-opacity-20"></div>
+  <div class="hero-content text-center text-neutral-content max-w-5xl">
+    <div class="max-w-4xl">
+      <!-- Badge für Aufmerksamkeit -->
+      <div class="badge badge-accent badge-lg mb-6 shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        Erreiche deine Ziele schneller
+      </div>
+      
+      <!-- Hauptüberschrift -->
+      <h1 class="text-5xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-white to-base-100 bg-clip-text text-transparent">
+        Verfolge deine 
+        <span class="text-accent">Gesundheitsziele</span>
+      </h1>
+      
+      <!-- Untertitel -->
+      <p class="text-xl md:text-2xl mb-12 opacity-90 leading-relaxed max-w-3xl mx-auto">
+        Bleibe motiviert mit deinem persönlichen Health Tracker. 
+        Überwache Gewicht, Schritte, Wasseraufnahme und Schlaf – 
+        alles an einem Ort für ein gesünderes Leben.
+      </p>
+      
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+        <button class="btn btn-accent btn-lg text-accent-content shadow-xl hover:shadow-2xl transition-all duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          Jetzt starten
+        </button>
+        <button class="btn btn-outline btn-lg text-white border-white hover:bg-white hover:text-primary transition-all duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Mehr erfahren
+        </button>
+      </div>
+      
+      <!-- Feature Highlights -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <div class="stats-card bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 border border-white border-opacity-20">
+          <div class="text-3xl mb-2">⚖️</div>
+          <div class="text-sm font-semibold">Gewichtstracking</div>
+        </div>
+        <div class="stats-card bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 border border-white border-opacity-20">
+          <div class="text-3xl mb-2">👟</div>
+          <div class="text-sm font-semibold">Schrittzähler</div>
+        </div>
+        <div class="stats-card bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 border border-white border-opacity-20">
+          <div class="text-3xl mb-2">💧</div>
+          <div class="text-sm font-semibold">Hydration</div>
+        </div>
+        <div class="stats-card bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 border border-white border-opacity-20">
+          <div class="text-3xl mb-2">😴</div>
+          <div class="text-sm font-semibold">Schlafanalyse</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scroll-Indikator -->
+  <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+    </svg>
+  </div>
+</div>
+
+<!-- Alternative: Minimalistischer Hero für ein cleaneres Design -->
+<div class="hero min-h-screen bg-base-100">
+  <div class="hero-content text-center">
+    <div class="max-w-2xl">
+      <div class="avatar mb-8">
+        <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+          <div class="bg-gradient-to-br from-primary to-secondary w-full h-full rounded-full flex items-center justify-center text-4xl">
+            📊
+          </div>
+        </div>
+      </div>
+      
+      <h1 class="text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-6">
+        Health Tracker
+      </h1>
+      
+      <p class="text-xl text-base-content/70 mb-8 leading-relaxed">
+        Verfolge deine Gesundheitsziele und bleibe motiviert mit deinem 
+        persönlichen Health Tracker für ein gesünderes Leben.
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button class="btn btn-primary btn-lg">
+          Dashboard öffnen
+        </button>
+        <button class="btn btn-ghost btn-lg">
+          Funktionen entdecken
+        </button>
+      </div>
+      
+      <!-- Social Proof -->
+      <div class="mt-12 flex items-center justify-center gap-2 text-base-content/50">
+        <div class="rating rating-sm">
+          <input type="radio" name="rating-1" class="mask mask-star-2 bg-orange-400" checked />
+          <input type="radio" name="rating-1" class="mask mask-star-2 bg-orange-400" checked />
+          <input type="radio" name="rating-1" class="mask mask-star-2 bg-orange-400" checked />
+          <input type="radio" name="rating-1" class="mask mask-star-2 bg-orange-400" checked />
+          <input type="radio" name="rating-1" class="mask mask-star-2 bg-orange-400" checked />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
     <div class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Welcome Section -->
         <div class="hero bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl mb-8">

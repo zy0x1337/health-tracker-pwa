@@ -2,18 +2,20 @@
 class HealthTrackerPro {
     constructor() {
         this.userId = this.getUserId();
-        this.availableThemes = ['light', 'dark', 'cupcake', 'corporate'];
-        this.theme = localStorage.getItem('healthTheme') || this.detectSystemTheme();
+        this.theme = localStorage.getItem('theme') || 'light';
         this.charts = {};
         this.chartInitialized = false;
         this.isLoading = false;
         
         this.initTheme();
         this.initEventListeners();
+        
+        // Initialize without charts first
         this.loadTodaysData();
         this.loadRecentActivities();
         this.initAnimations();
         
+        // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
     }
 
@@ -486,16 +488,13 @@ class HealthTrackerPro {
         return userId;
     }
 
-    // Erweiterte Theme-Initialisierung
     initTheme() {
-        // Theme anwenden
-        document.documentElement.setAttribute('data-theme', this.theme);
-        
-        // Theme-Button aktualisieren
-        this.updateThemeUI();
-        
-        console.log(`🎨 Theme aktiviert: ${this.theme}`);
-    }
+  const userTheme = localStorage.getItem('theme');
+  let theme = userTheme
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  this.theme = theme;
+}
 
     initEventListeners() {
         const form = document.getElementById('health-form');
@@ -534,71 +533,28 @@ class HealthTrackerPro {
         window.addEventListener('offline', () => this.updateConnectionStatus(false));
     }
 
-    // Theme wechseln (Zyklisch durch alle Themes)
     toggleTheme() {
-        const currentIndex = this.availableThemes.indexOf(this.theme);
-        const nextIndex = (currentIndex + 1) % this.availableThemes.length;
-        this.setTheme(this.availableThemes[nextIndex]);
+  // Wechsle zwischen 'light' und 'dark' Theme
+  this.theme = this.theme === 'light' ? 'dark' : 'light';
+
+  // Speichere die Theme-Auswahl lokal
+  localStorage.setItem('theme', this.theme);
+
+  // Setze das DaisyUI data-theme Attribut
+  document.documentElement.setAttribute('data-theme', this.theme);
+
+  // Aktualisiere das Icon des Theme-Toggles (optional, je nach Implementierung)
+  const themeToggle = document.getElementById('theme-toggle');
+  const icon = this.theme === 'dark' ? 'sun' : 'moon';
+  if (themeToggle) {
+    themeToggle.innerHTML = `<i data-lucide="${icon}"></i>`;
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
     }
-
-    // Bestimmtes Theme setzen
-    setTheme(themeName) {
-        if (!this.availableThemes.includes(themeName)) {
-            console.warn(`Theme "${themeName}" nicht verfügbar`);
-            return;
-        }
-
-        this.theme = themeName;
-        localStorage.setItem('healthTheme', this.theme);
-        document.documentElement.setAttribute('data-theme', this.theme);
-        
-        this.updateThemeUI();
-        this.updateChartsTheme();
-        
-        // Theme-Change Event für andere Komponenten
-        document.dispatchEvent(new CustomEvent('themeChanged', { 
-            detail: { theme: this.theme } 
-        }));
-    }
-
-    // Theme-UI aktualisieren
-    updateThemeUI() {
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
-        const themeText = document.getElementById('theme-text');
-        
-        // Icon und Text je nach Theme
-        const themeConfig = {
-            light: { icon: 'sun', text: 'Hell', class: 'text-yellow-500' },
-            dark: { icon: 'moon', text: 'Dunkel', class: 'text-blue-400' },
-            cupcake: { icon: 'heart', text: 'Cupcake', class: 'text-pink-500' },
-            corporate: { icon: 'briefcase', text: 'Business', class: 'text-gray-600' }
-        };
-
-        const config = themeConfig[this.theme] || themeConfig.light;
-        
-        if (themeIcon) {
-            themeIcon.setAttribute('data-lucide', config.icon);
-            themeIcon.className = `w-5 h-5 ${config.class}`;
-        }
-        
-        if (themeText) {
-            themeText.textContent = config.text;
-        }
-
-        // Theme-Selector aktualisieren
-        const themeButtons = document.querySelectorAll('[data-theme-btn]');
-        themeButtons.forEach(btn => {
-            const btnTheme = btn.getAttribute('data-theme-btn');
-            btn.classList.toggle('btn-primary', btnTheme === this.theme);
-            btn.classList.toggle('btn-ghost', btnTheme !== this.theme);
-        });
-
-        // Lucide Icons neu laden
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
+  }
+  
+  this.updateChartsTheme();
+}
 
     async handleSubmit(e) {
         e.preventDefault();

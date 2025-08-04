@@ -591,16 +591,6 @@ class HealthTrackerPro {
             });
         }
 
-        const modalBackdrop = document.getElementById('modal-backdrop');
-if (modalBackdrop) {
-    modalBackdrop.addEventListener('click', () => this.closeGoalsModal());
-}
-
-const modalBackdropClose = document.getElementById('modal-backdrop-close');
-if (modalBackdropClose) {
-    modalBackdropClose.addEventListener('click', () => this.closeGoalsModal());
-}
-
         window.addEventListener('resize', () => this.handleResize());
         window.addEventListener('online', () => this.updateConnectionStatus(true));
         window.addEventListener('offline', () => this.updateConnectionStatus(false));

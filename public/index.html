@@ -111,97 +111,101 @@
         </div>
 
         <!-- Goals Setting Section -->
-<div class="card bg-gradient-to-r from-primary to-secondary shadow-xl mb-8">
-    <div class="card-body text-primary-content">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold">🎯 Meine Ziele</h2>
-            <button id="edit-goals-btn" class="btn btn-ghost btn-sm text-primary-content hover:bg-primary-content hover:bg-opacity-20 border-primary-content border-opacity-30">
-                <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>
-                Ziele bearbeiten
-            </button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-base-100 bg-opacity-20 backdrop-blur-sm rounded-xl p-4 border border-primary-content border-opacity-20">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="target" class="w-5 h-5 mr-2 text-primary-content"></i>
-                    <span class="font-semibold text-primary-content">Gewicht</span>
-                </div>
-                <div class="text-2xl font-bold text-primary-content" id="weight-goal-display">-- kg</div>
+<div class="hero bg-gradient-to-r from-primary to-secondary rounded-2xl mb-8">
+    <div class="hero-content text-center text-primary-content w-full">
+        <div class="w-full">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-3xl font-bold flex items-center">
+                    🎯 Meine Ziele
+                </h2>
+                <button id="edit-goals-btn" class="btn btn-outline btn-sm text-primary-content border-primary-content hover:bg-primary-content hover:text-primary">
+                    <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>
+                    Ziele bearbeiten
+                </button>
             </div>
-            <div class="bg-base-100 bg-opacity-20 backdrop-blur-sm rounded-xl p-4 border border-primary-content border-opacity-20">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="footprints" class="w-5 h-5 mr-2 text-primary-content"></i>
-                    <span class="font-semibold text-primary-content">Schritte</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
+                    <div class="card-body p-4 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <i data-lucide="target" class="w-6 h-6 text-primary-content"></i>
+                        </div>
+                        <h3 class="font-semibold text-primary-content text-sm mb-1">Gewicht</h3>
+                        <div class="text-2xl font-bold text-primary-content" id="weight-goal-display">-- kg</div>
+                    </div>
                 </div>
-                <div class="text-2xl font-bold text-primary-content" id="steps-goal-display">10.000</div>
-            </div>
-            <div class="bg-base-100 bg-opacity-20 backdrop-blur-sm rounded-xl p-4 border border-primary-content border-opacity-20">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="droplets" class="w-5 h-5 mr-2 text-primary-content"></i>
-                    <span class="font-semibold text-primary-content">Wasser</span>
+                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
+                    <div class="card-body p-4 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <i data-lucide="footprints" class="w-6 h-6 text-primary-content"></i>
+                        </div>
+                        <h3 class="font-semibold text-primary-content text-sm mb-1">Schritte</h3>
+                        <div class="text-2xl font-bold text-primary-content" id="steps-goal-display">10.000</div>
+                    </div>
                 </div>
-                <div class="text-2xl font-bold text-primary-content" id="water-goal-display">2,0 L</div>
-            </div>
-            <div class="bg-base-100 bg-opacity-20 backdrop-blur-sm rounded-xl p-4 border border-primary-content border-opacity-20">
-                <div class="flex items-center mb-2">
-                    <i data-lucide="moon" class="w-5 h-5 mr-2 text-primary-content"></i>
-                    <span class="font-semibold text-primary-content">Schlaf</span>
+                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
+                    <div class="card-body p-4 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <i data-lucide="droplets" class="w-6 h-6 text-primary-content"></i>
+                        </div>
+                        <h3 class="font-semibold text-primary-content text-sm mb-1">Wasser</h3>
+                        <div class="text-2xl font-bold text-primary-content" id="water-goal-display">2,0 L</div>
+                    </div>
                 </div>
-                <div class="text-2xl font-bold text-primary-content" id="sleep-goal-display">8 h</div>
+                <div class="card bg-base-100 bg-opacity-20 backdrop-blur-sm border border-primary-content border-opacity-30 shadow-lg">
+                    <div class="card-body p-4 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <i data-lucide="moon" class="w-6 h-6 text-primary-content"></i>
+                        </div>
+                        <h3 class="font-semibold text-primary-content text-sm mb-1">Schlaf</h3>
+                        <div class="text-2xl font-bold text-primary-content" id="sleep-goal-display">8 h</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Goals Edit Modal -->
-<div id="goals-modal" class="modal">
-    <div class="modal-box">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold">🎯 Ziele bearbeiten</h3>
-            <button id="close-goals-modal" class="btn btn-ghost btn-sm">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <form id="goals-form" class="space-y-4">
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Gewichtsziel (kg)</span>
-                </label>
-                <input type="number" id="weight-goal-input" step="0.1" min="0" 
-                       class="input input-bordered" placeholder="Optional">
-            </div>
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Schritte pro Tag</span>
-                </label>
-                <input type="number" id="steps-goal-input" min="0" 
-                       class="input input-bordered" value="10000" required>
-            </div>
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Wasseraufnahme (L)</span>
-                </label>
-                <input type="number" id="water-goal-input" step="0.1" min="0" 
-                       class="input input-bordered" value="2.0" required>
-            </div>
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Schlafstunden</span>
-                </label>
-                <input type="number" id="sleep-goal-input" step="0.5" min="0" max="24" 
-                       class="input input-bordered" value="8" required>
-            </div>
-            <div class="modal-action">
-                <button type="button" id="cancel-goals" class="btn btn-ghost">Abbrechen</button>
-                <button type="submit" class="btn btn-primary">
-                    <i data-lucide="save" class="w-4 h-4 mr-2"></i>
-                    Speichern
+<div id="goals-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-base-200 bg-opacity-75 transition-opacity"></div>
+        <div class="relative bg-base-100 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-base-content">🎯 Ziele bearbeiten</h3>
+                <button id="close-goals-modal" class="btn btn-ghost btn-sm">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
-        </form>
-    </div>
-    <div class="modal-backdrop" id="modal-backdrop">
-        <button id="modal-backdrop-close">close</button>
+            <form id="goals-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-base-content">Gewichtsziel (kg)</label>
+                    <input type="number" id="weight-goal-input" step="0.1" min="0" 
+                           class="input input-bordered w-full" placeholder="Optional">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-base-content">Schritte pro Tag</label>
+                    <input type="number" id="steps-goal-input" min="0" 
+                           class="input input-bordered w-full" value="10000" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-base-content">Wasseraufnahme (L)</label>
+                    <input type="number" id="water-goal-input" step="0.1" min="0" 
+                           class="input input-bordered w-full" value="2.0" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-base-content">Schlafstunden</label>
+                    <input type="number" id="sleep-goal-input" step="0.5" min="0" max="24" 
+                           class="input input-bordered w-full" value="8" required>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4">
+                    <button type="button" id="cancel-goals" class="btn btn-ghost">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                        Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

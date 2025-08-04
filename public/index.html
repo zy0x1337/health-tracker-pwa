@@ -149,6 +149,44 @@
         background-position: 0% 50%;
     }
 }
+
+/* Theme-spezifische Anpassungen */
+[data-theme="cupcake"] .hero {
+    background: linear-gradient(-45deg, 
+        rgba(251, 113, 133, 0.1), 
+        rgba(236, 72, 153, 0.1),
+        rgba(250, 204, 21, 0.05),
+        rgba(251, 113, 133, 0.05)
+    );
+}
+
+[data-theme="corporate"] .hero {
+    background: linear-gradient(-45deg, 
+        rgba(71, 85, 105, 0.1), 
+        rgba(30, 41, 59, 0.1),
+        rgba(148, 163, 184, 0.05),
+        rgba(71, 85, 105, 0.05)
+    );
+}
+
+/* Theme Transition */
+html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme Preview Circles */
+.theme-preview {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.theme-preview-light { background: linear-gradient(45deg, #ffffff, #f3f4f6); }
+.theme-preview-dark { background: linear-gradient(45deg, #1f2937, #111827); }
+.theme-preview-cupcake { background: linear-gradient(45deg, #fecaca, #f9a8d4); }
+.theme-preview-corporate { background: linear-gradient(45deg, #e2e8f0, #cbd5e1); }
 </style>
 </head>
 
@@ -182,22 +220,63 @@
         <div class="navbar-end gap-2">
             <!-- Connection Status -->
             <div class="badge badge-success gap-1 hidden sm:flex" id="connection-status">
-                <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                <span class="text-xs">Online</span>
-            </div>
-            
-            <!-- Theme Toggle -->
-            <button class="btn btn-ghost btn-circle" id="theme-toggle">
-                <i data-lucide="sun" class="w-5 h-5"></i>
-            </button>
-            
-            <!-- Install Button -->
-            <button class="btn btn-primary btn-sm hidden" id="install-btn">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Installieren</span>
-            </button>
+            <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+            <span class="text-xs">Online</span>
         </div>
+        
+        <!-- Theme Selector Dropdown -->
+        <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle" id="theme-toggle">
+                <i data-lucide="palette" class="w-5 h-5" id="theme-icon"></i>
+            </div>
+            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg border border-base-300">
+                <li class="menu-title">
+                    <span>Themes</span>
+                </li>
+                <li>
+                    <button data-theme-btn="light" class="flex items-center gap-3">
+                        <i data-lucide="sun" class="w-4 h-4 text-yellow-500"></i>
+                        <span>Hell</span>
+                        <div class="badge badge-sm">Standard</div>
+                    </button>
+                </li>
+                <li>
+                    <button data-theme-btn="dark" class="flex items-center gap-3">
+                        <i data-lucide="moon" class="w-4 h-4 text-blue-400"></i>
+                        <span>Dunkel</span>
+                    </button>
+                </li>
+                <li>
+                    <button data-theme-btn="cupcake" class="flex items-center gap-3">
+                        <i data-lucide="heart" class="w-4 h-4 text-pink-500"></i>
+                        <span>Cupcake</span>
+                        <div class="badge badge-sm badge-secondary">Süß</div>
+                    </button>
+                </li>
+                <li>
+                    <button data-theme-btn="corporate" class="flex items-center gap-3">
+                        <i data-lucide="briefcase" class="w-4 h-4 text-gray-600"></i>
+                        <span>Business</span>
+                        <div class="badge badge-sm badge-accent">Pro</div>
+                    </button>
+                </li>
+                <div class="divider my-1"></div>
+                <li>
+                    <button onclick="app.setTheme(app.detectSystemTheme())" class="flex items-center gap-3">
+                        <i data-lucide="monitor" class="w-4 h-4"></i>
+                        <span>System</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Install Button -->
+        <button class="btn btn-primary btn-sm hidden" id="install-btn">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">App</span>
+        </button>
     </div>
+</div>
 
     <div class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Animated Welcome Section -->
@@ -585,10 +664,12 @@
         }
         
         // Initialize App
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof HealthTrackerPro !== 'undefined') {
-                new HealthTrackerPro();
-            }
+        let app;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof HealthTrackerPro !== 'undefined') {
+            app = new HealthTrackerPro();
+        }
         });
     </script>
 </body>

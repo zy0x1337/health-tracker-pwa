@@ -836,6 +836,10 @@ class HealthTrackerPro {
     console.log('✅ All event listeners initialized successfully');
 }
 
+// ========================================
+// HELPER METHODS (add these to your class)
+// ========================================
+
 validateField(field) {
     const value = field.value.trim();
     const type = field.type;

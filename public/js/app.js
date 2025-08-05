@@ -1917,11 +1917,27 @@ class ProgressHub {
         this.achievements = new Map();
         this.streaks = new Map();
         
-        this.initializeAchievements();
-        this.loadStreakData();
+        // Warte kurz und prüfe dann, ob Progress Hub HTML vorhanden ist
+        setTimeout(() => this.initialize(), 500);
+    }
+
+    initialize() {
+        // Prüfe ob Progress Hub HTML existiert
+        if (!document.getElementById('view-today')) {
+            console.warn('⚠️ Progress Hub HTML nicht gefunden - überspringe Initialisierung');
+            return;
+        }
+        
+        console.log('✅ Progress Hub wird initialisiert');
+        this.showView(this.currentView);
     }
 
     showView(viewName) {
+        if (!document.getElementById(`view-${viewName}`)) {
+            console.warn(`Progress Hub View "${viewName}" nicht gefunden`);
+            return;
+        }
+
         // Hide all views
         document.querySelectorAll('.progress-view').forEach(view => {
             view.classList.add('hidden');
@@ -1937,28 +1953,35 @@ class ProgressHub {
         document.querySelectorAll('.tabs .tab').forEach(tab => {
             tab.classList.remove('tab-active');
         });
-        document.getElementById(`tab-${viewName}`)?.classList.add('tab-active');
+        const tabElement = document.getElementById(`tab-${viewName}`);
+        if (tabElement) {
+            tabElement.classList.add('tab-active');
+        }
         
         this.currentView = viewName;
         this.loadViewData();
     }
 
     async loadViewData() {
-        const data = await this.getHealthData();
-        
-        switch (this.currentView) {
-            case 'today':
-                this.updateTodayView(data);
-                break;
-            case 'week':
-                this.updateWeekView(data);
-                break;
-            case 'achievements':
-                this.updateAchievementsView(data);
-                break;
-            case 'streaks':
-                this.updateStreaksView(data);
-                break;
+        try {
+            const data = await this.getHealthData();
+            
+            switch (this.currentView) {
+                case 'today':
+                    this.updateTodayView(data);
+                    break;
+                case 'week':
+                    this.updateWeekView(data);
+                    break;
+                case 'achievements':
+                    this.updateAchievementsView(data);
+                    break;
+                case 'streaks':
+                    this.updateStreaksView(data);
+                    break;
+            }
+        } catch (error) {
+            console.error('❌ Error loading Progress Hub data:', error);
         }
     }
 
@@ -1967,9 +1990,13 @@ class ProgressHub {
             let allData = [];
             
             if (navigator.onLine) {
-                const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
-                if (response.ok) {
-                    allData = await response.json();
+                try {
+                    const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
+                    if (response.ok) {
+                        allData = await response.json();
+                    }
+                } catch (error) {
+                    console.log('Server data not available, using local data');
                 }
             }
             
@@ -1989,7 +2016,9 @@ class ProgressHub {
         const today = new Date().toISOString().split('T')[0];
         const todayData = data.find(entry => entry.date === today) || {};
         
-        // Update progress cards
+        console.log('📊 Updating Progress Hub with today data:', todayData);
+        
+        // Update progress cards only if elements exist
         this.updateProgressCard('steps', todayData.steps || 0, this.healthTracker.goals.stepsGoal);
         this.updateProgressCard('water', todayData.waterIntake || 0, this.healthTracker.goals.waterGoal);
         this.updateProgressCard('sleep', todayData.sleepHours || 0, this.healthTracker.goals.sleepGoal);
@@ -2003,11 +2032,16 @@ class ProgressHub {
     }
 
     updateProgressCard(type, current, goal) {
+        if (!goal || goal <= 0) return;
+        
         const percentage = Math.min((current / goal) * 100, 100);
+        
+        // Sichere Element-Updates mit Existenz-Prüfung
         const badge = document.getElementById(`${type}-progress-badge`);
         const display = document.getElementById(`today-${type}-display`);
         const progressBar = document.getElementById(`${type}-progress-bar`);
         const motivation = document.getElementById(`${type}-motivation`);
+        const goalDisplay = document.getElementById(`${type}-goal-display`);
         
         if (badge) badge.textContent = Math.round(percentage) + '%';
         
@@ -2022,6 +2056,11 @@ class ProgressHub {
         
         if (progressBar) {
             progressBar.value = percentage;
+        }
+        
+        if (goalDisplay && type !== 'score') {
+            const unit = type === 'steps' ? '' : type === 'water' ? 'L' : 'h';
+            goalDisplay.textContent = goal.toLocaleString() + unit;
         }
         
         if (motivation) {
@@ -2132,30 +2171,17 @@ class ProgressHub {
         }
     }
 
-    // Weitere Methoden für andere Views...
+    // Platzhalter für andere Views
     updateWeekView(data) {
-        // Implementierung für Wochenansicht
-        console.log('🗓️ Updating week view...');
+        console.log('🗓️ Updating week view...', data.length, 'entries');
     }
 
     updateAchievementsView(data) {
-        // Implementierung für Achievements
-        console.log('🏆 Updating achievements view...');
+        console.log('🏆 Updating achievements view...', data.length, 'entries');
     }
 
     updateStreaksView(data) {
-        // Implementierung für Streaks
-        console.log('🔥 Updating streaks view...');
-    }
-
-    initializeAchievements() {
-        // Achievement-System initialisieren
-        console.log('🏆 Initializing achievements...');
-    }
-
-    loadStreakData() {
-        // Streak-Daten laden
-        console.log('🔥 Loading streak data...');
+        console.log('🔥 Updating streaks view...', data.length, 'entries');
     }
 
     resetProgress() {

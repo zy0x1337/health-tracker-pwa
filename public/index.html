@@ -353,230 +353,144 @@
     </form>
 </dialog>
 
-<!-- ========================================
-     PROGRESS HUB - Einheitliches Ziele & Fortschritt Dashboard  
-     ======================================== -->
-<div class="card bg-base-100 shadow-xl border border-base-300">
-    <div class="card-body p-6">
-        <!-- Header mit Quick Actions -->
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-3">
-                <div class="avatar placeholder">
-                    <div class="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white rounded-full w-12 h-12">
-                        <i data-lucide="target" class="w-6 h-6"></i>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-bold text-base-content">Progress Hub</h2>
-                    <p class="text-sm text-base-content/70">Deine Ziele, Fortschritte und Erfolge auf einen Blick</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button id="edit-goals-btn" class="btn btn-outline btn-sm gap-2">
-                    <i data-lucide="settings" class="w-4 h-4"></i>
-                    Ziele anpassen
-                </button>
-                <div class="dropdown dropdown-end">
-                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
-                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                    </div>
-                    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
-                        <li><a onclick="window.healthTracker.progressHub.resetProgress()"><i data-lucide="rotate-ccw" class="w-4 h-4"></i>Fortschritt zurücksetzen</a></li>
-                        <li><a onclick="window.healthTracker.progressHub.shareProgress()"><i data-lucide="share-2" class="w-4 h-4"></i>Fortschritt teilen</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<!-- ===============================
+     PROGRESS HUB (Goals + Score)
+     =============================== -->
+<section id="progress-hub" class="card bg-base-100 shadow-xl border border-base-300">
 
-        <!-- Dynamic Tab Navigation -->
-        <div class="tabs tabs-boxed mb-6">
-            <a class="tab tab-active" id="tab-today" onclick="window.healthTracker.progressHub.showView('today')">
-                <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i>Heute
-            </a>
-            <a class="tab" id="tab-week" onclick="window.healthTracker.progressHub.showView('week')">
-                <i data-lucide="calendar-week" class="w-4 h-4 mr-2"></i>Diese Woche
-            </a>
-            <a class="tab" id="tab-achievements" onclick="window.healthTracker.progressHub.showView('achievements')">
-                <i data-lucide="trophy" class="w-4 h-4 mr-2"></i>Erfolge
-            </a>
-            <a class="tab" id="tab-streaks" onclick="window.healthTracker.progressHub.showView('streaks')">
-                <i data-lucide="flame" class="w-4 h-4 mr-2"></i>Streaks
-            </a>
-        </div>
-
-        <!-- Today's Progress View -->
-        <div id="view-today" class="progress-view">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <!-- Steps Progress Card -->
-                <div class="card bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-emerald-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="footprints" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="badge badge-success badge-sm" id="steps-progress-badge">0%</div>
-                        </div>
-                        <h3 class="font-bold text-emerald-800">Schritte</h3>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-2xl font-bold text-emerald-900" id="today-steps-display">0</span>
-                            <span class="text-sm text-emerald-600">/ <span id="steps-goal-display">10.000</span></span>
-                        </div>
-                        <div class="progress progress-success mt-2" id="steps-progress-bar"></div>
-                        <div class="mt-2 text-xs text-emerald-600" id="steps-motivation">Großartig! Bleib dran!</div>
-                    </div>
-                </div>
-
-                <!-- Water Progress Card -->
-                <div class="card bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-cyan-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="droplets" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="badge badge-info badge-sm" id="water-progress-badge">0%</div>
-                        </div>
-                        <h3 class="font-bold text-cyan-800">Wasser</h3>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-2xl font-bold text-cyan-900" id="today-water-display">0L</span>
-                            <span class="text-sm text-cyan-600">/ <span id="water-goal-display">2L</span></span>
-                        </div>
-                        <div class="progress progress-info mt-2" id="water-progress-bar"></div>
-                        <div class="mt-2 text-xs text-cyan-600" id="water-motivation">Hydration ist wichtig!</div>
-                    </div>
-                </div>
-
-                <!-- Sleep Progress Card -->
-                <div class="card bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-indigo-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="moon" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="badge badge-secondary badge-sm" id="sleep-progress-badge">0%</div>
-                        </div>
-                        <h3 class="font-bold text-indigo-800">Schlaf</h3>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-2xl font-bold text-indigo-900" id="today-sleep-display">0h</span>
-                            <span class="text-sm text-indigo-600">/ <span id="sleep-goal-display">8h</span></span>
-                        </div>
-                        <div class="progress progress-secondary mt-2" id="sleep-progress-bar"></div>
-                        <div class="mt-2 text-xs text-indigo-600" id="sleep-motivation">Erholung ist essentiell!</div>
-                    </div>
-                </div>
-
-                <!-- Overall Score Card -->
-                <div class="card bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-purple-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="activity" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="badge badge-primary badge-sm" id="overall-score-badge">0%</div>
-                        </div>
-                        <h3 class="font-bold text-purple-800">Gesamt-Score</h3>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-2xl font-bold text-purple-900" id="today-score-display">0</span>
-                            <span class="text-sm text-purple-600">/ 100</span>
-                        </div>
-                        <div class="progress progress-primary mt-2" id="score-progress-bar"></div>
-                        <div class="mt-2 text-xs text-purple-600" id="score-motivation">Du schaffst das!</div>
-                    </div>
-                </div>
+    <!-- Header + Tabs -->
+    <div class="card-body pb-0">
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2 text-xl font-bold">
+                <i data-lucide="target" class="w-5 h-5 text-primary"></i>
+                Mein Fortschritt
             </div>
 
-            <!-- Today's Quick Actions -->
-            <div class="bg-base-200/50 rounded-xl p-4">
-                <h4 class="font-semibold mb-3 flex items-center gap-2">
-                    <i data-lucide="zap" class="w-4 h-4 text-primary"></i>
-                    Schnelle Aktionen für heute
-                </h4>
-                <div class="flex flex-wrap gap-2" id="today-quick-actions">
-                    <!-- Dynamisch generierte Action-Buttons -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Weekly Progress View -->
-        <div id="view-week" class="progress-view hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Weekly Overview -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="calendar-week" class="w-5 h-5 text-primary"></i>
-                        Wochenübersicht
-                    </h3>
-                    <div class="grid grid-cols-7 gap-2" id="week-overview">
-                        <!-- 7 Tage der aktuellen Woche -->
-                    </div>
-                </div>
-
-                <!-- Weekly Stats -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="trending-up" class="w-5 h-5 text-secondary"></i>
-                        Wochenstatistiken
-                    </h3>
-                    <div class="stats stats-vertical bg-base-200" id="weekly-stats">
-                        <!-- Dynamisch generierte Wochenstatistiken -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Achievements View -->
-        <div id="view-achievements" class="progress-view hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="achievements-grid">
-                <!-- Dynamisch generierte Achievement-Karten -->
-            </div>
-        </div>
-
-        <!-- Streaks View -->
-        <div id="view-streaks" class="progress-view hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Current Streaks -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="flame" class="w-5 h-5 text-orange-500"></i>
-                        Aktuelle Streaks
-                    </h3>
-                    <div class="space-y-3" id="current-streaks">
-                        <!-- Dynamisch generierte Streak-Karten -->
-                    </div>
-                </div>
-
-                <!-- Personal Records -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="medal" class="w-5 h-5 text-yellow-500"></i>
-                        Persönliche Rekorde
-                    </h3>
-                    <div class="space-y-3" id="personal-records">
-                        <!-- Dynamisch generierte Rekord-Karten -->
-                    </div>
-                </div>
-
-                <!-- Streak Calendar -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-green-500"></i>
-                        Streak-Kalender
-                    </h3>
-                    <div class="bg-base-200 rounded-lg p-4" id="streak-calendar">
-                        <!-- Mini-Kalender für Streak-Visualisierung -->
-                    </div>
-                </div>
+            <!-- Tabs -->
+            <div class="tabs tabs-boxed">
+                <a id="tab-today"        class="tab tab-active"
+                   onclick="window.healthTracker.progressHub.showView('today')">Heute</a>
+                <a id="tab-week"         class="tab"
+                   onclick="window.healthTracker.progressHub.showView('week')">Woche</a>
+                <a id="tab-achievements" class="tab"
+                   onclick="window.healthTracker.progressHub.showView('achievements')">Erfolge</a>
+                <a id="tab-streaks"      class="tab"
+                   onclick="window.healthTracker.progressHub.showView('streaks')">Streaks</a>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Views ----------------------------------------------------------->
+    <div class="card-body pt-4 space-y-6">
+
+        <!-- 1) TODAY VIEW -->
+        <div id="view-today" class="progress-view space-y-6">
+
+            <!-- Progress Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <!-- Steps ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="footprints" class="w-4 h-4 text-success"></i> Schritte
+                        </span>
+                        <span id="steps-progress-badge" class="badge badge-success badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-steps-display" class="text-3xl font-bold">0</div>
+
+                    <progress id="steps-progress-bar" class="progress progress-success w-full" value="0" max="100"></progress>
+
+                    <div id="steps-motivation" class="text-xs text-success/80 mt-1">
+                        Jeder Schritt zählt! 🚶‍♂️
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="steps-goal-display">10 000</span>
+                    </div>
+                </div>
+
+                <!-- Water ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="droplets" class="w-4 h-4 text-info"></i> Wasser
+                        </span>
+                        <span id="water-progress-badge" class="badge badge-info badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-water-display" class="text-3xl font-bold">0 L</div>
+
+                    <progress id="water-progress-bar" class="progress progress-info w-full" value="0" max="100"></progress>
+
+                    <div id="water-motivation" class="text-xs text-info/80 mt-1">
+                        Denk ans Trinken! 💧
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="water-goal-display">2,0 L</span>
+                    </div>
+                </div>
+
+                <!-- Sleep ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="moon" class="w-4 h-4 text-warning"></i> Schlaf
+                        </span>
+                        <span id="sleep-progress-badge" class="badge badge-warning badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-sleep-display" class="text-3xl font-bold">0 h</div>
+
+                    <progress id="sleep-progress-bar" class="progress progress-warning w-full" value="0" max="100"></progress>
+
+                    <div id="sleep-motivation" class="text-xs text-warning/80 mt-1">
+                        Erholung ist wichtig! 😴
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="sleep-goal-display">8 h</span>
+                    </div>
+                </div>
+
+                <!-- Score ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="star" class="w-4 h-4 text-accent"></i> Gesamt-Score
+                        </span>
+                        <span id="score-progress-badge" class="badge badge-accent badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-score-display" class="text-3xl font-bold">0</div>
+
+                    <progress id="score-progress-bar" class="progress progress-accent w-full" value="0" max="100"></progress>
+
+                    <div id="score-motivation" class="text-xs text-accent/80 mt-1">
+                        Du schaffst das! 💪
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div id="today-quick-actions" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 2) WEEK VIEW (Placeholder) -->
+        <div id="view-week" class="progress-view hidden">
+            <p class="text-base-content/70">🗓️ Wochenansicht wird geladen …</p>
+        </div>
+
+        <!-- 3) ACHIEVEMENTS VIEW (Placeholder) -->
+        <div id="view-achievements" class="progress-view hidden">
+            <p class="text-base-content/70">🏆 Deine Erfolge erscheinen hier!</p>
+        </div>
+
+        <!-- 4) STREAKS VIEW (Placeholder) -->
+        <div id="view-streaks" class="progress-view hidden">
+            <p class="text-base-content/70">🔥 Behalte deine Streaks im Blick!</p>
+        </div>
+    </div>
+</section>
 
 <!-- Advanced Analytics Dashboard -->
 <div class="card bg-base-100 shadow-xl border border-base-300">

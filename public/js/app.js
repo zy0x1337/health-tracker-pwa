@@ -334,7 +334,6 @@ class HealthTrackerPro {
         this.initEventListeners();
         this.loadGoals();
         this.loadTodaysData();
-        this.loadRecentActivities();
         this.initAnimations();
         this.notificationManager = new SmartNotificationManager(this);
         this.analytics = new AdvancedAnalytics(this);
@@ -342,6 +341,7 @@ class HealthTrackerPro {
         setTimeout(() => {
     this.progressHub.loadViewData();
 }, 1000);
+        this.activityFeed = new ActivityFeed(this);
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
@@ -1186,54 +1186,75 @@ updateModalTheme() {
 }
 
     async handleSubmit(e) {
-        e.preventDefault();
-        this.showLoading(true);
+    e.preventDefault();
+    this.showLoading(true);
 
-        const formData = {
-            userId: this.userId,
-            date: new Date().toISOString().split('T')[0],
-            weight: parseFloat(document.getElementById('weight').value) || null,
-            steps: parseInt(document.getElementById('steps').value) || null,
-            waterIntake: parseFloat(document.getElementById('water').value) || null,
-            sleepHours: parseFloat(document.getElementById('sleep').value) || null,
-            mood: document.getElementById('mood').value || null,
-            notes: document.getElementById('notes').value || null
-        };
+    const formData = {
+        userId: this.userId,
+        date: new Date().toISOString().split('T')[0],
+        weight: parseFloat(document.getElementById('weight').value) || null,
+        steps: parseInt(document.getElementById('steps').value) || null,
+        waterIntake: parseFloat(document.getElementById('water').value) || null,
+        sleepHours: parseFloat(document.getElementById('sleep').value) || null,
+        mood: document.getElementById('mood').value || null,
+        notes: document.getElementById('notes').value || null
+    };
 
-        console.log('💾 Saving data:', formData);
+    console.log('💾 Saving data:', formData);
 
-        try {
-            if (navigator.onLine) {
-                await this.saveToServer(formData);
-                this.showToast('Daten erfolgreich gespeichert!', 'success');
-            } else {
-                this.saveToLocal(formData);
-                this.showToast('Daten offline gespeichert!', 'success');
-            }
+    try {
+        if (navigator.onLine) {
+            await this.saveToServer(formData);
+            this.showToast('Daten erfolgreich gespeichert!', 'success');
+        } else {
+            this.saveToLocal(formData);
+            this.showToast('Daten offline gespeichert!', 'success');
+        }
 
-            this.updateDashboard(formData);
-            this.checkGoalAchievements(formData);
-            this.loadRecentActivities();
-
-            setTimeout(() => {
-                console.log('🔄 Reloading charts after data save...');
-                this.loadAndUpdateCharts();
+        // Dashboard mit neuen Daten aktualisieren
+        this.updateDashboard(formData);
+        
+        // Goal-Achievements prüfen
+        this.checkGoalAchievements(formData);
+        
+        // Activity Feed aktualisieren
+        if (this.activityFeed) {
+            this.activityFeed.load();
+        }
+        
+        // Progress Hub aktualisieren (falls vorhanden)
+        if (this.progressHub) {
+            this.progressHub.loadViewData();
+        }
+        
+        // Charts nach kurzer Verzögerung aktualisieren
+        setTimeout(() => {
+            console.log('🔄 Reloading charts after data save...');
+            this.loadAndUpdateCharts();
+            
+            // Analytics nach Chart-Update aktualisieren
             setTimeout(() => {
                 if (this.analytics) {
                     this.analytics.loadViewData();
                 }
             }, 800);
         }, 500);
-
-            this.resetForm();
-
-        } catch (error) {
-            console.error('❌ Fehler beim Speichern:', error);
-            this.showToast('Fehler beim Speichern der Daten', 'error');
-        } finally {
-            this.showLoading(false);
+        
+        // Formular zurücksetzen
+        this.resetForm();
+        
+        // Weekly Summary aktualisieren
+        if (this.updateWeeklySummary) {
+            setTimeout(() => this.updateWeeklySummary(), 1000);
         }
+
+    } catch (error) {
+        console.error('❌ Fehler beim Speichern:', error);
+        this.showToast('Fehler beim Speichern der Daten', 'error');
+    } finally {
+        this.showLoading(false);
     }
+}
 
     // Goal Achievement Check
     checkGoalAchievements(data) {
@@ -1528,52 +1549,6 @@ updateModalTheme() {
             }
         } catch (error) {
             console.error('Error loading local today data:', error);
-        }
-    }
-
-    async loadRecentActivities() {
-        try {
-            let activities = [];
-            
-            if (navigator.onLine) {
-                try {
-                    const response = await fetch(`/api/health-data/${this.userId}`);
-                    if (response.ok) {
-                        const serverData = await response.json();
-                        if (Array.isArray(serverData)) {
-                            activities = serverData;
-                            console.log('📋 Server activities loaded:', activities.length);
-                        } else {
-                            console.warn('⚠️ Server activities data is not an array:', typeof serverData);
-                            activities = [];
-                        }
-                    }
-                } catch (error) {
-                    console.log('⚠️ Server activities error:', error.message);
-                }
-            }
-            
-            if (activities.length === 0) {
-                try {
-                    const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
-                    if (Array.isArray(localData)) {
-                        activities = localData;
-                        console.log('💾 Local activities loaded:', activities.length);
-                    } else {
-                        console.warn('⚠️ Local activities data is not an array');
-                        activities = [];
-                    }
-                } catch (parseError) {
-                    console.error('❌ Error parsing local activities:', parseError);
-                    activities = [];
-                }
-            }
-            
-            const recentActivities = activities.slice(-5).reverse();
-            this.displayRecentActivities(recentActivities);
-            
-        } catch (error) {
-            console.error('❌ Fehler beim Laden der Aktivitäten:', error);
         }
     }
 
@@ -2206,6 +2181,242 @@ class ProgressHub {
             navigator.clipboard.writeText(shareText);
             this.healthTracker.notificationManager.showInAppNotification('📋 Fortschritt in Zwischenablage kopiert!', 'success');
         }
+    }
+}
+
+class ActivityFeed {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.rootEl = document.getElementById('recent-activities');
+        this.emptyEl = document.getElementById('activities-empty');
+        
+        if (!this.rootEl) {
+            console.warn('Recent activities container not found');
+            return;
+        }
+        
+        this.initRefreshButton();
+        this.load();
+    }
+
+    initRefreshButton() {
+        const refreshBtn = document.getElementById('refresh-activities-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.load();
+                this.showRefreshAnimation(refreshBtn);
+            });
+        }
+    }
+
+    showRefreshAnimation(btn) {
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.style.animation = 'spin 0.5s linear';
+            setTimeout(() => {
+                icon.style.animation = '';
+            }, 500);
+        }
+    }
+
+    async load() {
+        try {
+            let activities = [];
+            
+            // Versuche Server-Daten zu laden
+            if (navigator.onLine) {
+                try {
+                    const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
+                    if (response.ok) {
+                        const serverData = await response.json();
+                        activities = this.parseActivities(serverData);
+                    }
+                } catch (error) {
+                    console.log('Server data not available:', error.message);
+                }
+            }
+            
+            // Fallback auf lokale Daten
+            if (activities.length === 0) {
+                const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+                activities = this.parseActivities(localData);
+            }
+            
+            this.render(activities.slice(0, 10)); // Nur die letzten 10
+            
+        } catch (error) {
+            console.error('Error loading activities:', error);
+            this.render([]);
+        }
+    }
+
+    parseActivities(data) {
+        if (!Array.isArray(data)) return [];
+        
+        const activities = [];
+        
+        // Sortiere nach Datum (neueste zuerst)
+        const sortedData = data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+        
+        sortedData.forEach(entry => {
+            const date = new Date(entry.date);
+            const timeStr = this.formatTime(date);
+            
+            // Erstelle Aktivitäten für jeden Datentyp
+            if (entry.steps && entry.steps > 0) {
+                activities.push({
+                    type: 'steps',
+                    label: `${entry.steps.toLocaleString()} Schritte erfasst`,
+                    time: timeStr,
+                    value: entry.steps,
+                    date: date
+                });
+            }
+            
+            if (entry.waterIntake && entry.waterIntake > 0) {
+                activities.push({
+                    type: 'water',
+                    label: `${entry.waterIntake}L Wasser getrunken`,
+                    time: timeStr,
+                    value: entry.waterIntake,
+                    date: date
+                });
+            }
+            
+            if (entry.sleepHours && entry.sleepHours > 0) {
+                const hours = Math.floor(entry.sleepHours);
+                const minutes = Math.round((entry.sleepHours - hours) * 60);
+                activities.push({
+                    type: 'sleep',
+                    label: `${hours}h ${minutes}min geschlafen`,
+                    time: timeStr,
+                    value: entry.sleepHours,
+                    date: date
+                });
+            }
+            
+            if (entry.weight && entry.weight > 0) {
+                activities.push({
+                    type: 'weight',
+                    label: `Gewicht: ${entry.weight}kg erfasst`,
+                    time: timeStr,
+                    value: entry.weight,
+                    date: date
+                });
+            }
+            
+            if (entry.mood) {
+                const moodLabels = {
+                    excellent: 'Ausgezeichnete Stimmung',
+                    good: 'Gute Stimmung',
+                    neutral: 'Neutrale Stimmung',
+                    bad: 'Schlechte Stimmung',
+                    terrible: 'Schlechte Stimmung'
+                };
+                activities.push({
+                    type: 'mood',
+                    label: moodLabels[entry.mood] || 'Stimmung erfasst',
+                    time: timeStr,
+                    value: entry.mood,
+                    date: date
+                });
+            }
+        });
+        
+        // Nach Datum sortieren (neueste zuerst)
+        return activities.sort((a, b) => b.date - a.date);
+    }
+
+    formatTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) {
+            return `Heute • ${date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+        } else if (diffDays === 1) {
+            return 'Gestern';
+        } else if (diffDays < 7) {
+            return `${diffDays} Tage her`;
+        } else {
+            return date.toLocaleDateString('de-DE');
+        }
+    }
+
+    render(activities = []) {
+        if (!this.rootEl) return;
+        
+        // Container leeren
+        this.rootEl.innerHTML = '';
+        
+        if (!activities.length) {
+            this.showEmpty();
+            return;
+        }
+        
+        this.hideEmpty();
+        
+        // Timeline-Linie hinzufügen
+        const timeline = document.createElement('div');
+        timeline.className = 'absolute left-3 top-0 bottom-0 w-px bg-base-300';
+        this.rootEl.appendChild(timeline);
+        
+        activities.forEach((activity, index) => {
+            const item = this.createActivityItem(activity, index === 0);
+            this.rootEl.appendChild(item);
+        });
+    }
+
+    createActivityItem(activity, isLatest = false) {
+        const item = document.createElement('div');
+        item.className = 'relative flex items-start gap-4 pb-6';
+        
+        const colorMap = {
+            steps: 'success',
+            water: 'info', 
+            sleep: 'warning',
+            weight: 'secondary',
+            mood: 'accent'
+        };
+        
+        const color = colorMap[activity.type] || 'primary';
+        const pingClass = isLatest ? 'animate-ping' : '';
+        
+        item.innerHTML = `
+            <span class="absolute -left-[9px] top-1.5 flex h-3 w-3">
+                ${isLatest ? `<span class="absolute inline-flex h-full w-full rounded-full bg-${color} opacity-75 animate-ping"></span>` : ''}
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-${color}"></span>
+            </span>
+            
+            <div class="flex-1">
+                <p class="font-medium text-base-content">${activity.label}</p>
+                <p class="text-xs text-base-content/60">${activity.time}</p>
+            </div>
+            
+            <div class="badge badge-${color} badge-outline text-xs shrink-0">
+                ${activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+            </div>
+        `;
+        
+        return item;
+    }
+
+    showEmpty() {
+        if (this.emptyEl) {
+            this.emptyEl.classList.remove('hidden');
+        }
+    }
+
+    hideEmpty() {
+        if (this.emptyEl) {
+            this.emptyEl.classList.add('hidden');
+        }
+    }
+
+    // Neue Aktivität hinzufügen (wird vom HealthTracker aufgerufen)
+    addActivity(type, data) {
+        // Reload aktivieren
+        setTimeout(() => this.load(), 500);
     }
 }
 

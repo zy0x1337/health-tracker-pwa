@@ -64,6 +64,11 @@
 .analytics-view .chartjs-render-monitor {
     animation: none !important;
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
 </style>
 </head>
 
@@ -846,24 +851,69 @@
                 </div>
             </div>
 
-            <!-- Recent Activities -->
-            <div class="space-y-6">
-                <!-- Recent Activities -->
-                <div class="card bg-base-100 shadow-xl border border-base-300">
-                    <div class="card-body">
-                        <div class="card-title">
-                            <i data-lucide="clock" class="w-5 h-5 text-primary"></i>
-                            Letzte Aktivitäten
-                        </div>
-                        <div id="recent-activities" class="space-y-3">
-                            <div class="text-center py-8 text-base-content/60">
-                                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                                <p class="font-medium">Keine Aktivitäten vorhanden</p>
-                                <p class="text-sm">Füge deine ersten Gesundheitsdaten hinzu!</p>
-                            </div>
-                        </div>
-                    </div>
+            <!-- ===============================
+     RECENT ACTIVITIES – TIMELINE
+     =============================== -->
+<div class="card bg-base-100 shadow-xl border border-base-300">
+    <div class="card-body p-6">
+
+        <!-- Header mit Quick-Actions -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2 card-title">
+                <i data-lucide="clock" class="w-5 h-5 text-primary"></i>
+                Letzte Aktivitäten
+            </div>
+
+            <!-- Refresh-Button -->
+            <button id="refresh-activities-btn"
+                    class="btn btn-ghost btn-circle tooltip"
+                    data-tip="Aktualisieren">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Timeline-Container -->
+        <div id="recent-activities"
+             class="relative pl-8 space-y-6 max-h-96 overflow-y-auto"
+             aria-live="polite">
+
+            <!-- Vertikale Linie -->
+            <div class="absolute left-3 top-0 bottom-0 w-px bg-base-300"></div>
+
+            <!-- Beispiel-Eintrag (wird per JS geklont) -->
+            <!--
+            <div class="relative flex items-start gap-4">
+                <span class="absolute -left-[9px] top-1.5 flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+                </span>
+
+                <div class="flex-1">
+                    <p class="font-medium text-base-content">
+                        8.200 Schritte erreicht
+                    </p>
+                    <p class="text-xs text-base-content/60">
+                        Heute • 12:45 Uhr
+                    </p>
                 </div>
+
+                <div class="badge badge-success badge-outline text-xs shrink-0">
+                    Schritte
+                </div>
+            </div>
+            -->
+        </div>
+
+        <!-- Empty-State -->
+        <div id="activities-empty"
+             class="text-center py-10 text-base-content/60">
+            <i data-lucide="inbox"
+               class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+            <p class="font-medium">Noch keine Aktivitäten</p>
+            <p class="text-sm">Füge deine ersten Gesundheitsdaten hinzu!</p>
+        </div>
+    </div>
+</div>
 
     <!-- Smart Notifications Center -->
 <div id="notification-center" class="fixed bottom-4 right-4 z-50 max-w-sm space-y-2">

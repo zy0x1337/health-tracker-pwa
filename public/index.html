@@ -88,27 +88,61 @@
         </div>
     </div>
 
-    <div class="container mx-auto px-4 py-6 max-w-7xl">
-        <!-- Welcome Section -->
-        <div class="hero bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl mb-8">
-            <div class="hero-content text-center py-12">
-                <div class="max-w-md">
-                    <h1 class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        Willkommen zurück!
-                    </h1>
-                    <p class="py-6 text-base-content/70">
-                        Verfolge deine Gesundheitsziele und bleibe motiviert mit deinem persönlichen Health Tracker.
-                    </p>
-                    <div class="flex justify-center gap-2">
-                        <div class="badge badge-success gap-1">
-                            <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                            Heute aktiv
-                        </div>
-                        <div class="badge badge-primary">7-Tage Streak</div>
-                    </div>
-                </div>
-            </div>
+    <!-- ==================================
+     HERO SECTION – HEALTH TRACKER PRO
+     ================================== -->
+<section
+    class="relative isolate min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-indigo-600 to-emerald-500 text-base-100"
+>
+    <!-- dezent animierte Hintergrund-Shapes -->
+    <div class="absolute -z-10 inset-0 overflow-hidden">
+        <svg class="absolute top-[-20%] left-1/2 w-[120%] -translate-x-1/2 opacity-20 blur-[60px]"
+             viewBox="0 0 800 600" fill="none">
+            <path d="M0 300C0 134.3 134.3 0 300 0H500C665.7 0 800 134.3 800 300V600H0V300Z"
+                  fill="url(#grad1)"/>
+            <defs>
+                <linearGradient id="grad1" x1="0" x2="800" y1="0" y2="600" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#4F46E5"/>
+                    <stop offset=".5" stop-color="#22D3EE"/>
+                    <stop offset="1" stop-color="#4ADE80"/>
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <!-- Headline + Claim -->
+    <div class="max-w-2xl px-6 text-center space-y-6">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
+            Dein persönlicher<br>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-base-100/80 to-base-100">
+                Health&nbsp;Tracker&nbsp;Pro
+            </span>
+        </h1>
+
+        <p class="text-base lg:text-lg text-base-100/90">
+            Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank
+            übersichtlicher Dashboards – **offline-fähig, schnell & motivierend**.
+        </p>
+
+        <!-- Call-to-Action Buttons -->
+        <div class="flex flex-col sm:flex-row sm:justify-center gap-3 mt-4">
+            <a href="#health-form" class="btn btn-secondary btn-wide sm:btn-md gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                Erste Daten hinzufügen
+            </a>
+
+            <button id="install-btn" class="btn btn-outline btn-accent btn-wide sm:btn-md gap-2 hidden">
+                <i data-lucide="download" class="w-5 h-5"></i>
+                App installieren
+            </button>
         </div>
+    </div>
+
+    <!-- Scroll-Indicator -->
+    <div class="absolute bottom-6 inset-x-0 flex justify-center">
+        <i data-lucide="chevron-down" class="w-6 h-6 animate-bounce text-base-100/80"></i>
+    </div>
+</section>
 
         <!-- Goals Section -->
 <div class="card bg-base-100 shadow-xl border border-base-300">

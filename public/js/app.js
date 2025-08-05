@@ -338,6 +338,10 @@ class HealthTrackerPro {
         this.initAnimations();
         this.notificationManager = new SmartNotificationManager(this);
         this.analytics = new AdvancedAnalytics(this);
+        this.progressHub = new ProgressHub(this);
+        setTimeout(() => {
+    this.progressHub.loadViewData();
+}, 1000);
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
@@ -1929,6 +1933,280 @@ shareProgress() {
         this.showToast('📱 Teilen-Funktion in diesem Browser nicht verfügbar', 'warning');
     }
 }
+}
+
+class ProgressHub {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.currentView = 'today';
+        this.achievements = new Map();
+        this.streaks = new Map();
+        
+        this.initializeAchievements();
+        this.loadStreakData();
+    }
+
+    showView(viewName) {
+        // Hide all views
+        document.querySelectorAll('.progress-view').forEach(view => {
+            view.classList.add('hidden');
+        });
+        
+        // Show selected view
+        const targetView = document.getElementById(`view-${viewName}`);
+        if (targetView) {
+            targetView.classList.remove('hidden');
+        }
+        
+        // Update tab styles
+        document.querySelectorAll('.tabs .tab').forEach(tab => {
+            tab.classList.remove('tab-active');
+        });
+        document.getElementById(`tab-${viewName}`)?.classList.add('tab-active');
+        
+        this.currentView = viewName;
+        this.loadViewData();
+    }
+
+    async loadViewData() {
+        const data = await this.getHealthData();
+        
+        switch (this.currentView) {
+            case 'today':
+                this.updateTodayView(data);
+                break;
+            case 'week':
+                this.updateWeekView(data);
+                break;
+            case 'achievements':
+                this.updateAchievementsView(data);
+                break;
+            case 'streaks':
+                this.updateStreaksView(data);
+                break;
+        }
+    }
+
+    async getHealthData() {
+        try {
+            let allData = [];
+            
+            if (navigator.onLine) {
+                const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
+                if (response.ok) {
+                    allData = await response.json();
+                }
+            }
+            
+            if (allData.length === 0) {
+                const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+                allData = Array.isArray(localData) ? localData : [];
+            }
+            
+            return allData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } catch (error) {
+            console.error('❌ Error loading health data:', error);
+            return [];
+        }
+    }
+
+    updateTodayView(data) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayData = data.find(entry => entry.date === today) || {};
+        
+        // Update progress cards
+        this.updateProgressCard('steps', todayData.steps || 0, this.healthTracker.goals.stepsGoal);
+        this.updateProgressCard('water', todayData.waterIntake || 0, this.healthTracker.goals.waterGoal);
+        this.updateProgressCard('sleep', todayData.sleepHours || 0, this.healthTracker.goals.sleepGoal);
+        
+        // Calculate overall score
+        const overallScore = this.calculateOverallScore(todayData);
+        this.updateProgressCard('score', overallScore, 100);
+        
+        // Generate quick actions
+        this.generateQuickActions(todayData);
+    }
+
+    updateProgressCard(type, current, goal) {
+        const percentage = Math.min((current / goal) * 100, 100);
+        const badge = document.getElementById(`${type}-progress-badge`);
+        const display = document.getElementById(`today-${type}-display`);
+        const progressBar = document.getElementById(`${type}-progress-bar`);
+        const motivation = document.getElementById(`${type}-motivation`);
+        
+        if (badge) badge.textContent = Math.round(percentage) + '%';
+        
+        if (display) {
+            if (type === 'score') {
+                display.textContent = Math.round(current);
+            } else {
+                const unit = type === 'steps' ? '' : type === 'water' ? 'L' : 'h';
+                display.textContent = current.toLocaleString() + unit;
+            }
+        }
+        
+        if (progressBar) {
+            progressBar.value = percentage;
+        }
+        
+        if (motivation) {
+            motivation.textContent = this.getMotivationalMessage(type, percentage);
+        }
+    }
+
+    calculateOverallScore(todayData) {
+        const goals = this.healthTracker.goals;
+        let score = 0;
+        let maxScore = 0;
+        
+        // Steps (40 points max)
+        if (goals.stepsGoal) {
+            maxScore += 40;
+            score += Math.min((todayData.steps || 0) / goals.stepsGoal, 1) * 40;
+        }
+        
+        // Water (30 points max)
+        if (goals.waterGoal) {
+            maxScore += 30;
+            score += Math.min((todayData.waterIntake || 0) / goals.waterGoal, 1) * 30;
+        }
+        
+        // Sleep (30 points max)
+        if (goals.sleepGoal) {
+            maxScore += 30;
+            score += Math.min((todayData.sleepHours || 0) / goals.sleepGoal, 1) * 30;
+        }
+        
+        return maxScore > 0 ? (score / maxScore) * 100 : 0;
+    }
+
+    getMotivationalMessage(type, percentage) {
+        const messages = {
+            steps: {
+                low: 'Jeder Schritt zählt! 🚶‍♂️',
+                medium: 'Du bist auf einem guten Weg! 👍',
+                high: 'Fantastisch! Weiter so! 🎉'
+            },
+            water: {
+                low: 'Denk ans Trinken! 💧',
+                medium: 'Gute Hydration! 👌',
+                high: 'Perfekt hydriert! ✨'
+            },
+            sleep: {
+                low: 'Erholung ist wichtig! 😴',
+                medium: 'Guter Schlaf! 👍',
+                high: 'Optimal erholt! 🌟'
+            },
+            score: {
+                low: 'Du schaffst das! 💪',
+                medium: 'Toller Fortschritt! 🚀',
+                high: 'Incredible! Du bist ein Star! ⭐'
+            }
+        };
+        
+        const level = percentage < 30 ? 'low' : percentage < 80 ? 'medium' : 'high';
+        return messages[type]?.[level] || 'Bleib dran!';
+    }
+
+    generateQuickActions(todayData) {
+        const container = document.getElementById('today-quick-actions');
+        if (!container) return;
+        
+        const actions = [];
+        
+        // Check what's missing today
+        if (!todayData.steps || todayData.steps < this.healthTracker.goals.stepsGoal * 0.5) {
+            actions.push({ text: '🚶‍♂️ Spaziergang machen', action: 'takeWalk' });
+        }
+        
+        if (!todayData.waterIntake || todayData.waterIntake < this.healthTracker.goals.waterGoal * 0.7) {
+            actions.push({ text: '💧 Wasser trinken', action: 'drinkWater' });
+        }
+        
+        if (!todayData.weight) {
+            actions.push({ text: '⚖️ Gewicht erfassen', action: 'recordWeight' });
+        }
+        
+        if (!todayData.mood) {
+            actions.push({ text: '😊 Stimmung festhalten', action: 'recordMood' });
+        }
+        
+        // Always show data entry option
+        actions.push({ text: '📊 Daten eingeben', action: 'enterData' });
+        
+        container.innerHTML = actions.map(action => `
+            <button class="btn btn-sm btn-outline gap-2" onclick="window.healthTracker.progressHub.handleQuickAction('${action.action}')">
+                ${action.text}
+            </button>
+        `).join('');
+    }
+
+    handleQuickAction(action) {
+        switch (action) {
+            case 'takeWalk':
+                this.healthTracker.notificationManager.showInAppNotification('🚶‍♂️ Zeit für einen Spaziergang! Jeder Schritt bringt dich näher zu deinem Ziel.', 'info');
+                break;
+            case 'drinkWater':
+                this.healthTracker.notificationManager.showInAppNotification('💧 Trinke ein Glas Wasser! Dein Körper wird es dir danken.', 'info');
+                break;
+            case 'recordWeight':
+            case 'recordMood':
+            case 'enterData':
+                document.getElementById('health-form')?.scrollIntoView({ behavior: 'smooth' });
+                break;
+        }
+    }
+
+    // Weitere Methoden für andere Views...
+    updateWeekView(data) {
+        // Implementierung für Wochenansicht
+        console.log('🗓️ Updating week view...');
+    }
+
+    updateAchievementsView(data) {
+        // Implementierung für Achievements
+        console.log('🏆 Updating achievements view...');
+    }
+
+    updateStreaksView(data) {
+        // Implementierung für Streaks
+        console.log('🔥 Updating streaks view...');
+    }
+
+    initializeAchievements() {
+        // Achievement-System initialisieren
+        console.log('🏆 Initializing achievements...');
+    }
+
+    loadStreakData() {
+        // Streak-Daten laden
+        console.log('🔥 Loading streak data...');
+    }
+
+    resetProgress() {
+        if (confirm('Möchtest du wirklich den gesamten Fortschritt zurücksetzen?')) {
+            localStorage.removeItem('healthData');
+            localStorage.removeItem('userGoals');
+            this.healthTracker.notificationManager.showInAppNotification('🔄 Fortschritt zurückgesetzt!', 'warning');
+            location.reload();
+        }
+    }
+
+    shareProgress() {
+        const today = new Date().toLocaleDateString('de-DE');
+        const shareText = `🎯 Mein Health Tracker Fortschritt vom ${today}\n\nBleib gesund und aktiv! 💪`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'Health Tracker Fortschritt',
+                text: shareText,
+                url: window.location.href
+            });
+        } else {
+            navigator.clipboard.writeText(shareText);
+            this.healthTracker.notificationManager.showInAppNotification('📋 Fortschritt in Zwischenablage kopiert!', 'success');
+        }
+    }
 }
 
 class AdvancedAnalytics {

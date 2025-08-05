@@ -1905,11 +1905,14 @@ class AdvancedAnalytics {
 
     initEventListeners() {
         // Heatmap metric selector
-        const heatmapSelect = document.getElementById('heatmap-metric');
-        if (heatmapSelect) {
-            heatmapSelect.addEventListener('change', () => this.updateHeatmap());
-        }
+    const heatmapSelect = document.getElementById('heatmap-metric');
+    if (heatmapSelect) {
+        heatmapSelect.addEventListener('change', (e) => {
+            console.log('📊 Changing heatmap metric to:', e.target.value);
+            this.generateHeatmap(this.currentData || []);
+        });
     }
+}
 
     showView(viewName) {
         // Hide all views
@@ -1937,11 +1940,12 @@ class AdvancedAnalytics {
 
     async loadViewData() {
         const data = await this.getAnalyticsData();
-        
-        switch (this.currentView) {
-            case 'heatmap':
-                this.generateHeatmap(data);
-                break;
+    this.currentData = data; // Für Metrik-Wechsel speichern
+    
+    switch (this.currentView) {
+        case 'heatmap':
+            this.generateHeatmap(data);
+            break;
             case 'correlation':
                 this.generateCorrelationAnalysis(data);
                 break;
@@ -1975,113 +1979,191 @@ class AdvancedAnalytics {
     }
 
     generateHeatmap(data) {
-        const container = document.getElementById('activity-heatmap');
-        const metric = document.getElementById('heatmap-metric')?.value || 'steps';
-        
-        if (!container || data.length === 0) {
-            container.innerHTML = '<p class="text-center text-base-content/60">Keine Daten verfügbar</p>';
-            return;
-        }
+    const container = document.getElementById('activity-heatmap');
+    const metric = document.getElementById('heatmap-metric')?.value || 'steps';
+    
+    if (!container) {
+        console.error('❌ Heatmap container not found');
+        return;
+    }
 
-        // Generate last 12 weeks
-        const weeks = this.generateWeekData(data, metric);
-        
-        container.innerHTML = `
-            <div class="space-y-2">
-                <div class="grid grid-cols-7 gap-1 text-xs text-center mb-2">
-                    <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
-                </div>
-                ${weeks.map(week => `
-                    <div class="grid grid-cols-7 gap-1">
-                        ${week.map(day => `
-                            <div class="w-6 h-6 rounded-sm ${this.getHeatmapColor(day.value, metric)} 
-                                        tooltip" data-tip="${day.date}: ${day.display}">
-                            </div>
-                        `).join('')}
+    console.log('📊 Generating heatmap for metric:', metric, 'with', data.length, 'data points');
+
+    if (data.length === 0) {
+        container.innerHTML = '<p class="text-center text-base-content/60 py-8">Keine Daten verfügbar</p>';
+        return;
+    }
+
+    // Generate last 12 weeks
+    const weeks = this.generateWeekData(data, metric);
+    console.log('📅 Generated weeks data:', weeks.length, 'weeks');
+    
+    const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    
+    container.innerHTML = `
+        <div class="space-y-2">
+            <!-- Weekday headers -->
+            <div class="grid grid-cols-7 gap-1 text-xs text-center mb-3 font-medium">
+                ${weekdays.map(day => `<span class="text-base-content/70">${day}</span>`).join('')}
+            </div>
+            
+            <!-- Heatmap weeks -->
+            <div class="space-y-1">
+                ${weeks.map((week, weekIndex) => `
+                    <div class="grid grid-cols-7 gap-1" data-week="${weekIndex}">
+                        ${week.map((day, dayIndex) => {
+                            const colorClass = this.getHeatmapColor(day.value, metric);
+                            const tooltipText = `${day.date}: ${day.display}`;
+                            
+                            return `
+                                <div class="w-3 h-3 md:w-4 md:h-4 rounded-sm ${colorClass} 
+                                           hover:ring-2 hover:ring-primary/50 cursor-pointer transition-all
+                                           tooltip tooltip-top" 
+                                     data-tip="${tooltipText}"
+                                     data-value="${day.value}"
+                                     data-date="${day.date}">
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 `).join('')}
             </div>
-        `;
+            
+            <!-- Summary Stats -->
+            <div class="mt-4 text-center">
+                <div class="text-sm text-base-content/80">
+                    ${this.getHeatmapSummary(weeks, metric)}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Re-initialize tooltips if using DaisyUI
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
+}
 
     generateWeekData(data, metric) {
-        const weeks = [];
-        const today = new Date();
+    const weeks = [];
+    const today = new Date();
+    
+    console.log('📊 Generating week data for metric:', metric);
+    
+    // Generate 12 weeks of data (84 days)
+    for (let weekOffset = 11; weekOffset >= 0; weekOffset--) {
+        const week = [];
         
-        // Generate 12 weeks of data
-        for (let weekOffset = 11; weekOffset >= 0; weekOffset--) {
-            const week = [];
-            const weekStart = new Date(today.getTime() - (weekOffset * 7 * 24 * 60 * 60 * 1000));
+        // Start from Monday of each week
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - (weekOffset * 7) - (6 - dayOffset));
             
-            // Get Monday of that week
-            const monday = new Date(weekStart);
-            monday.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayData = data.find(entry => entry.date === dateStr);
             
-            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-                const date = new Date(monday.getTime() + (dayOffset * 24 * 60 * 60 * 1000));
-                const dateStr = date.toISOString().split('T')[0];
-                const dayData = data.find(entry => entry.date === dateStr);
-                
-                let value = 0;
-                let display = 'Keine Daten';
-                
-                if (dayData) {
-                    switch (metric) {
-                        case 'steps':
-                            value = dayData.steps || 0;
-                            display = `${value.toLocaleString()} Schritte`;
-                            break;
-                        case 'water':
-                            value = dayData.waterIntake || 0;
-                            display = `${value}L Wasser`;
-                            break;
-                        case 'sleep':
-                            value = dayData.sleepHours || 0;
-                            display = `${value}h Schlaf`;
-                            break;
-                        case 'mood':
-                            const moodValues = { terrible: 1, bad: 2, neutral: 3, good: 4, excellent: 5 };
-                            value = moodValues[dayData.mood] || 0;
-                            display = dayData.mood ? `Stimmung: ${dayData.mood}` : 'Keine Stimmung';
-                            break;
-                    }
+            let value = 0;
+            let display = 'Keine Daten';
+            
+            if (dayData) {
+                switch (metric) {
+                    case 'steps':
+                        value = dayData.steps || 0;
+                        display = value > 0 ? `${value.toLocaleString()} Schritte` : 'Keine Schritte';
+                        break;
+                    case 'water':
+                        value = dayData.waterIntake || 0;
+                        display = value > 0 ? `${value}L Wasser` : 'Kein Wasser';
+                        break;
+                    case 'sleep':
+                        value = dayData.sleepHours || 0;
+                        display = value > 0 ? `${value}h Schlaf` : 'Kein Schlaf';
+                        break;
+                    case 'mood':
+                        const moodValues = { terrible: 1, bad: 2, neutral: 3, good: 4, excellent: 5 };
+                        value = moodValues[dayData.mood] || 0;
+                        display = dayData.mood ? `Stimmung: ${dayData.mood}` : 'Keine Stimmung';
+                        break;
+                    default:
+                        value = 0;
+                        display = 'Unbekannte Metrik';
                 }
-                
-                week.push({ date: dateStr, value, display });
             }
             
-            weeks.push(week);
+            week.push({ 
+                date: dateStr, 
+                value, 
+                display,
+                dateObj: new Date(date)
+            });
         }
         
-        return weeks;
+        weeks.push(week);
     }
+    
+    console.log('📅 Generated', weeks.length, 'weeks with first week:', weeks[0]);
+    return weeks;
+}
 
     getHeatmapColor(value, metric) {
-        if (value === 0) return 'bg-base-300';
-        
-        let intensity = 0;
-        
-        switch (metric) {
-            case 'steps':
-                intensity = Math.min(value / this.healthTracker.goals.stepsGoal, 1);
-                break;
-            case 'water':
-                intensity = Math.min(value / this.healthTracker.goals.waterGoal, 1);
-                break;
-            case 'sleep':
-                intensity = Math.min(value / this.healthTracker.goals.sleepGoal, 1);
-                break;
-            case 'mood':
-                intensity = value / 5;
-                break;
-        }
-        
-        if (intensity < 0.2) return 'bg-success/20';
-        if (intensity < 0.4) return 'bg-success/40';
-        if (intensity < 0.6) return 'bg-success/60';
-        if (intensity < 0.8) return 'bg-success/80';
-        return 'bg-success';
+    if (value === 0 || value === null || value === undefined) {
+        return 'bg-base-300/50 border border-base-300';
     }
+    
+    let intensity = 0;
+    let goal = 1;
+    
+    switch (metric) {
+        case 'steps':
+            goal = this.healthTracker.goals.stepsGoal;
+            intensity = Math.min(value / goal, 1.5); // Allow over 100%
+            break;
+        case 'water':
+            goal = this.healthTracker.goals.waterGoal;
+            intensity = Math.min(value / goal, 1.5);
+            break;
+        case 'sleep':
+            goal = this.healthTracker.goals.sleepGoal;
+            intensity = Math.min(value / goal, 1.2);
+            break;
+        case 'mood':
+            intensity = value / 5; // 1-5 scale
+            break;
+        default:
+            intensity = 0;
+    }
+    
+    // Color intensity based on goal achievement
+    if (intensity <= 0.2) return 'bg-success/20 hover:bg-success/30';
+    if (intensity <= 0.4) return 'bg-success/40 hover:bg-success/50';
+    if (intensity <= 0.6) return 'bg-success/60 hover:bg-success/70';
+    if (intensity <= 0.8) return 'bg-success/80 hover:bg-success/90';
+    if (intensity < 1.0) return 'bg-success hover:bg-success/90';
+    
+    // Over-achievement
+    return 'bg-emerald-500 hover:bg-emerald-400 ring-1 ring-emerald-400';
+}
+
+getHeatmapSummary(weeks, metric) {
+    const allDays = weeks.flat();
+    const daysWithData = allDays.filter(day => day.value > 0);
+    const totalDays = allDays.length;
+    const percentage = Math.round((daysWithData.length / totalDays) * 100);
+    
+    const avg = daysWithData.length > 0 
+        ? (daysWithData.reduce((sum, day) => sum + day.value, 0) / daysWithData.length)
+        : 0;
+    
+    let unit = '';
+    switch (metric) {
+        case 'steps': unit = ' Schritte'; break;
+        case 'water': unit = 'L'; break;
+        case 'sleep': unit = 'h'; break;
+        case 'mood': unit = '/5'; break;
+    }
+    
+    return `${daysWithData.length}/${totalDays} Tage mit Daten (${percentage}%) • Ø ${avg.toFixed(1)}${unit}`;
+}
 
     generateCorrelationAnalysis(data) {
         const insights = this.calculateCorrelations(data);

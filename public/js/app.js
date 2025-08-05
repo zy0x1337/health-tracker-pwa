@@ -337,9 +337,16 @@ class HealthTrackerPro {
         this.loadRecentActivities();
         this.initAnimations();
         this.notificationManager = new SmartNotificationManager(this);
+        this.analytics = new AdvancedAnalytics(this);
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
+
+        setTimeout(() => {
+        if (this.analytics) {
+            this.analytics.showView('heatmap'); // Startet mit Heatmap-View
+        }
+    }, 2000); // Warte bis alle anderen Initialisierungen fertig sind
     }
 
     triggerAchievementNotification(message) {
@@ -704,6 +711,11 @@ class HealthTrackerPro {
             
             // Charts aktualisieren
             this.updateChartsWithData(allData);
+            setTimeout(() => {
+            if (this.analytics) {
+                this.analytics.loadViewData();
+            }
+        }, 500);
         } catch (error) {
             console.error('❌ Error loading chart data:', error);
         }
@@ -1164,7 +1176,12 @@ updateModalTheme() {
             setTimeout(() => {
                 console.log('🔄 Reloading charts after data save...');
                 this.loadAndUpdateCharts();
-            }, 500);
+            setTimeout(() => {
+                if (this.analytics) {
+                    this.analytics.loadViewData();
+                }
+            }, 800);
+        }, 500);
 
             this.resetForm();
 
@@ -1874,6 +1891,419 @@ shareProgress() {
         this.showToast('📱 Teilen-Funktion in diesem Browser nicht verfügbar', 'warning');
     }
 }
+}
+
+class AdvancedAnalytics {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.currentView = 'heatmap';
+        this.trendPeriod = 90;
+        this.charts = {};
+        
+        this.initEventListeners();
+    }
+
+    initEventListeners() {
+        // Heatmap metric selector
+        const heatmapSelect = document.getElementById('heatmap-metric');
+        if (heatmapSelect) {
+            heatmapSelect.addEventListener('change', () => this.updateHeatmap());
+        }
+    }
+
+    showView(viewName) {
+        // Hide all views
+        document.querySelectorAll('.analytics-view').forEach(view => {
+            view.classList.add('hidden');
+        });
+        
+        // Show selected view
+        const targetView = document.getElementById(`view-${viewName}`);
+        if (targetView) {
+            targetView.classList.remove('hidden');
+        }
+        
+        // Update tab styles
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('tab-active');
+        });
+        document.getElementById(`tab-${viewName}`)?.classList.add('tab-active');
+        
+        this.currentView = viewName;
+        
+        // Load view data
+        setTimeout(() => this.loadViewData(), 100);
+    }
+
+    async loadViewData() {
+        const data = await this.getAnalyticsData();
+        
+        switch (this.currentView) {
+            case 'heatmap':
+                this.generateHeatmap(data);
+                break;
+            case 'correlation':
+                this.generateCorrelationAnalysis(data);
+                break;
+            case 'trends':
+                this.generateTrendAnalysis(data);
+                break;
+        }
+    }
+
+    async getAnalyticsData() {
+        try {
+            let allData = [];
+            
+            if (navigator.onLine) {
+                const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
+                if (response.ok) {
+                    allData = await response.json();
+                }
+            }
+            
+            if (allData.length === 0) {
+                const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+                allData = Array.isArray(localData) ? localData : [];
+            }
+            
+            return allData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } catch (error) {
+            console.error('❌ Error loading analytics data:', error);
+            return [];
+        }
+    }
+
+    generateHeatmap(data) {
+        const container = document.getElementById('activity-heatmap');
+        const metric = document.getElementById('heatmap-metric')?.value || 'steps';
+        
+        if (!container || data.length === 0) {
+            container.innerHTML = '<p class="text-center text-base-content/60">Keine Daten verfügbar</p>';
+            return;
+        }
+
+        // Generate last 12 weeks
+        const weeks = this.generateWeekData(data, metric);
+        
+        container.innerHTML = `
+            <div class="space-y-2">
+                <div class="grid grid-cols-7 gap-1 text-xs text-center mb-2">
+                    <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+                </div>
+                ${weeks.map(week => `
+                    <div class="grid grid-cols-7 gap-1">
+                        ${week.map(day => `
+                            <div class="w-6 h-6 rounded-sm ${this.getHeatmapColor(day.value, metric)} 
+                                        tooltip" data-tip="${day.date}: ${day.display}">
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    generateWeekData(data, metric) {
+        const weeks = [];
+        const today = new Date();
+        
+        // Generate 12 weeks of data
+        for (let weekOffset = 11; weekOffset >= 0; weekOffset--) {
+            const week = [];
+            const weekStart = new Date(today.getTime() - (weekOffset * 7 * 24 * 60 * 60 * 1000));
+            
+            // Get Monday of that week
+            const monday = new Date(weekStart);
+            monday.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+            
+            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                const date = new Date(monday.getTime() + (dayOffset * 24 * 60 * 60 * 1000));
+                const dateStr = date.toISOString().split('T')[0];
+                const dayData = data.find(entry => entry.date === dateStr);
+                
+                let value = 0;
+                let display = 'Keine Daten';
+                
+                if (dayData) {
+                    switch (metric) {
+                        case 'steps':
+                            value = dayData.steps || 0;
+                            display = `${value.toLocaleString()} Schritte`;
+                            break;
+                        case 'water':
+                            value = dayData.waterIntake || 0;
+                            display = `${value}L Wasser`;
+                            break;
+                        case 'sleep':
+                            value = dayData.sleepHours || 0;
+                            display = `${value}h Schlaf`;
+                            break;
+                        case 'mood':
+                            const moodValues = { terrible: 1, bad: 2, neutral: 3, good: 4, excellent: 5 };
+                            value = moodValues[dayData.mood] || 0;
+                            display = dayData.mood ? `Stimmung: ${dayData.mood}` : 'Keine Stimmung';
+                            break;
+                    }
+                }
+                
+                week.push({ date: dateStr, value, display });
+            }
+            
+            weeks.push(week);
+        }
+        
+        return weeks;
+    }
+
+    getHeatmapColor(value, metric) {
+        if (value === 0) return 'bg-base-300';
+        
+        let intensity = 0;
+        
+        switch (metric) {
+            case 'steps':
+                intensity = Math.min(value / this.healthTracker.goals.stepsGoal, 1);
+                break;
+            case 'water':
+                intensity = Math.min(value / this.healthTracker.goals.waterGoal, 1);
+                break;
+            case 'sleep':
+                intensity = Math.min(value / this.healthTracker.goals.sleepGoal, 1);
+                break;
+            case 'mood':
+                intensity = value / 5;
+                break;
+        }
+        
+        if (intensity < 0.2) return 'bg-success/20';
+        if (intensity < 0.4) return 'bg-success/40';
+        if (intensity < 0.6) return 'bg-success/60';
+        if (intensity < 0.8) return 'bg-success/80';
+        return 'bg-success';
+    }
+
+    generateCorrelationAnalysis(data) {
+        const insights = this.calculateCorrelations(data);
+        
+        document.getElementById('correlation-results').innerHTML = insights.map(insight => 
+            `<p class="mb-2">${insight}</p>`
+        ).join('');
+
+        // Update strongest correlation
+        const strongest = this.findStrongestCorrelation(data);
+        document.getElementById('strongest-correlation').textContent = strongest.pair;
+        document.getElementById('correlation-strength').textContent = strongest.strength;
+
+        this.renderCorrelationChart(data);
+    }
+
+    calculateCorrelations(data) {
+        if (data.length < 10) return ['Nicht genug Daten für Korrelationsanalyse'];
+        
+        const insights = [];
+        
+        // Steps vs Sleep correlation
+        const stepsVsSleep = this.pearsonCorrelation(
+            data.map(d => d.steps || 0),
+            data.map(d => d.sleepHours || 0)
+        );
+        
+        if (Math.abs(stepsVsSleep) > 0.3) {
+            insights.push(`🚶‍♂️💤 ${stepsVsSleep > 0 ? 'Positive' : 'Negative'} Korrelation zwischen Schritten und Schlaf (${(stepsVsSleep * 100).toFixed(0)}%)`);
+        }
+        
+        // Water vs Mood correlation
+        const waterVsMood = this.pearsonCorrelation(
+            data.map(d => d.waterIntake || 0),
+            data.map(d => this.moodToNumber(d.mood))
+        );
+        
+        if (Math.abs(waterVsMood) > 0.2) {
+            insights.push(`💧😊 Wasserzufuhr korreliert mit Stimmung (${(waterVsMood * 100).toFixed(0)}%)`);
+        }
+        
+        // Sleep vs Mood correlation
+        const sleepVsMood = this.pearsonCorrelation(
+            data.map(d => d.sleepHours || 0),
+            data.map(d => this.moodToNumber(d.mood))
+        );
+        
+        if (Math.abs(sleepVsMood) > 0.2) {
+            insights.push(`😴😊 Besserer Schlaf führt zu besserer Stimmung (${(sleepVsMood * 100).toFixed(0)}%)`);
+        }
+        
+        return insights.length > 0 ? insights : ['Keine signifikanten Korrelationen gefunden'];
+    }
+
+    pearsonCorrelation(x, y) {
+        const n = x.length;
+        if (n === 0) return 0;
+        
+        const sumX = x.reduce((a, b) => a + b, 0);
+        const sumY = y.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+        const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+        const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+        
+        const numerator = n * sumXY - sumX * sumY;
+        const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+        
+        return denominator === 0 ? 0 : numerator / denominator;
+    }
+
+    moodToNumber(mood) {
+        const moodMap = { terrible: 1, bad: 2, neutral: 3, good: 4, excellent: 5 };
+        return moodMap[mood] || 3;
+    }
+
+    findStrongestCorrelation(data) {
+        const correlations = [
+            { pair: 'Schritte ↔ Schlaf', value: this.pearsonCorrelation(data.map(d => d.steps || 0), data.map(d => d.sleepHours || 0)) },
+            { pair: 'Wasser ↔ Stimmung', value: this.pearsonCorrelation(data.map(d => d.waterIntake || 0), data.map(d => this.moodToNumber(d.mood))) },
+            { pair: 'Schlaf ↔ Stimmung', value: this.pearsonCorrelation(data.map(d => d.sleepHours || 0), data.map(d => this.moodToNumber(d.mood))) }
+        ];
+        
+        const strongest = correlations.reduce((max, curr) => 
+            Math.abs(curr.value) > Math.abs(max.value) ? curr : max
+        );
+        
+        return {
+            pair: strongest.pair,
+            strength: `${(Math.abs(strongest.value) * 100).toFixed(0)}% ${strongest.value > 0 ? 'positiv' : 'negativ'}`
+        };
+    }
+
+    renderCorrelationChart(data) {
+        const canvas = document.getElementById('correlation-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.charts.correlation) {
+            this.charts.correlation.destroy();
+        }
+        
+        this.charts.correlation = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Schritte vs Schlaf',
+                    data: data.map(d => ({ x: d.steps || 0, y: d.sleepHours || 0 })),
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.x} Schritte, ${context.parsed.y}h Schlaf`
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Schritte' } },
+                    y: { title: { display: true, text: 'Schlaf (Stunden)' } }
+                }
+            }
+        });
+    }
+
+    generateTrendAnalysis(data) {
+        const periodData = data.slice(0, this.trendPeriod);
+        this.renderTrendChart(periodData);
+        this.updateTrendStats(periodData);
+    }
+
+    renderTrendChart(data) {
+        const canvas = document.getElementById('trends-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.charts.trends) {
+            this.charts.trends.destroy();
+        }
+        
+        const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        this.charts.trends = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: sortedData.map(d => new Date(d.date).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })),
+                datasets: [
+                    {
+                        label: 'Schritte',
+                        data: sortedData.map(d => d.steps || 0),
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Wasser (L)',
+                        data: sortedData.map(d => (d.waterIntake || 0) * 1000), // Scale for visibility
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left' },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    updateTrendStats(data) {
+        const container = document.getElementById('trend-stats');
+        if (!container) return;
+        
+        const avgSteps = data.reduce((sum, d) => sum + (d.steps || 0), 0) / data.length;
+        const avgWater = data.reduce((sum, d) => sum + (d.waterIntake || 0), 0) / data.length;
+        const avgSleep = data.reduce((sum, d) => sum + (d.sleepHours || 0), 0) / data.length;
+        
+        container.innerHTML = `
+            <div class="stat bg-base-200">
+                <div class="stat-title">Ø Schritte</div>
+                <div class="stat-value text-success">${Math.round(avgSteps).toLocaleString()}</div>
+                <div class="stat-desc">Letzten ${this.trendPeriod} Tage</div>
+            </div>
+            <div class="stat bg-base-200">
+                <div class="stat-title">Ø Wasser</div>
+                <div class="stat-value text-info">${avgWater.toFixed(1)}L</div>
+                <div class="stat-desc">Täglich</div>
+            </div>
+            <div class="stat bg-base-200">
+                <div class="stat-title">Ø Schlaf</div>
+                <div class="stat-value text-warning">${avgSleep.toFixed(1)}h</div>
+                <div class="stat-desc">Pro Nacht</div>
+            </div>
+        `;
+    }
+
+    setTrendPeriod(days) {
+        this.trendPeriod = days;
+        
+        // Update button styles
+        document.querySelectorAll('#view-trends .btn').forEach(btn => {
+            btn.classList.remove('btn-active');
+        });
+        event.target.classList.add('btn-active');
+        
+        this.loadViewData();
+    }
 }
 
 // App initialisieren wenn DOM bereit ist

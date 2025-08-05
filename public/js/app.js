@@ -939,30 +939,30 @@ class HealthTrackerPro {
     }
 
     updateDashboard(data) {
-        if (data.weight) {
-            const weightEl = document.getElementById('today-weight');
-            if (weightEl) weightEl.textContent = data.weight + ' kg';
-            this.updateWeightProgress(data.weight);
-        }
-
-        if (data.steps) {
-            const stepsEl = document.getElementById('today-steps');
-            if (stepsEl) stepsEl.textContent = data.steps.toLocaleString();
-            this.updateStepsProgress(data.steps);
-        }
-
-        if (data.waterIntake) {
-            const waterEl = document.getElementById('today-water');
-            if (waterEl) waterEl.textContent = data.waterIntake + ' L';
-            this.updateWaterProgress(data.waterIntake);
-        }
-
-        if (data.sleepHours) {
-            const sleepEl = document.getElementById('today-sleep');
-            if (sleepEl) sleepEl.textContent = data.sleepHours + ' h';
-            this.updateSleepProgress(data.sleepHours);
-        }
+    if (data.weight) {
+        const weightEl = document.getElementById('today-weight');
+        if (weightEl) weightEl.textContent = data.weight + ' kg';
+        this.updateWeightProgress(data.weight);
     }
+    if (data.steps) {
+        const stepsEl = document.getElementById('today-steps');
+        if (stepsEl) stepsEl.textContent = data.steps.toLocaleString();
+        this.updateStepsProgress(data.steps);
+    }
+    if (data.waterIntake) {
+        const waterEl = document.getElementById('today-water');
+        if (waterEl) waterEl.textContent = data.waterIntake + ' L';
+        this.updateWaterProgress(data.waterIntake);
+    }
+    if (data.sleepHours) {
+        const sleepEl = document.getElementById('today-sleep');
+        if (sleepEl) sleepEl.textContent = data.sleepHours + ' h';
+        this.updateSleepProgress(data.sleepHours);
+    }
+    
+    // Update goal progress indicators
+    this.updateGoalProgressIndicators(data);
+}
 
     updateStepsProgress(steps) {
         const goal = this.goals.stepsGoal;
@@ -1334,6 +1334,47 @@ class HealthTrackerPro {
             this.showToast('📵 Offline-Modus aktiv', 'warning');
         }
     }
+
+    // Update goal progress indicators
+updateGoalProgressIndicators(data) {
+    if (data.weight && this.goals.weightGoal) {
+        const diff = Math.abs(data.weight - this.goals.weightGoal);
+        const maxDiff = this.goals.weightGoal * 0.1; // 10% tolerance
+        const progress = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
+        const progressEl = document.getElementById('weight-goal-progress');
+        if (progressEl) {
+            progressEl.style.setProperty('--value', Math.round(progress));
+            progressEl.textContent = Math.round(progress) + '%';
+        }
+    }
+
+    if (data.steps) {
+        const progress = Math.min((data.steps / this.goals.stepsGoal) * 100, 100);
+        const progressEl = document.getElementById('steps-goal-progress');
+        if (progressEl) {
+            progressEl.style.setProperty('--value', Math.round(progress));
+            progressEl.textContent = Math.round(progress) + '%';
+        }
+    }
+
+    if (data.waterIntake) {
+        const progress = Math.min((data.waterIntake / this.goals.waterGoal) * 100, 100);
+        const progressEl = document.getElementById('water-goal-progress');
+        if (progressEl) {
+            progressEl.style.setProperty('--value', Math.round(progress));
+            progressEl.textContent = Math.round(progress) + '%';
+        }
+    }
+
+    if (data.sleepHours) {
+        const progress = Math.min((data.sleepHours / this.goals.sleepGoal) * 100, 100);
+        const progressEl = document.getElementById('sleep-goal-progress');
+        if (progressEl) {
+            progressEl.style.setProperty('--value', Math.round(progress));
+            progressEl.textContent = Math.round(progress) + '%';
+        }
+    }
+}
 }
 
 // App initialisieren wenn DOM bereit ist

@@ -222,8 +222,8 @@
 </div>
 
 <!-- Goals Modal -->
-<div id="goals-modal" class="modal hidden">
-    <div class="modal-box max-w-4xl bg-base-100">
+<dialog id="goals-modal" class="modal">
+    <div class="modal-box max-w-4xl">
         <!-- Modal Header -->
         <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-300">
             <div class="flex items-center gap-3">
@@ -237,9 +237,11 @@
                     <p class="text-sm text-base-content/70">Setze deine persönlichen Gesundheitsziele</p>
                 </div>
             </div>
-            <button id="close-goals-modal" class="btn btn-ghost btn-sm btn-circle">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
+            <form method="dialog">
+                <button class="btn btn-ghost btn-sm btn-circle">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </form>
         </div>
 
         <!-- Goals Form -->
@@ -258,17 +260,17 @@
                         </span>
                         <span class="label-text-alt text-base-content/60">Optional</span>
                     </label>
-                    <div class="input-group">
+                    <div class="join">
                         <input 
                             type="number" 
                             id="weight-goal-input" 
-                            class="input input-bordered flex-1 focus:input-secondary" 
+                            class="input input-bordered join-item flex-1 focus:input-secondary" 
                             placeholder="70" 
                             min="30" 
                             max="300" 
                             step="0.1"
                         >
-                        <span class="bg-base-200 px-4 flex items-center text-base-content/80 font-medium">kg</span>
+                        <span class="join-item bg-base-200 px-4 flex items-center text-base-content/80 font-medium">kg</span>
                     </div>
                     <label class="label">
                         <span class="label-text-alt text-base-content/60">Dein Zielgewicht (leer lassen falls kein Ziel)</span>
@@ -287,17 +289,17 @@
                             Schrittziel
                         </span>
                     </label>
-                    <div class="input-group">
+                    <div class="join">
                         <input 
                             type="number" 
                             id="steps-goal-input" 
-                            class="input input-bordered flex-1 focus:input-success" 
+                            class="input input-bordered join-item flex-1 focus:input-success" 
                             placeholder="10000" 
                             min="1000" 
                             max="50000" 
                             required
                         >
-                        <span class="bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Schritte</span>
+                        <span class="join-item bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Schritte</span>
                     </div>
                     <label class="label">
                         <span class="label-text-alt text-base-content/60">Tägliche Schritte (empfohlen: 10.000)</span>
@@ -316,18 +318,18 @@
                             Wasserziel
                         </span>
                     </label>
-                    <div class="input-group">
+                    <div class="join">
                         <input 
                             type="number" 
                             id="water-goal-input" 
-                            class="input input-bordered flex-1 focus:input-info" 
+                            class="input input-bordered join-item flex-1 focus:input-info" 
                             placeholder="2.0" 
                             min="0.5" 
                             max="10" 
                             step="0.1" 
                             required
                         >
-                        <span class="bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Liter</span>
+                        <span class="join-item bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Liter</span>
                     </div>
                     <label class="label">
                         <span class="label-text-alt text-base-content/60">Tägliche Wassermenge (empfohlen: 2-3L)</span>
@@ -346,18 +348,18 @@
                             Schlafziel
                         </span>
                     </label>
-                    <div class="input-group">
+                    <div class="join">
                         <input 
                             type="number" 
                             id="sleep-goal-input" 
-                            class="input input-bordered flex-1 focus:input-warning" 
+                            class="input input-bordered join-item flex-1 focus:input-warning" 
                             placeholder="8" 
                             min="4" 
                             max="12" 
                             step="0.5" 
                             required
                         >
-                        <span class="bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Stunden</span>
+                        <span class="join-item bg-base-200 px-4 flex items-center text-base-content/80 font-medium">Stunden</span>
                     </div>
                     <label class="label">
                         <span class="label-text-alt text-base-content/60">Nachtschlaf-Dauer (empfohlen: 7-9h)</span>
@@ -379,13 +381,9 @@
 
             <!-- Action Buttons -->
             <div class="modal-action pt-6 border-t border-base-300">
-                <button 
-                    type="button" 
-                    id="cancel-goals" 
-                    class="btn btn-ghost"
-                >
-                    Abbrechen
-                </button>
+                <form method="dialog">
+                    <button type="button" class="btn btn-ghost">Abbrechen</button>
+                </form>
                 <button 
                     type="submit" 
                     class="btn btn-primary gap-2"
@@ -399,7 +397,7 @@
     <form method="dialog" class="modal-backdrop">
         <button>close</button>
     </form>
-</div>
+</dialog>
 
         <!-- Charts Section -->
         <div class="mb-8">

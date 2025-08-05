@@ -789,21 +789,33 @@ class HealthTrackerPro {
     }
 
     toggleTheme() {
-        this.theme = this.theme === 'light' ? 'dark' : 'light';
-        localStorage.setItem('theme', this.theme);
-        document.documentElement.setAttribute('data-theme', this.theme);
-
-        const themeToggle = document.getElementById('theme-toggle');
-        const icon = this.theme === 'dark' ? 'sun' : 'moon';
-        if (themeToggle) {
-            themeToggle.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', this.theme);
+    document.documentElement.setAttribute('data-theme', this.theme);
+    const themeToggle = document.getElementById('theme-toggle');
+    const icon = this.theme === 'dark' ? 'sun' : 'moon';
+    if (themeToggle) {
+        themeToggle.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
         }
-
-        this.updateChartsTheme();
     }
+    this.updateChartsTheme();
+    this.updateModalTheme();
+}
+
+    // Update modal theme when theme changes
+updateModalTheme() {
+    const modal = document.getElementById('goals-modal');
+    if (!modal) return;
+    
+    // Force re-render of icons in modal after theme change
+    setTimeout(() => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }, 100);
+}
 
     async handleSubmit(e) {
         e.preventDefault();

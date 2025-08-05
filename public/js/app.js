@@ -1956,27 +1956,35 @@ class AdvancedAnalytics {
     }
 
     async getAnalyticsData() {
-        try {
-            let allData = [];
-            
-            if (navigator.onLine) {
-                const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
-                if (response.ok) {
-                    allData = await response.json();
-                }
+    try {
+        let allData = [];
+        
+        if (navigator.onLine) {
+            const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
+            if (response.ok) {
+                allData = await response.json();
+                console.log('🌐 Server data loaded:', allData.length, 'entries');
             }
-            
-            if (allData.length === 0) {
-                const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
-                allData = Array.isArray(localData) ? localData : [];
-            }
-            
-            return allData.sort((a, b) => new Date(b.date) - new Date(a.date));
-        } catch (error) {
-            console.error('❌ Error loading analytics data:', error);
-            return [];
         }
+        
+        if (allData.length === 0) {
+            const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+            allData = Array.isArray(localData) ? localData : [];
+            console.log('💾 Local data loaded:', allData.length, 'entries');
+        }
+        
+        // Normalize date formats
+        allData = allData.map(entry => ({
+            ...entry,
+            date: entry.date.includes('T') ? entry.date.split('T')[0] : entry.date
+        }));
+        
+        return allData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } catch (error) {
+        console.error('❌ Error loading analytics data:', error);
+        return [];
     }
+}
 
     generateHeatmap(data) {
     const container = document.getElementById('activity-heatmap');
@@ -1988,6 +1996,7 @@ class AdvancedAnalytics {
     }
 
     console.log('📊 Generating heatmap for metric:', metric, 'with', data.length, 'data points');
+    console.log('📊 Sample data:', data.slice(0, 3));
 
     if (data.length === 0) {
         container.innerHTML = '<p class="text-center text-base-content/60 py-8">Keine Daten verfügbar</p>';
@@ -1996,7 +2005,6 @@ class AdvancedAnalytics {
 
     // Generate last 12 weeks
     const weeks = this.generateWeekData(data, metric);
-    console.log('📅 Generated weeks data:', weeks.length, 'weeks');
     
     const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     
@@ -2013,7 +2021,8 @@ class AdvancedAnalytics {
                     <div class="grid grid-cols-7 gap-1" data-week="${weekIndex}">
                         ${week.map((day, dayIndex) => {
                             const colorClass = this.getHeatmapColor(day.value, metric);
-                            const tooltipText = `${day.date}: ${day.display}`;
+                            // Benutze deutsches Datum für Tooltip
+                            const tooltipText = `${day.germanDate}: ${day.display}`;
                             
                             return `
                                 <div class="w-3 h-3 md:w-4 md:h-4 rounded-sm ${colorClass} 
@@ -2021,7 +2030,8 @@ class AdvancedAnalytics {
                                            tooltip tooltip-top" 
                                      data-tip="${tooltipText}"
                                      data-value="${day.value}"
-                                     data-date="${day.date}">
+                                     data-date="${day.date}"
+                                     data-raw="${day.rawData ? 'has-data' : 'no-data'}">
                                 </div>
                             `;
                         }).join('')}
@@ -2038,10 +2048,52 @@ class AdvancedAnalytics {
         </div>
     `;
 
-    // Re-initialize tooltips if using DaisyUI
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    // Debug: Log summary info
+    const allDays = weeks.flat();
+    const daysWithData = allDays.filter(day => day.value > 0);
+    console.log('📊 Heatmap Summary:', {
+        totalDays: allDays.length,
+        daysWithData: daysWithData.length,
+        daysWithRawData: allDays.filter(day => day.rawData).length,
+        metric: metric
+    });
+}
+
+debugHeatmap() {
+    console.log('🔍 === HEATMAP DEBUG ===');
+    
+    // Check data availability
+    const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+    console.log('📦 Local storage data:', localData.length, 'entries');
+    console.log('📦 Sample local data:', localData.slice(0, 3));
+    
+    // Check current analytics data
+    console.log('📊 Current analytics data:', this.currentData?.length || 0, 'entries');
+    
+    // Check today's date handling
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    console.log('📅 Today:', {
+        date: today,
+        string: todayStr,
+        dayOfWeek: today.getDay(),
+        germanFormat: today.toLocaleDateString('de-DE')
+    });
+    
+    // Check if today's data exists
+    const todayData = (this.currentData || localData).find(entry => {
+        const entryDate = entry.date.includes('T') ? entry.date.split('T')[0] : entry.date;
+        return entryDate === todayStr;
+    });
+    console.log('📅 Today\'s data found:', !!todayData, todayData);
+    
+    // Force regenerate with local data if needed
+    if (!this.currentData || this.currentData.length === 0) {
+        console.log('🔄 Using local data for heatmap');
+        this.currentData = localData;
     }
+    
+    this.generateHeatmap(this.currentData || localData);
 }
 
     generateWeekData(data, metric) {
@@ -2049,18 +2101,38 @@ class AdvancedAnalytics {
     const today = new Date();
     
     console.log('📊 Generating week data for metric:', metric);
+    console.log('📊 Available data dates:', data.map(d => d.date).slice(0, 10));
     
     // Generate 12 weeks of data (84 days)
     for (let weekOffset = 11; weekOffset >= 0; weekOffset--) {
         const week = [];
         
-        // Start from Monday of each week
+        // Berechne den Montag der aktuellen Woche
+        const startOfCurrentWeek = new Date(today);
+        const dayOfWeek = today.getDay(); // 0 = Sonntag, 1 = Montag, etc.
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sonntag = 6 Tage zurück
+        startOfCurrentWeek.setDate(today.getDate() - daysToMonday);
+        
+        // Berechne den Montag der Zielwoche
+        const mondayOfWeek = new Date(startOfCurrentWeek);
+        mondayOfWeek.setDate(startOfCurrentWeek.getDate() - (weekOffset * 7));
+        
+        // Generiere 7 Tage ab diesem Montag
         for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - (weekOffset * 7) - (6 - dayOffset));
+            const date = new Date(mondayOfWeek);
+            date.setDate(mondayOfWeek.getDate() + dayOffset);
             
+            // Deutsches Datumsformat: YYYY-MM-DD
             const dateStr = date.toISOString().split('T')[0];
-            const dayData = data.find(entry => entry.date === dateStr);
+            
+            // Finde passende Daten in den gespeicherten Daten
+            const dayData = data.find(entry => {
+                // Normalisiere beide Daten für Vergleich
+                const entryDate = entry.date.includes('T') 
+                    ? entry.date.split('T')[0] 
+                    : entry.date;
+                return entryDate === dateStr;
+            });
             
             let value = 0;
             let display = 'Keine Daten';
@@ -2069,20 +2141,20 @@ class AdvancedAnalytics {
                 switch (metric) {
                     case 'steps':
                         value = dayData.steps || 0;
-                        display = value > 0 ? `${value.toLocaleString()} Schritte` : 'Keine Schritte';
+                        display = value > 0 ? `${value.toLocaleString()} Schritte` : 'Keine Schritte erfasst';
                         break;
                     case 'water':
                         value = dayData.waterIntake || 0;
-                        display = value > 0 ? `${value}L Wasser` : 'Kein Wasser';
+                        display = value > 0 ? `${value}L Wasser` : 'Kein Wasser erfasst';
                         break;
                     case 'sleep':
                         value = dayData.sleepHours || 0;
-                        display = value > 0 ? `${value}h Schlaf` : 'Kein Schlaf';
+                        display = value > 0 ? `${value}h Schlaf` : 'Kein Schlaf erfasst';
                         break;
                     case 'mood':
                         const moodValues = { terrible: 1, bad: 2, neutral: 3, good: 4, excellent: 5 };
                         value = moodValues[dayData.mood] || 0;
-                        display = dayData.mood ? `Stimmung: ${dayData.mood}` : 'Keine Stimmung';
+                        display = dayData.mood ? `Stimmung: ${dayData.mood}` : 'Keine Stimmung erfasst';
                         break;
                     default:
                         value = 0;
@@ -2091,17 +2163,22 @@ class AdvancedAnalytics {
             }
             
             week.push({ 
-                date: dateStr, 
+                date: dateStr,
+                germanDate: date.toLocaleDateString('de-DE'), // Deutsches Format für Anzeige
                 value, 
                 display,
-                dateObj: new Date(date)
+                dayOfWeek: date.getDay(),
+                rawData: dayData || null
             });
         }
         
         weeks.push(week);
     }
     
-    console.log('📅 Generated', weeks.length, 'weeks with first week:', weeks[0]);
+    console.log('📅 Generated', weeks.length, 'weeks');
+    console.log('📅 First week sample:', weeks[0]);
+    console.log('📅 Today should be:', today.toLocaleDateString('de-DE'), 'Day:', today.getDay());
+    
     return weeks;
 }
 

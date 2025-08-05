@@ -549,20 +549,10 @@ class HealthTrackerPro {
         }
 
         // Goals-related event listeners
-        const editGoalsBtn = document.getElementById('edit-goals-btn');
-        if (editGoalsBtn) {
-            editGoalsBtn.addEventListener('click', () => this.openGoalsModal());
-        }
-
-        const closeGoalsModal = document.getElementById('close-goals-modal');
-        if (closeGoalsModal) {
-            closeGoalsModal.addEventListener('click', () => this.closeGoalsModal());
-        }
-
-        const cancelGoals = document.getElementById('cancel-goals');
-        if (cancelGoals) {
-            cancelGoals.addEventListener('click', () => this.closeGoalsModal());
-        }
+const editGoalsBtn = document.getElementById('edit-goals-btn');
+if (editGoalsBtn) {
+    editGoalsBtn.addEventListener('click', () => this.openGoalsModal());
+}
 
         const goalsForm = document.getElementById('goals-form');
         if (goalsForm) {
@@ -684,29 +674,29 @@ class HealthTrackerPro {
     }
 
     openGoalsModal() {
-        const modal = document.getElementById('goals-modal');
-        if (!modal) return;
-        
-        // Pre-fill form with current goals
-        const weightInput = document.getElementById('weight-goal-input');
-        const stepsInput = document.getElementById('steps-goal-input');
-        const waterInput = document.getElementById('water-goal-input');
-        const sleepInput = document.getElementById('sleep-goal-input');
-        
-        if (weightInput) weightInput.value = this.goals.weightGoal || '';
-        if (stepsInput) stepsInput.value = this.goals.stepsGoal;
-        if (waterInput) waterInput.value = this.goals.waterGoal;
-        if (sleepInput) sleepInput.value = this.goals.sleepGoal;
-        
-        modal.classList.remove('hidden');
-    }
+    const modal = document.getElementById('goals-modal');
+    if (!modal) return;
+    
+    // Pre-fill form with current goals
+    const weightInput = document.getElementById('weight-goal-input');
+    const stepsInput = document.getElementById('steps-goal-input');
+    const waterInput = document.getElementById('water-goal-input');
+    const sleepInput = document.getElementById('sleep-goal-input');
+    
+    if (weightInput) weightInput.value = this.goals.weightGoal || '';
+    if (stepsInput) stepsInput.value = this.goals.stepsGoal;
+    if (waterInput) waterInput.value = this.goals.waterGoal;
+    if (sleepInput) sleepInput.value = this.goals.sleepGoal;
+    
+    modal.showModal();
+}
 
     closeGoalsModal() {
-        const modal = document.getElementById('goals-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
+    const modal = document.getElementById('goals-modal');
+    if (modal) {
+        modal.close();
     }
+}
 
     async handleGoalsSubmit(e) {
         e.preventDefault();

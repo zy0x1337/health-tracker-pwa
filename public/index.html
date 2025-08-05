@@ -39,6 +39,32 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+/* Fix für Chart Loading Loops */
+#trends-chart {
+    height: 300px !important;
+    max-height: 300px !important;
+    width: 100% !important;
+}
+
+#correlation-chart {
+    height: 250px !important;
+    max-height: 250px !important;
+    width: 100% !important;
+}
+
+/* Analytics Container Fixes */
+.analytics-view canvas {
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+/* Prevent Chart.js resize loops */
+.analytics-view .chartjs-render-monitor {
+    animation: none !important;
+}
+</style>
 </head>
 
 <body class="min-h-screen bg-base-100">

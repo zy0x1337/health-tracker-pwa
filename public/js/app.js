@@ -2257,10 +2257,24 @@ class AdvancedAnalytics {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: true } },
-                scales: {
-                    y: { type: 'linear', display: true, position: 'left' },
-                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                animation: false,
+            resizeDelay: 0,
+            plugins: { 
+                legend: { display: true }
+            },
+            scales: {
+                y: { type: 'linear', display: true, position: 'left' },
+                y1: { 
+                    type: 'linear', 
+                    display: true, 
+                    position: 'right', 
+                    grid: { drawOnChartArea: false } 
+                }
+            },
+            // ➕ RESIZE PROTECTION:
+            onResize: () => {
+                // Prevent infinite resize loops
+                return;
                 }
             }
         });

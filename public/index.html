@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Tracker Pro - Professioneller Gesundheits-Tracker</title>
+    <title>Health Tracker - Professioneller Gesundheits-Tracker</title>
     
     <!-- PWA Meta Tags -->
     <meta name="description" content="Verfolge deine Gesundheitsziele mit diesem modernen, professionellen Health Tracker. Offline-fähig und benutzerfreundlich.">
@@ -56,7 +56,7 @@
                 </ul>
             </div>
             <a class="btn btn-ghost text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Health Tracker Pro
+                Health Tracker
             </a>
         </div>
         
@@ -115,7 +115,7 @@
         <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
             Dein persönlicher<br>
             <span class="bg-clip-text text-transparent bg-gradient-to-r from-base-100/80 to-base-100">
-                Health&nbsp;Tracker&nbsp;Pro
+                Health&nbsp;Tracker&nbsp;
             </span>
         </h1>
 
@@ -432,6 +432,89 @@
         <button>close</button>
     </form>
 </dialog>
+
+<!-- Weekly Summary Dashboard -->
+<div class="card bg-base-100 shadow-xl border border-base-300">
+    <div class="card-body p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                    <div class="bg-accent text-accent-content rounded-full w-10 h-10">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-base-content">Wöchentliche Zusammenfassung</h2>
+                    <p class="text-sm text-base-content/70">Deine Fortschritte der letzten 7 Tage</p>
+                </div>
+            </div>
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                </div>
+                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300">
+                    <li><a onclick="window.healthTracker.exportWeeklyData()"><i data-lucide="download" class="w-4 h-4"></i>Daten exportieren</a></li>
+                    <li><a onclick="window.healthTracker.shareProgress()"><i data-lucide="share-2" class="w-4 h-4"></i>Fortschritt teilen</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Summary Stats Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Average Steps -->
+            <div class="stat bg-success/10 rounded-lg border border-success/20">
+                <div class="stat-figure text-success">
+                    <i data-lucide="footprints" class="w-6 h-6"></i>
+                </div>
+                <div class="stat-title text-success/80">Ø Schritte</div>
+                <div class="stat-value text-lg text-success" id="avg-steps">0</div>
+                <div class="stat-desc text-success/60" id="steps-trend">+0% zu letzter Woche</div>
+            </div>
+
+            <!-- Average Water -->
+            <div class="stat bg-info/10 rounded-lg border border-info/20">
+                <div class="stat-figure text-info">
+                    <i data-lucide="droplets" class="w-6 h-6"></i>
+                </div>
+                <div class="stat-title text-info/80">Ø Wasser</div>
+                <div class="stat-value text-lg text-info" id="avg-water">0L</div>
+                <div class="stat-desc text-info/60" id="water-trend">+0% zu letzter Woche</div>
+            </div>
+
+            <!-- Average Sleep -->
+            <div class="stat bg-warning/10 rounded-lg border border-warning/20">
+                <div class="stat-figure text-warning">
+                    <i data-lucide="moon" class="w-6 h-6"></i>
+                </div>
+                <div class="stat-title text-warning/80">Ø Schlaf</div>
+                <div class="stat-value text-lg text-warning" id="avg-sleep">0h</div>
+                <div class="stat-desc text-warning/60" id="sleep-trend">+0% zu letzter Woche</div>
+            </div>
+
+            <!-- Goals Hit -->
+            <div class="stat bg-secondary/10 rounded-lg border border-secondary/20">
+                <div class="stat-figure text-secondary">
+                    <i data-lucide="target" class="w-6 h-6"></i>
+                </div>
+                <div class="stat-title text-secondary/80">Ziele erreicht</div>
+                <div class="stat-value text-lg text-secondary" id="goals-hit">0/7</div>
+                <div class="stat-desc text-secondary/60" id="goals-percentage">0% der Tage</div>
+            </div>
+        </div>
+
+        <!-- Weekly Insights -->
+        <div class="bg-base-200/50 rounded-xl p-4">
+            <h3 class="font-semibold text-base-content mb-3 flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-4 h-4 text-accent"></i>
+                Wöchentliche Insights
+            </h3>
+            <div id="weekly-insights" class="space-y-2 text-sm text-base-content/80">
+                <p>📊 Lade Insights...</p>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Charts Section -->
         <div class="mb-8">

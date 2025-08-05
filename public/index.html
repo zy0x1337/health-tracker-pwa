@@ -770,6 +770,48 @@
         </div>
     </div>
 
+    <!-- Smart Notifications Center -->
+<div id="notification-center" class="fixed bottom-4 right-4 z-50 max-w-sm space-y-2">
+    <!-- Notifications werden hier dynamisch eingefügt -->
+</div>
+
+<!-- Notification Permission Modal -->
+<dialog id="notification-permission-modal" class="modal">
+    <div class="modal-box">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="avatar placeholder">
+                <div class="bg-primary text-primary-content rounded-full w-12 h-12">
+                    <i data-lucide="bell" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold">Bleib am Ball!</h3>
+                <p class="text-sm text-base-content/70">Erhalte hilfreiche Erinnerungen</p>
+            </div>
+        </div>
+        
+        <div class="mb-6">
+            <p class="mb-4">Health Tracker Pro kann dich an wichtige Gewohnheiten erinnern:</p>
+            <ul class="list-disc list-inside space-y-1 text-sm text-base-content/80">
+                <li>Wassererinnerungen alle 2 Stunden</li>
+                <li>Schritt-Motivation am Nachmittag</li>
+                <li>Schlafzeit-Erinnerung am Abend</li>
+                <li>Tägliche Tracking-Erinnerung</li>
+            </ul>
+        </div>
+        
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn btn-ghost">Später</button>
+            </form>
+            <button id="enable-notifications-btn" class="btn btn-primary">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                Benachrichtigungen aktivieren
+            </button>
+        </div>
+    </div>
+</dialog>
+
     <!-- Loading Spinner -->
     <div class="loading loading-spinner loading-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-primary hidden" id="loading-spinner"></div>
 

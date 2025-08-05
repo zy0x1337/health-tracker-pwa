@@ -1,4 +1,321 @@
 // Enhanced app.js with Goals and Progress Tracking
+class SmartNotificationManager {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.notificationQueue = [];
+        this.activeNotifications = new Map();
+        this.reminderIntervals = new Map();
+        this.notificationsEnabled = false;
+        
+        this.initializeNotifications();
+        this.setupReminderSchedule();
+        this.startSmartChecks();
+    }
+
+    async initializeNotifications() {
+        // Check if notifications are supported
+        if (!('Notification' in window)) {
+            console.log('ℹ️ Browser unterstützt keine Benachrichtigungen');
+            return;
+        }
+
+        const permission = await this.checkNotificationPermission();
+        if (permission === 'granted') {
+            this.notificationsEnabled = true;
+            this.setupReminders();
+        } else if (permission === 'default') {
+            // Show permission modal after 30 seconds
+            setTimeout(() => this.showPermissionModal(), 30000);
+        }
+    }
+
+    async checkNotificationPermission() {
+        if (Notification.permission === 'granted') return 'granted';
+        if (Notification.permission === 'denied') return 'denied';
+        return 'default';
+    }
+
+    showPermissionModal() {
+        const modal = document.getElementById('notification-permission-modal');
+        const enableBtn = document.getElementById('enable-notifications-btn');
+        
+        if (modal && enableBtn) {
+            modal.showModal();
+            enableBtn.onclick = () => this.requestNotificationPermission();
+        }
+    }
+
+    async requestNotificationPermission() {
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                this.notificationsEnabled = true;
+                this.setupReminders();
+                this.showInAppNotification('🔔 Benachrichtigungen aktiviert!', 'success');
+                document.getElementById('notification-permission-modal').close();
+            } else {
+                this.showInAppNotification('📵 Benachrichtigungen deaktiviert', 'warning');
+            }
+        } catch (error) {
+            console.error('❌ Notification permission error:', error);
+        }
+    }
+
+    setupReminderSchedule() {
+        // Clear existing reminders
+        this.reminderIntervals.forEach(interval => clearInterval(interval));
+        this.reminderIntervals.clear();
+
+        if (!this.notificationsEnabled) return;
+
+        // Water reminder every 2 hours (9-21 Uhr)
+        const waterReminder = setInterval(() => {
+            const hour = new Date().getHours();
+            if (hour >= 9 && hour <= 21 && hour % 2 === 1) {
+                this.checkWaterIntake();
+            }
+        }, 60 * 60 * 1000); // Check every hour
+
+        // Steps motivation at 15:00
+        const stepsReminder = setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 15 && now.getMinutes() === 0) {
+                this.checkStepsProgress();
+            }
+        }, 60 * 1000); // Check every minute
+
+        // Sleep reminder at 22:00
+        const sleepReminder = setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 22 && now.getMinutes() === 0) {
+                this.sendSleepReminder();
+            }
+        }, 60 * 1000);
+
+        this.reminderIntervals.set('water', waterReminder);
+        this.reminderIntervals.set('steps', stepsReminder);
+        this.reminderIntervals.set('sleep', sleepReminder);
+    }
+
+    setupReminders() {
+        this.setupReminderSchedule();
+        this.scheduleTrackingReminder();
+    }
+
+    scheduleTrackingReminder() {
+        // Daily tracking reminder at 20:00 if no data today
+        const trackingCheck = setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 20 && now.getMinutes() === 0) {
+                this.checkTodayTracking();
+            }
+        }, 60 * 1000);
+        
+        this.reminderIntervals.set('tracking', trackingCheck);
+    }
+
+    async checkWaterIntake() {
+        const todayData = await this.getTodayData();
+        const currentWater = todayData?.waterIntake || 0;
+        const goal = this.healthTracker.goals.waterGoal;
+        
+        if (currentWater < goal * 0.7) {
+            this.sendNotification(
+                '💧 Wasser-Erinnerung',
+                `Du hast heute erst ${currentWater}L getrunken. Zeit für ein Glas Wasser!`,
+                'water'
+            );
+        }
+    }
+
+    async checkStepsProgress() {
+        const todayData = await this.getTodayData();
+        const currentSteps = todayData?.steps || 0;
+        const goal = this.healthTracker.goals.stepsGoal;
+        
+        if (currentSteps < goal * 0.6) {
+            this.sendNotification(
+                '🚶‍♂️ Bewegung tut gut!',
+                `${currentSteps} Schritte geschafft. Wie wäre es mit einem kurzen Spaziergang?`,
+                'steps'
+            );
+        } else if (currentSteps >= goal * 0.9) {
+            this.sendNotification(
+                '🎉 Fast geschafft!',
+                `Nur noch ${goal - currentSteps} Schritte bis zum Tagesziel!`,
+                'steps'
+            );
+        }
+    }
+
+    sendSleepReminder() {
+        this.sendNotification(
+            '🌙 Zeit fürs Bett',
+            'Um dein Schlafziel zu erreichen, solltest du langsam ans Schlafen denken.',
+            'sleep'
+        );
+    }
+
+    async checkTodayTracking() {
+        const todayData = await this.getTodayData();
+        if (!todayData) {
+            this.sendNotification(
+                '📊 Vergiss nicht zu tracken!',
+                'Du hast heute noch keine Gesundheitsdaten erfasst.',
+                'tracking'
+            );
+        }
+    }
+
+    async getTodayData() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+            return localData.find(entry => entry.date === today);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    sendNotification(title, body, type = 'info', actions = []) {
+        // Browser notification
+        if (this.notificationsEnabled && Notification.permission === 'granted') {
+            const notification = new Notification(title, {
+                body,
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-96x96.png',
+                tag: type,
+                requireInteraction: false,
+                actions
+            });
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+                this.handleNotificationClick(type);
+            };
+
+            // Auto-close after 10 seconds
+            setTimeout(() => notification.close(), 10000);
+        }
+
+        // Always show in-app notification
+        this.showInAppNotification(`${title}: ${body}`, this.getNotificationStyle(type));
+    }
+
+    getNotificationStyle(type) {
+        const styles = {
+            water: 'info',
+            steps: 'success',
+            sleep: 'warning',
+            tracking: 'error',
+            achievement: 'success'
+        };
+        return styles[type] || 'info';
+    }
+
+    handleNotificationClick(type) {
+        switch (type) {
+            case 'water':
+            case 'steps':
+            case 'sleep':
+                document.getElementById('health-form')?.scrollIntoView({ behavior: 'smooth' });
+                break;
+            case 'tracking':
+                document.getElementById('health-form')?.scrollIntoView({ behavior: 'smooth' });
+                break;
+        }
+    }
+
+    showInAppNotification(message, type = 'info', duration = 5000) {
+        const container = document.getElementById('notification-center');
+        if (!container) return;
+
+        const notificationId = Date.now();
+        const notification = document.createElement('div');
+        
+        const bgColors = {
+            success: 'alert-success',
+            error: 'alert-error',
+            warning: 'alert-warning',
+            info: 'alert-info'
+        };
+
+        notification.className = `alert ${bgColors[type] || 'alert-info'} shadow-lg transform transition-all duration-300 translate-x-full`;
+        notification.innerHTML = `
+            <div class="flex-1">
+                <span class="text-sm">${message}</span>
+            </div>
+            <button class="btn btn-ghost btn-xs" onclick="this.parentElement.remove()">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+        `;
+
+        container.appendChild(notification);
+
+        // Trigger animation
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }, 100);
+
+        // Auto-remove
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, duration);
+
+        this.activeNotifications.set(notificationId, notification);
+        return notificationId;
+    }
+
+    startSmartChecks() {
+        // Achievement checks every 5 minutes
+        setInterval(() => this.checkAchievements(), 5 * 60 * 1000);
+        
+        // Motivational messages
+        setInterval(() => this.sendMotivationalMessage(), 2 * 60 * 60 * 1000); // Every 2 hours
+    }
+
+    async checkAchievements() {
+        const todayData = await this.getTodayData();
+        if (!todayData) return;
+
+        const achievements = [];
+        
+        if (todayData.steps >= this.healthTracker.goals.stepsGoal) {
+            achievements.push('🎉 Schrittziel erreicht!');
+        }
+        
+        if (todayData.waterIntake >= this.healthTracker.goals.waterGoal) {
+            achievements.push('💧 Wasserziel geschafft!');
+        }
+        
+        if (todayData.sleepHours >= this.healthTracker.goals.sleepGoal) {
+            achievements.push('😴 Perfekter Schlaf!');
+        }
+
+        achievements.forEach(achievement => {
+            this.sendNotification('Ziel erreicht! 🎯', achievement, 'achievement');
+        });
+    }
+
+    sendMotivationalMessage() {
+        const messages = [
+            'Du machst das großartig! 💪',
+            'Jeder Schritt zählt! 🚶‍♂️',
+            'Bleib hydriert! 💧',
+            'Gesundheit ist ein Marathon, kein Sprint! 🏃‍♂️',
+            'Du investierst in dich selbst! ⭐'
+        ];
+
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        this.showInAppNotification(randomMessage, 'success', 3000);
+    }
+}
+
 class HealthTrackerPro {
     constructor() {
         this.userId = this.getUserId();
@@ -19,10 +336,15 @@ class HealthTrackerPro {
         this.loadTodaysData();
         this.loadRecentActivities();
         this.initAnimations();
+        this.notificationManager = new SmartNotificationManager(this);
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
     }
+
+    triggerAchievementNotification(message) {
+    this.notificationManager.showInAppNotification(message, 'success', 6000);
+}
 
     async initializeAllCharts() {
         try {
@@ -854,7 +1176,7 @@ updateModalTheme() {
         }
     }
 
-    // NEW: Goal Achievement Check
+    // Goal Achievement Check
     checkGoalAchievements(data) {
         const achievements = [];
         
@@ -877,6 +1199,13 @@ updateModalTheme() {
                 achievements.push(`⚖️ Gewichtsziel fast erreicht: Nur noch ${diff.toFixed(1)}kg!`);
             }
         }
+
+        achievements.forEach((achievement, index) => {
+    setTimeout(() => {
+        this.showToast(achievement, 'success');
+        this.notificationManager.sendNotification('Ziel erreicht! 🎯', achievement, 'achievement');
+    }, index * 1500);
+});
         
         // Show achievement notifications
         achievements.forEach((achievement, index) => {

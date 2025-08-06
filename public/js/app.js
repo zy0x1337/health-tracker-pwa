@@ -7,9 +7,6 @@ class SmartNotificationManager {
         this.reminderIntervals = new Map();
         this.notificationsEnabled = false;
         this.lastNotifications = new Map(); // Duplikat-Schutz
-        this.notificationStates = new Map(); // Persistent states
-        this.maxNotificationsPerHour = 5;
-        this.notificationCounts = new Map();
         
         this.initializeNotifications();
         this.setupReminderSchedule();
@@ -183,34 +180,17 @@ class SmartNotificationManager {
 
     sendNotification(title, body, type = 'info', actions = []) {
         // Duplikat-Schutz: Prüfe ob gleiche Notification kürzlich gesendet wurde
-        // Enhanced duplicate prevention with rate limiting
-const notificationKey = `${type}-${title}`;
-const now = Date.now();
-const hour = Math.floor(now / 3600000); // Current hour
-
-// Check rate limit per hour
-const hourKey = `${hour}-${type}`;
-const currentCount = this.notificationCounts.get(hourKey) || 0;
-if (currentCount >= this.maxNotificationsPerHour) {
-    console.log(`🚫 Rate limit exceeded for ${type} notifications`);
-    return;
-}
-
-// Check for recent duplicates (more sophisticated)
-const lastSent = this.lastNotifications.get(notificationKey);
-const cooldownPeriod = type === 'achievement' ? 300000 : 30000; // 5min for achievements, 30s others
-
-if (lastSent && (now - lastSent) < cooldownPeriod) {
-    console.log(`🚫 Blocked duplicate notification: ${title} (cooldown: ${Math.round((cooldownPeriod - (now - lastSent))/1000)}s)`);
-    return;
-}
-
-// Update counters
-this.lastNotifications.set(notificationKey, now);
-this.notificationCounts.set(hourKey, currentCount + 1);
-
-// Cleanup old entries
-this.cleanupOldNotificationData(now);
+        const notificationKey = `${type}-${title}`;
+        const now = Date.now();
+        const lastSent = this.lastNotifications.get(notificationKey);
+        
+        // Blockiere Duplikate innerhalb von 30 Sekunden
+        if (lastSent && (now - lastSent) < 30000) {
+            console.log(`🚫 Blocked duplicate notification: ${title}`);
+            return;
+        }
+        
+        this.lastNotifications.set(notificationKey, now);
 
         // Browser notification
         if (this.notificationsEnabled && Notification.permission === 'granted') {
@@ -478,11 +458,6 @@ class HealthTrackerPro {
             sleepGoal: 8,
             weightGoal: null
         };
-
-        // Chart management
-this.charts = {};
-this.resizeObserver = null;
-this.initResizeObserver();
         
         this.initTheme();
         this.initEventListeners();
@@ -2332,49 +2307,27 @@ updateGoalProgressIndicators(data) {
 }
 
 destroyAllCharts() {
-    console.log('🔥 Destroying tracked Chart.js instances...');
+    console.log('🔥 Destroying all Chart.js instances...');
+    
+    // Destroy our tracked charts
     if (this.charts) {
         Object.keys(this.charts).forEach(key => {
             if (this.charts[key] && typeof this.charts[key].destroy === 'function') {
-                try {
-                    this.charts[key].destroy();
-                } catch (error) {
-                    console.warn(`Failed to destroy chart ${key}:`, error);
-                }
-                delete this.charts[key];
+                this.charts[key].destroy();
+                this.charts[key] = null;
             }
         });
+        this.charts = {};
     }
-    // Remove resize observers
-    if (this.resizeObserver) {
-        this.resizeObserver.disconnect();
-        this.resizeObserver = null;
-    }
-}
-
-initResizeObserver() {
-    if ('ResizeObserver' in window) {
-        this.resizeObserver = new ResizeObserver(entries => {
-            entries.forEach(entry => {
-                const chartCanvas = entry.target.querySelector('canvas');
-                if (chartCanvas) {
-                    const chartId = Object.keys(this.charts).find(key => 
-                        this.charts[key]?.canvas === chartCanvas
-                    );
-                    if (chartId && this.charts[chartId]) {
-                        clearTimeout(this.charts[chartId]._resizeTimeout);
-                        this.charts[chartId]._resizeTimeout = setTimeout(() => {
-                            this.charts[chartId].resize();
-                        }, 150);
-                    }
-                }
-            });
-        });
-        
-        // Observe chart containers
-        document.querySelectorAll('.chart-container').forEach(container => {
-            this.resizeObserver.observe(container);
-        });
+    
+    // Destroy any orphaned Chart.js instances globally
+    Chart.helpers.each(Chart.instances, (instance) => {
+        instance.destroy();
+    });
+    
+    // Clear the global Chart registry
+    if (Chart.registry) {
+        Chart.registry.removeAll();
     }
 }
 
@@ -3994,14 +3947,11 @@ getHeatmapSummary(weeks, metric) {
                     grid: { drawOnChartArea: false } 
                 }
             },
-            // RESIZE PROTECTION:
-            onResize: (chart, size) => {
-    // Debounce resize to prevent loops
-    clearTimeout(chart._resizeTimeout);
-    chart._resizeTimeout = setTimeout(() => {
-        chart.resize();
-    }, 100);
-}
+            // ➕ RESIZE PROTECTION:
+            onResize: () => {
+                // Prevent infinite resize loops
+                return;
+                }
             }
         });
     }

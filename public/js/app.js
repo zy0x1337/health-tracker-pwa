@@ -1698,35 +1698,40 @@ async updateAllViews() {
      */
     async updateTodayView() {
     try {
-        console.log('🔄 ProgressHub: Aktualisiere Today View...');
+        console.log('🔄 ProgressHub: Aktualisiere Today View mit Aggregation...');
         
-        // Korrigierte Datenabfrage - verwende dieselbe Methode wie Dashboard
         const today = new Date().toISOString().split('T')[0];
-        const todayData = this.healthTracker.data[today] || {};
+        
+        // **NEU: Verwende aggregierte Daten statt einzelner Eintrag**
+        const todayData = this.getAggregatedDataForDate(today);
         const goals = this.healthTracker.getGoals();
         
-        console.log('📊 ProgressHub Debug:');
+        console.log('📊 ProgressHub Debug (mit Aggregation):');
         console.log('- Today Date:', today);
-        console.log('- Today Data:', todayData);
+        console.log('- Aggregated Today Data:', todayData);
+        console.log('- Raw entries:', this.getAllEntriesForDate(today));
         console.log('- Goals:', goals);
 
         // Falls todayData leer ist, debugging
-        if (Object.keys(todayData).length === 0) {
-            console.warn('⚠️ Keine Daten für heute gefunden, teste alternative Zugriffe...');
+        if (todayData.steps === 0 && todayData.waterIntake === 0 && todayData.sleepHours === 0) {
+            console.warn('⚠️ Keine aggregierten Daten für heute gefunden');
             console.log('Available dates:', Object.keys(this.healthTracker.data || {}));
+            
+            // Debug: Zeige Datenstruktur
+            console.log('Data structure sample:', this.healthTracker.data);
         }
 
-        // Verwende die korrekten Feldnamen (mehrere Varianten testen)
-        const currentSteps = todayData.steps || todayData.stepsCount || 0;
-        const currentWater = todayData.waterIntake || todayData.water || 0;
-        const currentSleep = todayData.sleepHours || todayData.sleep || 0;
+        // Verwende die aggregierten Werte
+        const currentSteps = todayData.steps;
+        const currentWater = todayData.waterIntake;
+        const currentSleep = todayData.sleepHours;
         
         // Goals mit korrekten Feldnamen
         const stepsGoal = goals.stepsGoal || goals.steps || 10000;
         const waterGoal = goals.waterGoal || goals.water || 2.0;
         const sleepGoal = goals.sleepGoal || goals.sleep || 8;
 
-        console.log('📈 Berechnete Werte:');
+        console.log('📈 Berechnete Werte (aggregiert):');
         console.log('- Steps:', currentSteps, '/', stepsGoal);
         console.log('- Water:', currentWater, '/', waterGoal);
         console.log('- Sleep:', currentSleep, '/', sleepGoal);
@@ -1760,7 +1765,7 @@ async updateAllViews() {
         // Motivational messages
         this.updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallScore);
 
-        // Mood Display
+        // Mood Display (zeige die letzte Stimmung)
         const moodDisplay = document.getElementById('today-mood-display');
         if (moodDisplay) {
             const moodEmojis = {
@@ -1773,13 +1778,120 @@ async updateAllViews() {
             moodDisplay.textContent = todayData.mood ? moodEmojis[todayData.mood] : '😐 Nicht erfasst';
         }
 
-        // Quick Actions
-        this.updateQuickActions(todayData, goals);
+        // Quick Actions mit aggregierten Daten
+        this.updateQuickActions(todayData, {
+            stepsGoal,
+            waterGoal,
+            sleepGoal
+        });
 
-        console.log('✅ ProgressHub Today View aktualisiert');
+        console.log('✅ ProgressHub Today View mit Aggregation aktualisiert');
         
     } catch (error) {
         console.error('❌ ProgressHub Today View Fehler:', error);
+    }
+}
+
+// NEU: Alle Einträge für ein bestimmtes Datum abrufen
+getAllEntriesForDate(date) {
+    const allData = this.healthTracker.data;
+    
+    // Falls data ein Object ist: { "2024-01-01": [...], "2024-01-02": [...] }
+    if (allData[date] && Array.isArray(allData[date])) {
+        return allData[date];
+    }
+    
+    // Falls data ein Array ist: [{ date: "2024-01-01", ... }, { date: "2024-01-01", ... }]
+    if (Array.isArray(allData)) {
+        return allData.filter(entry => entry.date === date);
+    }
+    
+    // Falls data ein einzelnes Object pro Tag ist: { "2024-01-01": { steps: 100 } }
+    if (allData[date] && !Array.isArray(allData[date])) {
+        return [allData[date]]; // Als Array wrappen
+    }
+    
+    return []; // Keine Daten gefunden
+}
+
+// NEU: Aggregierte Werte für einen Tag berechnen
+getAggregatedDataForDate(date) {
+    const entries = this.getAllEntriesForDate(date);
+    
+    if (entries.length === 0) {
+        return {
+            steps: 0,
+            waterIntake: 0,
+            sleepHours: 0,
+            weight: 0, // Gewicht: letzter Eintrag statt Summe
+            mood: null,
+            notes: []
+        };
+    }
+    
+    // Aggregation der Werte
+    const aggregated = {
+        steps: 0,
+        waterIntake: 0,
+        sleepHours: 0,
+        weight: 0,
+        mood: null,
+        notes: []
+    };
+    
+    entries.forEach(entry => {
+        // Addierbare Werte summieren
+        aggregated.steps += entry.steps || 0;
+        aggregated.waterIntake += entry.waterIntake || 0;
+        aggregated.sleepHours += entry.sleepHours || 0;
+        
+        // Gewicht: nehme den letzten (neuesten) Wert
+        if (entry.weight) {
+            aggregated.weight = entry.weight;
+        }
+        
+        // Stimmung: nehme die letzte Eingabe
+        if (entry.mood) {
+            aggregated.mood = entry.mood;
+        }
+        
+        // Notizen sammeln
+        if (entry.notes && entry.notes.trim()) {
+            aggregated.notes.push(entry.notes);
+        }
+    });
+    
+    console.log(`📊 Aggregierte Daten für ${date}:`, aggregated);
+    console.log(`📦 Basierend auf ${entries.length} Einträgen:`, entries);
+    
+    return aggregated;
+}
+
+// Debug-Methode um die Datenstruktur zu verstehen
+analyzeDataStructure() {
+    console.log('🔍 Analysiere Datenstruktur:');
+    
+    const data = this.healthTracker.data;
+    const today = new Date().toISOString().split('T')[0];
+    
+    console.log('- Vollständige Datenstruktur:', data);
+    console.log('- Typ der Daten:', typeof data);
+    console.log('- Ist Array:', Array.isArray(data));
+    
+    if (data) {
+        console.log('- Verfügbare Keys:', Object.keys(data));
+        console.log('- Beispiel-Eintrag für heute:', data[today]);
+        
+        // Teste verschiedene Datenstrukturen
+        if (data[today]) {
+            console.log('- Heute-Daten Typ:', typeof data[today]);
+            console.log('- Ist heute Array:', Array.isArray(data[today]));
+            
+            if (Array.isArray(data[today])) {
+                console.log(`- Anzahl Einträge heute: ${data[today].length}`);
+                console.log('- Erste 2 Einträge:', data[today].slice(0, 2));
+            }
+        }
     }
 }
 

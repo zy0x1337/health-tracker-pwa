@@ -733,512 +733,396 @@ initApp() {
 }
 
     async initWeightChart() {
-    const canvas = document.getElementById('weightChart');
-    if (!canvas) {
-        console.warn('Weight chart canvas not found');
-        return;
-    }
-
-    console.log('🎯 Initializing weight chart...');
-
-    // Get existing chart instance and destroy it
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        console.log('🔥 Destroying existing weight chart instance');
-        existingChart.destroy();
-    }
-
-    // Additional cleanup: remove any Chart.js specific attributes
-    canvas.removeAttribute('data-chartjs-id');
+    console.log('🎯 Initializing weight chart with createChartSafely...');
     
-    const ctx = canvas.getContext('2d');
-    
-    try {
-        this.charts.weight = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Gewicht',
-                        data: [],
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    },
-                    {
-                        label: 'Zielgewicht',
-                        data: [],
-                        borderColor: 'rgba(239, 68, 68, 0.8)',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0,
-                        fill: false,
-                        pointRadius: 0
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        callbacks: {
-                            label: function(context) {
-                                if (context.datasetIndex === 0) {
-                                    return `Gewicht: ${context.parsed.y} kg`;
-                                } else {
-                                    return `Zielgewicht: ${context.parsed.y} kg`;
-                                }
-                            }
-                        }
-                    }
+    const config = {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Gewicht',
+                    data: [],
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
                 },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                            callback: function(value) {
-                                return value + ' kg';
+                {
+                    label: 'Zielgewicht',
+                    data: [],
+                    borderColor: 'rgba(239, 68, 68, 0.8)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    callbacks: {
+                        label: function(context) {
+                            if (context.datasetIndex === 0) {
+                                return `Gewicht: ${context.parsed.y} kg`;
+                            } else {
+                                return `Zielgewicht: ${context.parsed.y} kg`;
                             }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
                         }
                     }
                 }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                        callback: function(value) {
+                            return value + ' kg';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                    }
+                }
             }
-        });
-        
-        console.log('✅ Weight chart initialized successfully');
-    } catch (error) {
-        console.error('❌ Error initializing weight chart:', error);
-        throw error;
+        }
+    };
+
+    const chart = this.createChartSafely('weightChart', config, 'weight');
+    if (chart) {
+        console.log('✅ Weight chart initialized successfully with createChartSafely');
     }
 }
 
     async initActivityChart() {
-    const canvas = document.getElementById('activityChart');
-    if (!canvas) {
-        console.warn('Activity chart canvas not found');
-        return;
-    }
-
-    console.log('🎯 Initializing activity chart...');
-
-    // Destroy existing chart
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        console.log('🔥 Destroying existing activity chart instance');
-        existingChart.destroy();
-    }
+    console.log('🎯 Initializing activity chart with createChartSafely...');
     
-    canvas.removeAttribute('data-chartjs-id');
-    const ctx = canvas.getContext('2d');
-    
-    try {
-        this.charts.activity = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Schritte',
-                        data: [],
-                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 2,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Wasser (L)',
-                        data: [],
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 2,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            color: this.theme === 'dark' ? '#E5E7EB' : '#374151'
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                if (context.datasetIndex === 0) {
-                                    return `Schritte: ${context.parsed.y.toLocaleString()}`;
-                                } else {
-                                    return `Wasser: ${context.parsed.y}L`;
-                                }
-                            },
-                            afterLabel: function(context) {
-                                const goals = this.goals || {};
-                                if (context.datasetIndex === 0) {
-                                    const goal = goals.stepsGoal || 10000;
-                                    const percentage = Math.round((context.parsed.y / goal) * 100);
-                                    return `Ziel: ${goal.toLocaleString()} (${percentage}%)`;
-                                } else {
-                                    const goal = goals.waterGoal || 2.0;
-                                    const percentage = Math.round((context.parsed.y / goal) * 100);
-                                    return `Ziel: ${goal}L (${percentage}%)`;
-                                }
-                            }.bind(this)
-                        }
-                    }
+    const config = {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Schritte',
+                    data: [],
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    yAxisID: 'y'
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Schritte',
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                        },
-                        grid: {
-                            color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                            callback: function(value) {
-                                return value.toLocaleString();
-                            }
-                        }
-                    },
-                    y1: {
-                        beginAtZero: true,
-                        position: 'right',
-                        max: Math.max(4, (this.goals?.waterGoal || 2.0) + 1),
-                        title: {
-                            display: true,
-                            text: 'Wasser (L)',
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                        },
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                            callback: function(value) {
-                                return value + 'L';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                        }
-                    }
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false
+                {
+                    label: 'Wasser (L)',
+                    data: [],
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    yAxisID: 'y1'
                 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        color: this.theme === 'dark' ? '#E5E7EB' : '#374151'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            if (context.datasetIndex === 0) {
+                                return `Schritte: ${context.parsed.y.toLocaleString()}`;
+                            } else {
+                                return `Wasser: ${context.parsed.y}L`;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Schritte',
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                    },
+                    grid: {
+                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    max: Math.max(4, (this.goals?.waterGoal || 2.0) + 1),
+                    title: {
+                        display: true,
+                        text: 'Wasser (L)',
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                        callback: function(value) {
+                            return value + 'L';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
             }
-        });
-        
-        console.log('✅ Activity chart initialized successfully');
-    } catch (error) {
-        console.error('❌ Error initializing activity chart:', error);
-        throw error;
+        }
+    };
+
+    const chart = this.createChartSafely('activityChart', config, 'activity');
+    if (chart) {
+        console.log('✅ Activity chart initialized successfully with createChartSafely');
     }
 }
 
     async initSleepChart() {
-    const canvas = document.getElementById('sleepChart');
-    if (!canvas) {
-        console.warn('Sleep chart canvas not found');
-        return;
-    }
-
-    console.log('🎯 Initializing sleep chart...');
-
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        console.log('🔥 Destroying existing sleep chart instance');
-        existingChart.destroy();
-    }
+    console.log('🎯 Initializing sleep chart with createChartSafely...');
     
-    canvas.removeAttribute('data-chartjs-id');
-    const ctx = canvas.getContext('2d');
-    
-    try {
-        this.charts.sleep = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Schlafstunden',
-                    data: [],
-                    backgroundColor: [],
-                    borderColor: [],
-                    borderWidth: 2,
-                    borderRadius: 8,
-                    borderSkipped: false
-                }]
+    const config = {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Schlafstunden',
+                data: [],
+                backgroundColor: [],
+                borderColor: [],
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const hours = context.parsed.y;
+                            const goal = this.goals?.sleepGoal || 8;
+                            let quality = 'Schlecht';
+                            let qualityColor = '🔴';
+                            
+                            if (hours >= goal) {
+                                quality = 'Ausgezeichnet';
+                                qualityColor = '🟢';
+                            } else if (hours >= goal * 0.875) {
+                                quality = 'Gut';
+                                qualityColor = '🟡';
+                            } else if (hours >= goal * 0.75) {
+                                quality = 'Durchschnitt';
+                                qualityColor = '🟠';
+                            }
+                            
+                            const percentage = Math.round((hours / goal) * 100);
+                            
+                            return [
+                                `Schlaf: ${hours}h`,
+                                `Ziel: ${goal}h (${percentage}%)`,
+                                `Qualität: ${qualityColor} ${quality}`
+                            ];
+                        }.bind(this)
+                    }
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: {
-                        display: false
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: Math.max(10, (this.goals?.sleepGoal || 8) + 2),
+                    title: {
+                        display: true,
+                        text: 'Stunden',
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                const hours = context.parsed.y;
-                                const goal = this.goals?.sleepGoal || 8;
-                                let quality = 'Schlecht';
-                                let qualityColor = '🔴';
-                                
-                                if (hours >= goal) {
-                                    quality = 'Ausgezeichnet';
-                                    qualityColor = '🟢';
-                                } else if (hours >= goal * 0.875) {
-                                    quality = 'Gut';
-                                    qualityColor = '🟡';
-                                } else if (hours >= goal * 0.75) {
-                                    quality = 'Durchschnitt';
-                                    qualityColor = '🟠';
-                                }
-                                
-                                const percentage = Math.round((hours / goal) * 100);
-                                
-                                return [
-                                    `Schlaf: ${hours}h`,
-                                    `Ziel: ${goal}h (${percentage}%)`,
-                                    `Qualität: ${qualityColor} ${quality}`
-                                ];
-                            }.bind(this),
-                            afterLabel: function(context) {
-                                const hours = context.parsed.y;
-                                if (hours >= 9) return '💤 Sehr erholsam!';
-                                if (hours >= 7) return '😴 Gut erholt';
-                                if (hours >= 6) return '😐 Etwas müde';
-                                return '😵 Zu wenig Schlaf';
-                            }
+                    grid: {
+                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
+                        callback: function(value) {
+                            return value + 'h';
                         }
                     }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: Math.max(10, (this.goals?.sleepGoal || 8) + 2),
-                        title: {
-                            display: true,
-                            text: 'Stunden',
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                        },
-                        grid: {
-                            color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                            callback: function(value) {
-                                return value + 'h';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                        }
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
                     }
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false
                 }
             }
-        });
-        
-        console.log('✅ Sleep chart initialized successfully');
-    } catch (error) {
-        console.error('❌ Error initializing sleep chart:', error);
-        throw error;
+        }
+    };
+
+    const chart = this.createChartSafely('sleepChart', config, 'sleep');
+    if (chart) {
+        console.log('✅ Sleep chart initialized successfully with createChartSafely');
     }
 }
 
     async initMoodChart() {
-    const canvas = document.getElementById('moodChart');
-    if (!canvas) {
-        console.warn('Mood chart canvas not found');
-        return;
-    }
-
-    console.log('🎯 Initializing mood chart...');
-
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        console.log('🔥 Destroying existing mood chart instance');
-        existingChart.destroy();
-    }
+    console.log('🎯 Initializing mood chart with createChartSafely...');
     
-    canvas.removeAttribute('data-chartjs-id');
-    const ctx = canvas.getContext('2d');
-    
-    try {
-        this.charts.mood = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Schrecklich', 'Schlecht', 'Neutral', 'Gut', 'Ausgezeichnet'],
-                datasets: [{
-                    label: 'Stimmungsverteilung',
-                    data: [0, 0, 0, 0, 0],
-                    backgroundColor: [
-                        'rgba(239, 68, 68, 0.8)',   // Rot - Schrecklich
-                        'rgba(245, 101, 101, 0.8)', // Helles Rot - Schlecht
-                        'rgba(156, 163, 175, 0.8)', // Grau - Neutral
-                        'rgba(34, 197, 94, 0.8)',   // Grün - Gut
-                        'rgba(16, 185, 129, 0.8)'   // Dunkelgrün - Ausgezeichnet
-                    ],
-                    borderColor: [
-                        'rgba(239, 68, 68, 1)',
-                        'rgba(245, 101, 101, 1)',
-                        'rgba(156, 163, 175, 1)',
-                        'rgba(34, 197, 94, 1)',
-                        'rgba(16, 185, 129, 1)'
-                    ],
-                    borderWidth: 2,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                cutout: '60%',
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            color: this.theme === 'dark' ? '#E5E7EB' : '#374151',
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                const labels = data.labels || [];
-                                const dataset = data.datasets[0];
-                                const emojis = ['😞', '😕', '😐', '😊', '😁'];
-                                
-                                return labels.map((label, index) => ({
-                                    text: `${emojis[index]} ${label}`,
-                                    fillStyle: dataset.backgroundColor[index],
-                                    strokeStyle: dataset.borderColor[index],
-                                    lineWidth: dataset.borderWidth,
-                                    hidden: false,
-                                    index: index
-                                }));
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                const emojis = ['😞', '😕', '😐', '😊', '😁'];
-                                const emoji = emojis[context.dataIndex] || '';
-                                
-                                if (value === 0) {
-                                    return `${emoji} ${label}: Keine Einträge`;
-                                }
-                                
-                                const dayText = value === 1 ? 'Tag' : 'Tage';
-                                return [
-                                    `${emoji} ${label}`,
-                                    `${value} ${dayText} (${percentage}%)`,
-                                    total > 0 ? `Von insgesamt ${total} Einträgen` : ''
-                                ];
-                            },
-                            afterLabel: function(context) {
-                                const moodTips = [
-                                    '💡 Versuche kleine positive Aktivitäten',
-                                    '🌱 Jeder Tag ist ein neuer Anfang',
-                                    '⚖️ Balance ist der Schlüssel',
-                                    '🌟 Großartig! Halte diese Energie',
-                                    '🎉 Fantastisch! Du strahlst!'
-                                ];
-                                return moodTips[context.dataIndex] || '';
-                            }
+    const config = {
+        type: 'doughnut',
+        data: {
+            labels: ['Schrecklich', 'Schlecht', 'Neutral', 'Gut', 'Ausgezeichnet'],
+            datasets: [{
+                label: 'Stimmungsverteilung',
+                data: [0, 0, 0, 0, 0],
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.8)',
+                    'rgba(245, 101, 101, 0.8)',
+                    'rgba(156, 163, 175, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(16, 185, 129, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(245, 101, 101, 1)',
+                    'rgba(156, 163, 175, 1)',
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(16, 185, 129, 1)'
+                ],
+                borderWidth: 2,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        color: this.theme === 'dark' ? '#E5E7EB' : '#374151',
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            const labels = data.labels || [];
+                            const dataset = data.datasets[0];
+                            const emojis = ['😞', '😕', '😐', '😊', '😁'];
+                            
+                            return labels.map((label, index) => ({
+                                text: `${emojis[index]} ${label}`,
+                                fillStyle: dataset.backgroundColor[index],
+                                strokeStyle: dataset.borderColor[index],
+                                lineWidth: dataset.borderWidth,
+                                hidden: false,
+                                index: index
+                            }));
                         }
                     }
                 },
-                interaction: {
-                    mode: 'index',
-                    intersect: false
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            const emojis = ['😞', '😕', '😐', '😊', '😁'];
+                            const emoji = emojis[context.dataIndex] || '';
+                            
+                            if (value === 0) {
+                                return `${emoji} ${label}: Keine Einträge`;
+                            }
+                            
+                            const dayText = value === 1 ? 'Tag' : 'Tage';
+                            return [
+                                `${emoji} ${label}`,
+                                `${value} ${dayText} (${percentage}%)`,
+                                total > 0 ? `Von insgesamt ${total} Einträgen` : ''
+                            ];
+                        }
+                    }
                 }
             }
-        });
-        
-        console.log('✅ Mood chart initialized successfully');
-    } catch (error) {
-        console.error('❌ Error initializing mood chart:', error);
-        throw error;
+        }
+    };
+    
+    // ✅ JETZT mit createChartSafely:
+    const chart = this.createChartSafely('moodChart', config, 'mood');
+    if (chart) {
+        console.log('✅ Mood chart initialized successfully with createChartSafely');
     }
 }
 

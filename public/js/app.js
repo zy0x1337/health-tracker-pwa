@@ -758,59 +758,60 @@ class HealthTrackerPro {
 
     // 🔧 Enhanced handleSubmit with loading state protection
     async handleSubmit(e) {
-        e.preventDefault();
+    e.preventDefault();
+    this.showLoading(true);
+
+    const formData = {
+        userId: this.userId,
+        date: new Date().toISOString().split('T')[0],
+        weight: parseFloat(document.getElementById('weight').value) || null,
+        steps: parseInt(document.getElementById('steps').value) || null,
+        waterIntake: parseFloat(document.getElementById('water').value) || null,
+        sleepHours: parseFloat(document.getElementById('sleep').value) || null,
+        mood: document.getElementById('mood').value || null,
+        notes: document.getElementById('notes').value || null
+    };
+
+    try {
+        if (navigator.onLine) {
+            await this.saveToServer(formData);
+            this.showToast('Daten erfolgreich gespeichert!', 'success');
+        } else {
+            this.saveToLocal(formData);
+            this.showToast('Daten offline gespeichert!', 'success');
+        }
+
+        // Update dashboard
+        this.updateDashboard(formData);
         
-        // Prevent multiple simultaneous submissions
-        if (this.loadingStates.has('submit')) {
-            console.log('⚠️ Submission already in progress');
-            return;
+        // Progress Hub explizit aktualisieren
+        if (this.progressHub) {
+            console.log('🔄 Updating Progress Hub with new data:', formData);
+            // Erzwinge sofortige Aktualisierung
+            setTimeout(() => {
+                this.progressHub.loadViewData();
+            }, 200);
         }
         
-        this.loadingStates.add('submit');
-        this.showLoading(true);
-
-        const formData = {
-            userId: this.userId,
-            date: new Date().toISOString().split('T')[0],
-            weight: parseFloat(document.getElementById('weight').value) || null,
-            steps: parseInt(document.getElementById('steps').value) || null,
-            waterIntake: parseFloat(document.getElementById('water').value) || null,
-            sleepHours: parseFloat(document.getElementById('sleep').value) || null,
-            mood: document.getElementById('mood').value || null,
-            notes: document.getElementById('notes').value || null
-        };
-
-        console.log('💾 Saving data:', formData);
-
-        try {
-            if (navigator.onLine) {
-                await this.saveToServer(formData);
-                this.showToast('Daten erfolgreich gespeichert!', 'success');
-            } else {
-                this.saveToLocal(formData);
-                this.showToast('Daten offline gespeichert!', 'success');
-            }
-
-            // Update dashboard immediately
-            this.updateDashboard(formData);
-            
-            // Check goal achievements
-            this.checkGoalAchievements(formData);
-            
-            // Update components with debounced calls
-            this.debouncedUpdateComponents();
-            
-            // Reset form
-            this.resetForm();
-
-        } catch (error) {
-            console.error('❌ Fehler beim Speichern:', error);
-            this.showToast('Fehler beim Speichern der Daten', 'error');
-        } finally {
-            this.showLoading(false);
-            this.loadingStates.delete('submit');
+        // Activity Feed
+        if (this.activityFeed) {
+            this.activityFeed.load();
         }
+        
+        // Charts aktualisieren
+        setTimeout(() => {
+            this.loadAndUpdateCharts();
+        }, 500);
+        
+        this.resetForm();
+
+    } catch (error) {
+        console.error('❌ Fehler beim Speichern:', error);
+        this.showToast('Fehler beim Speichern der Daten', 'error');
+    } finally {
+        this.showLoading(false);
     }
+}
 
     // 🔧 Debounced component updates to prevent excessive calls
     debouncedUpdateComponents = this.debounce(() => {

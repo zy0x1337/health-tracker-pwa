@@ -69,6 +69,151 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* Hero Section Animations & Enhancements */
+.hero-section {
+    position: relative;
+    background-attachment: fixed;
+}
+
+/* Gradient Animation */
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+}
+
+/* Floating Animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(2deg); }
+}
+
+@keyframes float-delayed {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(-1deg); }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+    animation: float-delayed 8s ease-in-out infinite;
+    animation-delay: -2s;
+}
+
+/* Pulse Animation - Slow */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+}
+
+/* Staggered Fade-in Animations */
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.8s ease-out;
+}
+
+.animate-fade-up {
+    animation: fade-up 0.8s ease-out 0.2s both;
+}
+
+.animate-fade-up-delayed {
+    animation: fade-up 0.8s ease-out 0.4s both;
+}
+
+.animate-fade-up-more-delayed {
+    animation: fade-up 0.8s ease-out 0.6s both;
+}
+
+.animate-fade-up-final {
+    animation: fade-up 0.8s ease-out 0.8s both;
+}
+
+/* Grid Pattern Background */
+.bg-grid-pattern {
+    background-image: 
+        linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+    
+    .hero-section .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Reduce animation complexity on mobile */
+    .animate-float,
+    .animate-float-delayed {
+        animation: none;
+    }
+}
+
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+    .bg-grid-pattern {
+        background-image: 
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    }
+}
+
+/* Interactive Elements */
+.hero-section button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.hero-section .phone-frame:hover {
+    transform: scale(1.05) rotate(0deg);
+}
+
+/* Performance Optimizations */
+.hero-section * {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-float-delayed,
+    .animate-pulse-slow,
+    .animate-gradient {
+        animation: none;
+    }
+    
+    .hero-section button:hover {
+        transform: none;
+    }
+}
 </style>
 </head>
 
@@ -119,59 +264,227 @@
         </div>
     </div>
 
-    <!-- ==================================
-     HERO SECTION – HEALTH TRACKER PRO
-     ================================== -->
-<section
-    class="relative isolate min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-indigo-600 to-emerald-500 text-base-100"
->
-    <!-- dezent animierte Hintergrund-Shapes -->
-    <div class="absolute -z-10 inset-0 overflow-hidden">
-        <svg class="absolute top-[-20%] left-1/2 w-[120%] -translate-x-1/2 opacity-20 blur-[60px]"
-             viewBox="0 0 800 600" fill="none">
-            <path d="M0 300C0 134.3 134.3 0 300 0H500C665.7 0 800 134.3 800 300V600H0V300Z"
-                  fill="url(#grad1)"/>
-            <defs>
-                <linearGradient id="grad1" x1="0" x2="800" y1="0" y2="600" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#4F46E5"/>
-                    <stop offset=".5" stop-color="#22D3EE"/>
-                    <stop offset="1" stop-color="#4ADE80"/>
-                </linearGradient>
-            </defs>
-        </svg>
+    <!-- ===============================
+     ENHANCED HERO SECTION 2.0
+     =============================== -->
+<section class="hero-section bg-gradient-to-br from-slate-50 via-cyan-50 to-emerald-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen flex items-center relative overflow-hidden">
+    <!-- Background Decorative Elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <!-- Animated Background Circles -->
+        <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-emerald-200/30 to-cyan-200/30 rounded-full blur-3xl animate-float"></div>
+        <div class="absolute top-3/4 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full blur-3xl animate-float-delayed"></div>
+        <div class="absolute bottom-1/4 left-1/2 w-48 h-48 bg-gradient-to-r from-teal-200/25 to-green-200/25 rounded-full blur-2xl animate-pulse-slow"></div>
+        
+        <!-- Grid Pattern -->
+        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
     </div>
-
-    <!-- Headline + Claim -->
-    <div class="max-w-2xl px-6 text-center space-y-6">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
-            Dein persönlicher<br>
-            <span class="bg-clip-text text-transparent bg-gradient-to-r from-base-100/80 to-base-100">
-                Health&nbsp;Tracker&nbsp;
-            </span>
-        </h1>
-
-        <p class="text-base lg:text-lg text-base-100/90">
-            Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank
-            übersichtlicher Dashboards – **offline-fähig, schnell & motivierend**.
-        </p>
-
-        <!-- Call-to-Action Buttons -->
-        <div class="flex flex-col sm:flex-row sm:justify-center gap-3 mt-4">
-            <a href="#health-form" class="btn btn-secondary btn-wide sm:btn-md gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                Erste Daten hinzufügen
-            </a>
-
-            <button id="install-btn" class="btn btn-outline btn-accent btn-wide sm:btn-md gap-2 hidden">
-                <i data-lucide="download" class="w-5 h-5"></i>
-                App installieren
-            </button>
+    
+    <div class="container mx-auto px-4 py-16 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            
+            <!-- Content Side -->
+            <div class="space-y-8 text-center lg:text-left">
+                <!-- Status Badge -->
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full border border-emerald-200 dark:border-emerald-800 shadow-lg animate-fade-in">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Offline-fähig & PWA-optimiert</span>
+                </div>
+                
+                <!-- Main Headline -->
+                <div class="space-y-4">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
+                        <span class="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent animate-gradient">
+                            Deine Gesundheit
+                        </span>
+                        <br>
+                        <span class="text-gray-800 dark:text-gray-200 animate-fade-up">
+                            im Blick behalten
+                        </span>
+                    </h1>
+                    
+                    <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl animate-fade-up-delayed">
+                        Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank 
+                        <span class="font-semibold text-emerald-600 dark:text-emerald-400">übersichtlicher Dashboards</span> 
+                        – offline-fähig, schnell & motivierend.
+                    </p>
+                </div>
+                
+                <!-- Key Features Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 animate-fade-up-more-delayed">
+                    <div class="text-center space-y-2">
+                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Live Tracking</div>
+                    </div>
+                    
+                    <div class="text-center space-y-2">
+                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="wifi-off" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Offline-fähig</div>
+                    </div>
+                    
+                    <div class="text-center space-y-2">
+                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Analytics</div>
+                    </div>
+                    
+                    <div class="text-center space-y-2">
+                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Sicher</div>
+                    </div>
+                </div>
+                
+                <!-- CTA Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-up-final">
+                    <button onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})" 
+                            class="group relative px-8 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                        <span class="flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-5 h-5"></i>
+                            Jetzt starten
+                        </span>
+                        <div class="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </button>
+                    
+                    <button onclick="window.healthTracker.progressHub?.showView('today')" 
+                            class="group px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-gray-800 dark:text-gray-200 font-semibold rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                        <span class="flex items-center justify-center gap-2">
+                            <i data-lucide="bar-chart" class="w-5 h-5"></i>
+                            Demo ansehen
+                        </span>
+                    </button>
+                </div>
+                
+                <!-- Social Proof / Stats -->
+                <div class="flex flex-wrap justify-center lg:justify-start gap-8 pt-8 animate-fade-up-final">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400" id="hero-stats-users">1.2k+</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Aktive Nutzer</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="hero-stats-goals">98%</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Ziele erreicht</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="hero-stats-offline">100%</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Offline nutzbar</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Visual Side -->
+            <div class="relative">
+                <!-- Main Dashboard Preview -->
+                <div class="relative mx-auto max-w-md lg:max-w-lg">
+                    <!-- Phone Frame -->
+                    <div class="relative bg-gradient-to-b from-slate-800 to-slate-900 rounded-[2.5rem] p-2 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                        <div class="bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                            <!-- Status Bar -->
+                            <div class="bg-slate-50 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-xs">
+                                <span class="font-medium text-slate-600 dark:text-slate-400">9:41</span>
+                                <div class="flex gap-1">
+                                    <div class="w-4 h-2 bg-green-500 rounded-sm"></div>
+                                    <div class="w-6 h-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- App Interface Preview -->
+                            <div class="p-4 space-y-4 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 min-h-[600px]">
+                                <!-- Header -->
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Hallo! 👋</h3>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">Heute, 6. August</p>
+                                    </div>
+                                    <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center">
+                                        <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Ring -->
+                                <div class="text-center py-6">
+                                    <div class="relative inline-flex">
+                                        <svg class="w-24 h-24 transform -rotate-90">
+                                            <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="4" fill="transparent" class="text-gray-200 dark:text-gray-700"/>
+                                            <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="4" fill="transparent" 
+                                                    class="text-emerald-500" stroke-dasharray="251" stroke-dashoffset="125" 
+                                                    stroke-linecap="round" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400">72%</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tagesziel erreicht</p>
+                                </div>
+                                
+                                <!-- Quick Stats -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i data-lucide="footprints" class="w-4 h-4 text-emerald-600"></i>
+                                            <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Schritte</span>
+                                        </div>
+                                        <p class="text-lg font-bold text-emerald-900 dark:text-emerald-100">8.542</p>
+                                        <p class="text-xs text-emerald-600 dark:text-emerald-400">von 10.000</p>
+                                    </div>
+                                    
+                                    <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-xl p-3 border border-cyan-200 dark:border-cyan-800">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i data-lucide="droplets" class="w-4 h-4 text-cyan-600"></i>
+                                            <span class="text-xs font-medium text-cyan-700 dark:text-cyan-300">Wasser</span>
+                                        </div>
+                                        <p class="text-lg font-bold text-cyan-900 dark:text-cyan-100">1.8L</p>
+                                        <p class="text-xs text-cyan-600 dark:text-cyan-400">von 2.0L</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Mini Chart -->
+                                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-slate-700">
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">7-Tage Trend</p>
+                                    <div class="flex items-end justify-between gap-1 h-16">
+                                        <div class="bg-emerald-200 dark:bg-emerald-700 rounded-t w-4 h-8"></div>
+                                        <div class="bg-emerald-300 dark:bg-emerald-600 rounded-t w-4 h-12"></div>
+                                        <div class="bg-emerald-400 dark:bg-emerald-500 rounded-t w-4 h-6"></div>
+                                        <div class="bg-emerald-500 dark:bg-emerald-400 rounded-t w-4 h-14"></div>
+                                        <div class="bg-emerald-400 dark:bg-emerald-500 rounded-t w-4 h-10"></div>
+                                        <div class="bg-emerald-300 dark:bg-emerald-600 rounded-t w-4 h-16"></div>
+                                        <div class="bg-emerald-500 dark:bg-emerald-400 rounded-t w-4 h-12"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Floating Elements -->
+                    <div class="absolute -top-4 -right-4 bg-white dark:bg-slate-800 rounded-xl p-3 shadow-lg border border-gray-200 dark:border-slate-700 animate-float">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Live Sync</span>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute -bottom-4 -left-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-xl p-3 shadow-lg animate-float-delayed">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4"></i>
+                            <span class="text-sm font-medium">Ziel erreicht!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <!-- Scroll-Indicator -->
-    <div class="absolute bottom-6 inset-x-0 flex justify-center">
-        <i data-lucide="chevron-down" class="w-6 h-6 animate-bounce text-base-100/80"></i>
+        
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <div class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-600">
+                <span class="text-xs font-medium">Mehr entdecken</span>
+                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+            </div>
+        </div>
     </div>
 </section>
 

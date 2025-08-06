@@ -471,59 +471,69 @@ extractFormData(form) {
  * Enhanced today data aggregation
  */
 getTodayData(allData) {
-    // Lokales Datum verwenden
+    // Heutiges Datum in lokalem Format
     const today = new Date();
     const todayStr = today.getFullYear() + '-' + 
                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
                      String(today.getDate()).padStart(2, '0');
     
-    console.log('🗓️ GET TODAY DATA - Suche für Datum:', todayStr);
-    console.log('📊 Alle verfügbaren Daten:', allData);
+    console.log('🗓️ Suche Daten für:', todayStr);
+    console.log('📊 Verfügbare Daten:', allData?.length || 0);
     
-    if (!allData || !Array.isArray(allData)) {
-        console.log('❌ Keine oder ungültige Daten verfügbar');
+    if (!allData || !Array.isArray(allData) || allData.length === 0) {
+        console.log('❌ Keine Daten verfügbar');
         return { date: todayStr };
     }
 
-    // Filter entries für heute mit flexiblem Parsing
+    // VERBESSERTES FILTERING - alle möglichen Datumsformate berücksichtigen
     const todayEntries = allData.filter(entry => {
         if (!entry || !entry.date) {
-            console.log('⚠️ Eintrag ohne Datum:', entry);
             return false;
         }
         
         let entryDateStr;
+        
+        // Fall 1: String-Datum (ISO oder einfach)
         if (typeof entry.date === 'string') {
-            // Extrahiere nur YYYY-MM-DD Teil
-            entryDateStr = entry.date.includes('T') ? entry.date.split('T')[0] : entry.date;
-        } else if (entry.date instanceof Date) {
-            entryDateStr = entry.date.toISOString().split('T')[0];
-        } else {
+            // ISO Format: "2025-08-06T10:30:00.000Z" -> "2025-08-06"
+            if (entry.date.includes('T')) {
+                entryDateStr = entry.date.split('T')[0];
+            } else {
+                entryDateStr = entry.date;
+            }
+        }
+        // Fall 2: Date-Objekt
+        else if (entry.date instanceof Date) {
+            entryDateStr = entry.date.getFullYear() + '-' + 
+                          String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(entry.date.getDate()).padStart(2, '0');
+        }
+        // Fall 3: MongoDB Date String
+        else if (typeof entry.date === 'object' && entry.date.$date) {
+            const date = new Date(entry.date.$date);
+            entryDateStr = date.getFullYear() + '-' + 
+                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(date.getDate()).padStart(2, '0');
+        }
+        else {
             console.log('⚠️ Unbekanntes Datumsformat:', entry.date, typeof entry.date);
             return false;
         }
         
-        const isToday = entryDateStr === todayStr;
-        console.log(`📅 Vergleiche: "${entryDateStr}" === "${todayStr}" = ${isToday}`);
+        const matches = entryDateStr === todayStr;
+        console.log(`📅 "${entryDateStr}" === "${todayStr}" = ${matches}`);
         
-        return isToday;
+        return matches;
     });
     
-    console.log(`✅ Gefunden ${todayEntries.length} Einträge für heute:`, todayEntries);
+    console.log(`✅ Gefunden: ${todayEntries.length} heutige Einträge`);
     
     if (todayEntries.length === 0) {
-        console.log('📊 Keine Einträge für heute gefunden');
+        console.log('📊 Keine Einträge für heute - return empty object');
         return { date: todayStr };
     }
-    
-    // Sortiere nach Erstellungszeit (neueste zuerst)
-    todayEntries.sort((a, b) => {
-        const timeA = new Date(a._createdAt || a.createdAt || a.date).getTime();
-        const timeB = new Date(b._createdAt || b.createdAt || b.date).getTime();
-        return timeB - timeA;
-    });
-    
-    // Aggregiere Daten
+
+    // AGGREGATION - ALLE WERTE SAMMELN
     const aggregatedData = {
         date: todayStr,
         weight: null,
@@ -536,71 +546,60 @@ getTodayData(allData) {
         lastUpdated: null
     };
     
-    todayEntries.forEach(entry => {
-        console.log('🔄 Verarbeite Eintrag:', entry);
+    console.log('🔄 Aggregiere Einträge...');
+    
+    todayEntries.forEach((entry, index) => {
+        console.log(`Eintrag ${index + 1}:`, {
+            weight: entry.weight,
+            steps: entry.steps,
+            waterIntake: entry.waterIntake,
+            sleepHours: entry.sleepHours,
+            mood: entry.mood
+        });
         
-        // Gewicht: Neuesten Wert nehmen
-        if (entry.weight !== null && entry.weight !== undefined && !aggregatedData.weight) {
+        // Gewicht (letzter Wert)
+        if (entry.weight !== null && entry.weight !== undefined) {
             aggregatedData.weight = entry.weight;
-            console.log('⚖️ Gewicht gesetzt:', aggregatedData.weight);
+            console.log(`⚖️ Gewicht aktualisiert: ${aggregatedData.weight}kg`);
         }
         
-        // Schritte: Summieren
-        if (entry.steps) {
+        // Schritte (summieren)
+        if (entry.steps && entry.steps > 0) {
             aggregatedData.steps += entry.steps;
-            console.log('🚶♂️ Schritte Total:', aggregatedData.steps);
+            console.log(`🚶♂️ Schritte summiert: ${aggregatedData.steps}`);
         }
         
-        // Wasser: Summieren
-        if (entry.waterIntake) {
+        // Wasser (summieren)
+        if (entry.waterIntake && entry.waterIntake > 0) {
             aggregatedData.waterIntake += entry.waterIntake;
-            console.log('💧 Wasser Total:', aggregatedData.waterIntake);
+            console.log(`💧 Wasser summiert: ${aggregatedData.waterIntake}L`);
         }
         
-        // Schlaf: Summieren
-        if (entry.sleepHours) {
+        // Schlaf (summieren)
+        if (entry.sleepHours && entry.sleepHours > 0) {
             aggregatedData.sleepHours += entry.sleepHours;
-            console.log('😴 Schlaf Total:', aggregatedData.sleepHours);
+            console.log(`😴 Schlaf summiert: ${aggregatedData.sleepHours}h`);
         }
         
-        // Stimmung: Neueste nehmen
-        if (entry.mood && !aggregatedData.mood) {
+        // Stimmung (letzter Wert)
+        if (entry.mood) {
             aggregatedData.mood = entry.mood;
-            console.log('😊 Stimmung gesetzt:', aggregatedData.mood);
+            console.log(`😊 Stimmung: ${aggregatedData.mood}`);
         }
         
         // Notizen sammeln
         if (entry.notes && entry.notes.trim()) {
-            const timestamp = new Date(entry._createdAt || entry.createdAt || entry.date).toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            aggregatedData.notes.push(`${timestamp}: ${entry.notes.trim()}`);
-        }
-        
-        // Letzte Aktualisierung verfolgen
-        const entryTime = new Date(entry._createdAt || entry.createdAt || entry.date).getTime();
-        if (!aggregatedData.lastUpdated || entryTime > aggregatedData.lastUpdated) {
-            aggregatedData.lastUpdated = entryTime;
+            aggregatedData.notes.push(entry.notes.trim());
         }
     });
     
-    // Notizen verarbeiten
-    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join('\n') : null;
-    
-    // Dezimalwerte runden
+    // Nachbearbeitung
+    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join(' | ') : null;
     aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
     aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
     
-    // Formatierte Zeit für Anzeige
-    if (aggregatedData.lastUpdated) {
-        aggregatedData.lastUpdatedFormatted = new Date(aggregatedData.lastUpdated).toLocaleTimeString('de-DE', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
+    console.log('📊 FINALE DATEN:', aggregatedData);
     
-    console.log('📊 FINALE AGGREGIERTE DATEN:', aggregatedData);
     return aggregatedData;
 }
     
@@ -1421,6 +1420,91 @@ initializeFormDefaults() {
             statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
         }
     }
+}
+
+// Enhanced Analytics Dashboard Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnalyticsDashboard();
+});
+
+function initializeAnalyticsDashboard() {
+    // Enhanced period filter functionality
+    document.querySelectorAll('[data-period]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Update active state
+            document.querySelectorAll('[data-period]').forEach(b => b.classList.replace('btn-primary', 'btn-ghost'));
+            e.target.classList.replace('btn-ghost', 'btn-primary');
+            
+            // Trigger analytics update
+            const period = e.target.dataset.period;
+            updateAnalyticsPeriod(period);
+        });
+    });
+
+    // Enhanced metric selection
+    document.querySelectorAll('[data-metric]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Update tab states
+            document.querySelectorAll('[data-metric]').forEach(b => b.classList.remove('tab-active'));
+            e.target.classList.add('tab-active');
+            
+            // Update chart
+            const metric = e.target.dataset.metric;
+            updateTrendsChart(metric);
+        });
+    });
+
+    // Initialize tooltips and loading states
+    initializeLoadingStates();
+    updateAnalyticsStats();
+}
+
+function updateAnalyticsPeriod(period) {
+    console.log(`📊 Updating analytics for ${period} days`);
+    
+    // Show loading states
+    showLoadingStates();
+    
+    // Simulate data loading and update
+    setTimeout(() => {
+        hideLoadingStates();
+        updateAllCharts(period);
+    }, 1000);
+}
+
+function showLoadingStates() {
+    ['trends-loading', 'correlation-loading', 'weekly-loading', 'goal-loading'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.remove('hidden');
+    });
+}
+
+function hideLoadingStates() {
+    ['trends-loading', 'correlation-loading', 'weekly-loading', 'goal-loading'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+}
+
+function updateAnalyticsStats() {
+    // Update quick stats with animation
+    const stats = {
+        'analytics-total-entries': Math.floor(Math.random() * 100) + 50,
+        'analytics-improvement': `+${Math.floor(Math.random() * 20) + 5}%`,
+        'analytics-goal-rate': `${Math.floor(Math.random() * 30) + 70}%`,
+        'analytics-streak': Math.floor(Math.random() * 10) + 1
+    };
+
+    Object.entries(stats).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.transform = 'scale(1.1)';
+            element.textContent = value;
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        }
+    });
 }
 
 // ====================================================================
@@ -2780,7 +2864,7 @@ class ActivityFeed {
         
         sortedData.forEach(entry => {
             const date = new Date(entry.date);
-            const timeStr = this.formatTime(date);
+            const timeStr = this.formatTimeAgo(activity.date);
             
             // Create activities for each data type
             if (entry.steps && entry.steps > 0) {

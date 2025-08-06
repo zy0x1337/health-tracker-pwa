@@ -172,6 +172,105 @@
         transform: translateY(0);
     }
 }
+
+/* Enhanced Hero Section Animations */
+.hero {
+    position: relative;
+}
+
+/* Floating Animation Delays */
+.animation-delay-1000 {
+    animation-delay: 1s;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+/* Button Hover Enhancements */
+.btn:hover {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Card Hover Effects */
+.card:hover {
+    transform: translateY(-4px);
+}
+
+/* Text Gradient Animation */
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.bg-gradient-to-r {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+}
+
+/* Badge Pulse Effect */
+.badge .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom Shadow Classes */
+.shadow-3xl {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Backdrop Blur Enhancement */
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Enhanced Responsive Typography */
+@media (max-width: 640px) {
+    .text-6xl {
+        font-size: 3rem;
+    }
+    .text-7xl {
+        font-size: 3.5rem;
+    }
+}
+
+/* Enhanced Footer Animations */
+.footer {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects for footer links */
+.footer nav a:hover {
+    transform: translateX(4px);
+}
+
+.footer nav button:hover {
+    transform: translateX(4px);
+}
+
+/* Stats animation */
+.stat-value {
+    transition: all 0.3s ease;
+}
+
+.stat-value:hover {
+    transform: scale(1.05);
+}
+
+/* Badge hover effects */
+.badge {
+    transition: all 0.2s ease;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced social buttons */
+.btn-circle:hover {
+    transform: rotate(5deg) scale(1.1);
+}
     </style>
 </head>
 
@@ -356,33 +455,157 @@
     </a>
 </div>
 
-    <!-- Hero Section -->
-    <section class="hero min-h-[60vh] bg-gradient-to-br from-primary via-indigo-600 to-emerald-500 text-base-100">
-        <div class="hero-content text-center">
-            <div class="max-w-2xl">
-                <h1 class="text-5xl font-bold mb-6">
-                    Dein persönlicher<br>
-                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-base-100/90 to-base-100">
-                        Health Tracker
-                    </span>
-                </h1>
-                <p class="text-lg mb-8 text-base-100/90">
-                    Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank
-                    übersichtlicher Dashboards – <strong>offline-fähig, schnell & motivierend</strong>.
+    <!-- Enhanced Hero Section mit hochmodernem daisyUI Design -->
+<section class="hero min-h-[80vh] bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
+    <!-- Background Pattern Overlay -->
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+    
+    <!-- Floating Elements for Modern Look -->
+    <div class="absolute top-20 left-10 w-20 h-20 bg-base-100/10 rounded-full blur-xl animate-pulse"></div>
+    <div class="absolute bottom-20 right-10 w-32 h-32 bg-base-100/10 rounded-full blur-xl animate-pulse animation-delay-1000"></div>
+    <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-base-100/10 rounded-full blur-xl animate-pulse animation-delay-2000"></div>
+
+    <div class="hero-content text-center relative z-10">
+        <div class="max-w-6xl">
+            <!-- Status Badge -->
+            <div class="flex justify-center mb-6">
+                <div class="badge badge-lg gap-3 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm px-6 py-4">
+                    <div class="w-3 h-3 bg-success rounded-full animate-pulse"></div>
+                    <span class="font-medium">✨ Vollständig offline-fähig</span>
+                    <div class="badge badge-success badge-xs">PWA</div>
+                </div>
+            </div>
+
+            <!-- Main Heading -->
+            <h1 class="text-6xl lg:text-7xl font-bold mb-8 leading-tight">
+                <span class="block mb-2">Dein persönlicher</span>
+                <span class="block bg-clip-text text-transparent bg-gradient-to-r from-base-100 via-base-100/90 to-base-100drop-shadow-2xl">
+                    Health Tracker
+                </span>
+                <div class="flex justify-center mt-4">
+                    <div class="w-32 h-2 bg-gradient-to-r from-transparent via-base-100/60 to-transparent rounded-full"></div>
+                </div>
+            </h1>
+
+            <!-- Enhanced Description -->
+            <div class="max-w-3xl mx-auto mb-10">
+                <p class="text-xl lg:text-2xl mb-6 text-base-100/90 leading-relaxed font-light">
+                    Behalte <strong class="font-semibold text-base-100">Gewicht, Schritte, Wasser- und Schlafziele</strong> im Blick & erreiche sie dank
+                    übersichtlicher Dashboards
                 </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="#health-form" class="btn btn-secondary btn-lg gap-2">
-                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                        Erste Daten hinzufügen
-                    </a>
-                    <button onclick="document.getElementById('goals-modal').showModal()" class="btn btn-outline btn-lg gap-2 text-base-100 border-base-100 hover:bg-base-100 hover:text-primary">
-                        <i data-lucide="target" class="w-5 h-5"></i>
-                        Ziele setzen
-                    </button>
+                
+                <!-- Feature Highlights -->
+                <div class="flex flex-wrap justify-center gap-3 mb-8">
+                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
+                        <i data-lucide="wifi-off" class="w-4 h-4"></i>
+                        Offline-fähig
+                    </div>
+                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        Blitzschnell
+                    </div>
+                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
+                        <i data-lucide="trophy" class="w-4 h-4"></i>
+                        Motivierend
+                    </div>
+                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        Datenschutz
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Buttons Enhanced -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <a href="#health-form" class="btn btn-secondary btn-lg gap-3 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 group">
+                    <i data-lucide="plus-circle" class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"></i>
+                    <span>Erste Daten hinzufügen</span>
+                    <div class="badge badge-accent badge-sm">Start</div>
+                </a>
+                <button onclick="document.getElementById('goals-modal').showModal()" 
+                        class="btn btn-outline btn-lg gap-3 text-base-100 border-base-100/50 hover:bg-base-100 hover:text-primary shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 backdrop-blur-sm group">
+                    <i data-lucide="target" class="w-5 h-5 group-hover:scale-110 transition-transform duration-300"></i>
+                    <span>Ziele setzen</span>
+                    <div class="badge badge-primary badge-sm opacity-80">⭐</div>
+                </button>
+            </div>
+
+            <!-- Quick Stats Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="avatar placeholder mb-2">
+                            <div class="bg-primary/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
+                                <i data-lucide="footprints" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <h3 class="card-title text-base-100 text-lg">Schritte</h3>
+                        <p class="text-base-100/80 text-sm">Tägliche Aktivität</p>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="avatar placeholder mb-2">
+                            <div class="bg-info/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
+                                <i data-lucide="droplets" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <h3 class="card-title text-base-100 text-lg">Wasser</h3>
+                        <p class="text-base-100/80 text-sm">Hydration</p>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="avatar placeholder mb-2">
+                            <div class="bg-warning/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
+                                <i data-lucide="moon" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <h3 class="card-title text-base-100 text-lg">Schlaf</h3>
+                        <p class="text-base-100/80 text-sm">Erholung</p>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="avatar placeholder mb-2">
+                            <div class="bg-success/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
+                                <i data-lucide="scale" class="w-6 h-6"></i>
+                            </div>
+                        </div>
+                        <h3 class="card-title text-base-100 text-lg">Gewicht</h3>
+                        <p class="text-base-100/80 text-sm">Körperdaten</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trust Indicators -->
+            <div class="flex flex-wrap justify-center items-center gap-6 mt-12 opacity-80">
+                <div class="flex items-center gap-2 text-base-100/70">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span class="text-sm">100% Privat</span>
+                </div>
+                <div class="flex items-center gap-2 text-base-100/70">
+                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                    <span class="text-sm">Progressive Web App</span>
+                </div>
+                <div class="flex items-center gap-2 text-base-100/70">
+                    <i data-lucide="database" class="w-4 h-4"></i>
+                    <span class="text-sm">Lokale Datenspeicherung</span>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+
+    <!-- Bottom Wave Effect -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden">
+        <svg class="relative block w-full h-16" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="fill-base-100"></path>
+        </svg>
+    </div>
+</section>
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 max-w-7xl space-y-8">
@@ -849,20 +1072,205 @@
         </div>
     </dialog>
 
-    <!-- Footer -->
-    <footer class="footer footer-center p-10 bg-base-200 text-base-content">
-        <div>
-            <div class="grid grid-flow-col gap-4">
-                <a class="link link-hover" href="#dashboard">Dashboard</a>
-                <a class="link link-hover" href="#progress-hub">Fortschritt</a>
-                <a class="link link-hover" href="#analytics">Analytics</a>
-                <a class="link link-hover" onclick="document.getElementById('goals-modal').showModal()">Ziele</a>
+    <!-- Enhanced Footer mit hochmodernem daisyUI Design -->
+<footer class="bg-gradient-to-br from-base-200 via-base-300 to-base-200 border-t border-base-300/50">
+    <div class="container mx-auto px-4">
+        <!-- Main Footer Content -->
+        <div class="footer p-10 text-base-content">
+            <!-- Brand & Description -->
+            <aside class="flex flex-col items-start">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="avatar placeholder">
+                        <div class="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-xl w-12 h-12">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Health Tracker Pro
+                        </div>
+                        <div class="text-sm text-base-content/70">Deine Gesundheit im Fokus</div>
+                    </div>
+                </div>
+                <p class="text-base-content/80 max-w-sm leading-relaxed">
+                    Offline-fähige Progressive Web App für umfassendes Gesundheits-Tracking mit 
+                    <span class="font-semibold text-primary">100% Datenschutz</span>.
+                </p>
+                
+                <!-- Feature Badges -->
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <div class="badge badge-primary gap-1">
+                        <i data-lucide="wifi-off" class="w-3 h-3"></i>
+                        Offline-fähig
+                    </div>
+                    <div class="badge badge-success gap-1">
+                        <i data-lucide="shield-check" class="w-3 h-3"></i>
+                        Sicher
+                    </div>
+                    <div class="badge badge-secondary gap-1">
+                        <i data-lucide="smartphone" class="w-3 h-3"></i>
+                        PWA
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Navigation Links -->
+            <nav class="flex flex-col">
+                <h6 class="footer-title text-primary">Navigation</h6>
+                <a href="#dashboard" class="link link-hover flex items-center gap-2 py-1 hover:text-primary transition-colors">
+                    <i data-lucide="home" class="w-4 h-4 text-primary/60"></i>
+                    Dashboard
+                </a>
+                <a href="#progress-hub" class="link link-hover flex items-center gap-2 py-1 hover:text-success transition-colors">
+                    <i data-lucide="target" class="w-4 h-4 text-success/60"></i>
+                    Fortschritt
+                </a>
+                <a href="#analytics" class="link link-hover flex items-center gap-2 py-1 hover:text-info transition-colors">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-info/60"></i>
+                    Analytics
+                </a>
+                <a href="#health-form" class="link link-hover flex items-center gap-2 py-1 hover:text-accent transition-colors">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-accent/60"></i>
+                    Daten eingeben
+                </a>
+            </nav>
+
+            <!-- Quick Actions -->
+            <nav class="flex flex-col">
+                <h6 class="footer-title text-secondary">Aktionen</h6>
+                <button onclick="document.getElementById('goals-modal').showModal()" 
+                        class="link link-hover flex items-center gap-2 py-1 hover:text-secondary transition-colors text-left">
+                    <i data-lucide="target" class="w-4 h-4 text-secondary/60"></i>
+                    Ziele verwalten
+                </button>
+                <button id="footer-theme-toggle" class="link link-hover flex items-center gap-2 py-1 hover:text-accent transition-colors text-left">
+                    <i data-lucide="palette" class="w-4 h-4 text-accent/60"></i>
+                    Design ändern
+                </button>
+                <button onclick="window.print()" class="link link-hover flex items-center gap-2 py-1 hover:text-info transition-colors text-left">
+                    <i data-lucide="printer" class="w-4 h-4 text-info/60"></i>
+                    Daten drucken
+                </button>
+                <button onclick="healthTracker.debugProgressHub?.()" class="link link-hover flex items-center gap-2 py-1 hover:text-warning transition-colors text-left">
+                    <i data-lucide="bug" class="w-4 h-4 text-warning/60"></i>
+                    Debug-Info
+                </button>
+            </nav>
+
+            <!-- Health Categories -->
+            <nav class="flex flex-col">
+                <h6 class="footer-title text-accent">Tracking</h6>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-sm text-base-content/70">
+                        <i data-lucide="footprints" class="w-4 h-4 text-success"></i>
+                        <span>Schritte & Aktivität</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-base-content/70">
+                        <i data-lucide="droplets" class="w-4 h-4 text-info"></i>
+                        <span>Wasser & Hydration</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-base-content/70">
+                        <i data-lucide="moon" class="w-4 h-4 text-warning"></i>
+                        <span>Schlaf & Erholung</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-base-content/70">
+                        <i data-lucide="scale" class="w-4 h-4 text-secondary"></i>
+                        <span>Gewicht & Körperdaten</span>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="py-6 border-t border-base-300/50">
+            <div class="stats stats-vertical lg:stats-horizontal shadow-sm bg-base-100/50 w-full">
+                <div class="stat place-items-center">
+                    <div class="stat-title">Einträge heute</div>
+                    <div class="stat-value text-2xl text-primary" id="footer-today-entries">0</div>
+                    <div class="stat-desc">Tracking-Sessions</div>
+                </div>
+                <div class="stat place-items-center">
+                    <div class="stat-title">Diese Woche</div>
+                    <div class="stat-value text-2xl text-success" id="footer-week-entries">0</div>
+                    <div class="stat-desc">Gesamt-Einträge</div>
+                </div>
+                <div class="stat place-items-center">
+                    <div class="stat-title">Ziele erreicht</div>
+                    <div class="stat-value text-2xl text-accent" id="footer-goals-achieved">0</div>
+                    <div class="stat-desc">Heute</div>
+                </div>
+                <div class="stat place-items-center">
+                    <div class="stat-title">Streak</div>
+                    <div class="stat-value text-2xl text-warning" id="footer-current-streak">0</div>
+                    <div class="stat-desc">Tage am Stück</div>
+                </div>
             </div>
         </div>
-        <div>
-            <p>Health Tracker Pro © 2025</p>
+
+        <!-- Bottom Bar -->
+        <div class="footer footer-center p-4 border-t border-base-300/50 text-base-content/70">
+            <aside class="flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl">
+                <!-- Copyright -->
+                <div class="flex flex-col lg:flex-row items-center gap-2">
+                    <p class="font-medium">
+                        &copy; 2025 <span class="text-primary font-bold">Health Tracker Pro</span>
+                    </p>
+                    <div class="divider divider-horizontal hidden lg:block"></div>
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="heart" class="w-4 h-4 text-error"></i>
+                        <span class="text-sm">Made with Love für deine Gesundheit</span>
+                    </div>
+                </div>
+
+                <!-- Tech Stack & Status -->
+                <div class="flex flex-col lg:flex-row items-center gap-4 mt-2 lg:mt-0">
+                    <!-- Connection Status -->
+                    <div class="flex items-center gap-2">
+                        <div class="indicator">
+                            <span class="indicator-item indicator-top indicator-end badge badge-success badge-xs animate-pulse"></span>
+                            <div class="badge badge-ghost gap-1" id="footer-connection-status">
+                                <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                                <span class="text-xs">Online</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Version & Tech -->
+                    <div class="flex items-center gap-2">
+                        <div class="badge badge-outline badge-xs">v2.0.0</div>
+                        <div class="tooltip tooltip-top" data-tip="Progressive Web Application">
+                            <div class="badge badge-primary badge-xs">PWA</div>
+                        </div>
+                        <div class="tooltip tooltip-top" data-tip="Vollständig offline-fähig">
+                            <div class="badge badge-success badge-xs">Offline</div>
+                        </div>
+                    </div>
+
+                    <!-- Social Actions -->
+                    <div class="flex gap-2">
+                        <div class="tooltip tooltip-top" data-tip="Teile die App">
+                            <button onclick="navigator.share?.({title: 'Health Tracker Pro', url: window.location.href})" 
+                                    class="btn btn-ghost btn-xs btn-circle hover:btn-primary">
+                                <i data-lucide="share-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <div class="tooltip tooltip-top" data-tip="Feedback senden">
+                            <button onclick="window.open('mailto:feedback@healthtracker.com?subject=Health Tracker Pro Feedback')"
+                                    class="btn btn-ghost btn-xs btn-circle hover:btn-secondary">
+                                <i data-lucide="mail" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <div class="tooltip tooltip-top" data-tip="GitHub Repository">
+                            <a href="#" target="_blank" class="btn btn-ghost btn-xs btn-circle hover:btn-accent">
+                                <i data-lucide="github" class="w-3 h-3"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </div>
-    </footer>
+    </div>
+</footer>
 
     <!-- JavaScript -->
     <script src="/js/app.js"></script>
@@ -913,5 +1321,17 @@
             }
         });
     </script>
+    <script>
+// Footer Enhancement Script
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize footer stats
+    updateFooterStats();
+    
+    // Update stats every 30 seconds
+    setInterval(updateFooterStats, 30000);
+    
+    // ... (der komplette JavaScript Code von oben)
+});
+</script>
 </body>
 </html>

@@ -1198,27 +1198,113 @@ initializeFormDefaults() {
     }
 }
 
-    /**
- * Debug ProgressHub status
- */
-debugProgressHub() {
-    console.log('🔍 ProgressHub Debug Info:');
-    console.log('- ProgressHub instance:', this.progressHub);
-    console.log('- Current view:', this.progressHub?.currentView);
-    console.log('- Today data:', this.progressHub?.todayData);
-    console.log('- Progress content element:', document.getElementById('progress-content'));
-    console.log('- Tab elements:', document.querySelectorAll('[id^="tab-"]'));
-    
-    // Test data loading
-    if (this.progressHub) {
-        this.progressHub.loadViewData().then(() => {
-            console.log('✅ Data loaded successfully');
-            this.progressHub.showView('today');
-        }).catch(error => {
-            console.error('❌ Data loading failed:', error);
-        });
+/**
+     * Initialize footer functionality
+     */
+    initializeFooter() {
+        // Update footer stats
+        this.updateFooterStats();
+        
+        // Update stats every 30 seconds
+        setInterval(() => this.updateFooterStats(), 30000);
+        
+        // Footer theme toggle
+        const footerThemeToggle = document.getElementById('footer-theme-toggle');
+        if (footerThemeToggle) {
+            footerThemeToggle.addEventListener('click', () => {
+                const mainThemeToggle = document.getElementById('theme-toggle');
+                if (mainThemeToggle) {
+                    mainThemeToggle.click();
+                }
+            });
+        }
+        
+        // Update connection status in footer
+        this.updateFooterConnectionStatus();
+        window.addEventListener('online', () => this.updateFooterConnectionStatus());
+        window.addEventListener('offline', () => this.updateFooterConnectionStatus());
     }
-}
+
+    /**
+     * Update footer statistics
+     */
+    async updateFooterStats() {
+        try {
+            const allData = await this.getAllHealthData();
+            const todayData = this.getTodayData(allData);
+            const weekData = this.getWeekData(allData);
+            
+            // Today entries count
+            const todayEntries = allData.filter(entry => {
+                const today = new Date().toISOString().split('T')[0];
+                return entry.date === today;
+            }).length;
+            
+            // Goals achieved today
+            let goalsAchieved = 0;
+            if (todayData.steps >= this.goals.stepsGoal) goalsAchieved++;
+            if (todayData.waterIntake >= this.goals.waterGoal) goalsAchieved++;
+            if (todayData.sleepHours >= this.goals.sleepGoal) goalsAchieved++;
+            if (this.goals.weightGoal && Math.abs(todayData.weight - this.goals.weightGoal) <= this.goals.weightGoal * 0.05) goalsAchieved++;
+            
+            // Calculate streak
+            const streak = this.calculateCurrentStreak(allData);
+            
+            // Update DOM
+            const todayEl = document.getElementById('footer-today-entries');
+            const weekEl = document.getElementById('footer-week-entries');
+            const goalsEl = document.getElementById('footer-goals-achieved');
+            const streakEl = document.getElementById('footer-current-streak');
+            
+            if (todayEl) todayEl.textContent = todayEntries;
+            if (weekEl) weekEl.textContent = weekData.length;
+            if (goalsEl) goalsEl.textContent = goalsAchieved;
+            if (streakEl) streakEl.textContent = streak;
+            
+        } catch (error) {
+            console.error('Footer stats update error:', error);
+        }
+    }
+
+    /**
+     * Calculate current tracking streak
+     */
+    calculateCurrentStreak(allData) {
+        if (!allData || allData.length === 0) return 0;
+        
+        let streak = 0;
+        const today = new Date();
+        
+        for (let i = 0; i < 365; i++) { // Max 1 year streak
+            const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+            const dateStr = checkDate.toISOString().split('T')[0];
+            
+            const hasEntry = allData.some(entry => entry.date === dateStr);
+            
+            if (hasEntry) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        
+        return streak;
+    }
+
+    /**
+     * Update footer connection status
+     */
+    updateFooterConnectionStatus() {
+        const statusEl = document.getElementById('footer-connection-status');
+        if (statusEl) {
+            const isOnline = navigator.onLine;
+            statusEl.innerHTML = `
+                <div class="w-2 h-2 ${isOnline ? 'bg-success' : 'bg-warning'} rounded-full animate-pulse"></div>
+                <span class="text-xs">${isOnline ? 'Online' : 'Offline'}</span>
+            `;
+            statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
+        }
+    }
 }
 
 // ====================================================================
@@ -1261,6 +1347,7 @@ class SmartNotificationManager {
         
         // Always setup in-app notifications
         this.setupInAppNotifications();
+        this.initializeFooter();
         
         console.log('✅ Smart Notification Manager initialisiert');
     }

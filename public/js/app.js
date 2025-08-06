@@ -2349,6 +2349,8 @@ class ProgressHub {
         this.currentView = 'today';
         this.achievements = new Map();
         this.streaks = new Map();
+        this.dailyChallenge = null;
+        this.sparklineCharts = {};
         
         // Warte kurz und prüfe dann, ob Progress Hub HTML vorhanden ist
         setTimeout(() => this.initialize(), 500);
@@ -2362,6 +2364,8 @@ class ProgressHub {
         }
         
         console.log('✅ Progress Hub wird initialisiert');
+        this.generateDailyChallenge();
+        this.initSparklineCharts();
         this.showView(this.currentView);
     }
 
@@ -2413,6 +2417,10 @@ class ProgressHub {
                     this.updateStreaksView(data);
                     break;
             }
+            
+            // Update tab badges
+            this.updateTabBadges(data);
+            
         } catch (error) {
             console.error('❌ Error loading Progress Hub data:', error);
         }
@@ -2448,50 +2456,62 @@ class ProgressHub {
     updateTodayView(data) {
         const today = new Date().toISOString().split('T')[0];
         const todayData = data.find(entry => entry.date === today) || {};
+        const last7Days = data.slice(0, 7);
         
         console.log('📊 Updating Progress Hub with today data:', todayData);
         
-        // Update progress cards only if elements exist
-        this.updateProgressCard('steps', todayData.steps || 0, this.healthTracker.goals.stepsGoal);
-        this.updateProgressCard('water', todayData.waterIntake || 0, this.healthTracker.goals.waterGoal);
-        this.updateProgressCard('sleep', todayData.sleepHours || 0, this.healthTracker.goals.sleepGoal);
+        // Update progress cards with enhanced features
+        this.updateProgressCard('steps', todayData.steps || 0, this.healthTracker.goals.stepsGoal, last7Days);
+        this.updateProgressCard('water', todayData.waterIntake || 0, this.healthTracker.goals.waterGoal, last7Days);
+        this.updateProgressCard('sleep', todayData.sleepHours || 0, this.healthTracker.goals.sleepGoal, last7Days);
         
-        // Calculate overall score
+        // Update mood
+        this.updateMoodCard(todayData.mood);
+        
+        // Calculate and update overall score with animation
         const overallScore = this.calculateOverallScore(todayData);
-        this.updateProgressCard('score', overallScore, 100);
+        this.updateOverallScore(overallScore);
         
-        // Generate quick actions
-        this.generateQuickActions(todayData);
+        // Generate smart actions
+        this.generateSmartActions(todayData, data);
+        
+        // Update daily challenge
+        this.updateDailyChallenge(todayData);
+        
+        // Update sparkline charts
+        this.updateSparklines(last7Days);
+        
+        // Update quick stats summary
+        this.updateQuickStatsSummary(todayData, data);
     }
 
-    updateProgressCard(type, current, goal) {
+    updateProgressCard(type, current, goal, historyData = []) {
         if (!goal || goal <= 0) return;
         
         const percentage = Math.min((current / goal) * 100, 100);
         
-        // Sichere Element-Updates mit Existenz-Prüfung
+        // Basic updates
         const badge = document.getElementById(`${type}-progress-badge`);
         const display = document.getElementById(`today-${type}-display`);
         const progressBar = document.getElementById(`${type}-progress-bar`);
         const motivation = document.getElementById(`${type}-motivation`);
         const goalDisplay = document.getElementById(`${type}-goal-display`);
+        const status = document.getElementById(`${type}-status`);
         
         if (badge) badge.textContent = Math.round(percentage) + '%';
         
         if (display) {
-            if (type === 'score') {
-                display.textContent = Math.round(current);
-            } else {
-                const unit = type === 'steps' ? '' : type === 'water' ? 'L' : 'h';
-                display.textContent = current.toLocaleString() + unit;
-            }
+            const unit = type === 'steps' ? '' : type === 'water' ? 'L' : 'h';
+            display.textContent = current.toLocaleString() + unit;
         }
         
         if (progressBar) {
             progressBar.value = percentage;
+            // Add animation
+            progressBar.style.transition = 'all 0.5s ease-in-out';
         }
         
-        if (goalDisplay && type !== 'score') {
+        if (goalDisplay) {
             const unit = type === 'steps' ? '' : type === 'water' ? 'L' : 'h';
             goalDisplay.textContent = goal.toLocaleString() + unit;
         }
@@ -2499,29 +2519,476 @@ class ProgressHub {
         if (motivation) {
             motivation.textContent = this.getMotivationalMessage(type, percentage);
         }
+        
+        // Enhanced status updates
+        if (status) {
+            status.textContent = this.getStatusMessage(type, percentage);
+            status.className = `text-xs mt-1 ${this.getStatusColor(type, percentage)}`;
+        }
+        
+        // Special visualizations
+        if (type === 'water') {
+            this.updateWaterGlasses(current, goal);
+        } else if (type === 'sleep') {
+            this.updateSleepQuality(current, goal);
+        }
     }
 
+    updateWaterGlasses(current, goal) {
+        const container = document.getElementById('water-glasses');
+        if (!container) return;
+        
+        const glassCount = 8; // 8 glasses
+        const perGlass = goal / glassCount;
+        let html = '';
+        
+        for (let i = 0; i < glassCount; i++) {
+            const filled = current > (i * perGlass);
+            const fillLevel = Math.min(1, Math.max(0, (current - i * perGlass) / perGlass));
+            
+            html += `
+                <div class="relative w-3 h-4 border border-cyan-300 rounded-sm ${filled ? 'bg-cyan-200' : 'bg-transparent'}">
+                    ${filled ? `<div class="absolute bottom-0 left-0 right-0 bg-cyan-500 rounded-sm" style="height: ${fillLevel * 100}%"></div>` : ''}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
+
+    updateSleepQuality(current, goal) {
+        const container = document.getElementById('sleep-quality');
+        if (!container) return;
+        
+        const quality = Math.min(5, Math.max(1, Math.round((current / goal) * 5)));
+        const dots = container.querySelectorAll('div');
+        
+        dots.forEach((dot, index) => {
+            if (index < quality) {
+                dot.className = 'w-2 h-2 rounded-full bg-indigo-500';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-indigo-200';
+            }
+        });
+    }
+
+    updateMoodCard(mood) {
+        const emojiDisplay = document.getElementById('mood-emoji-display');
+        const moodDisplay = document.getElementById('current-mood-display');
+        const moodBadge = document.getElementById('mood-badge');
+        const moodStreak = document.getElementById('mood-streak');
+        
+        const moodConfig = {
+            'excellent': { emoji: '😄', text: 'Ausgezeichnet', color: 'text-green-500', badge: 'badge-success' },
+            'good': { emoji: '😊', text: 'Gut', color: 'text-blue-500', badge: 'badge-info' },
+            'neutral': { emoji: '😐', text: 'Neutral', color: 'text-gray-500', badge: 'badge-neutral' },
+            'bad': { emoji: '😔', text: 'Schlecht', color: 'text-orange-500', badge: 'badge-warning' },
+            'terrible': { emoji: '😞', text: 'Schrecklich', color: 'text-red-500', badge: 'badge-error' }
+        };
+        
+        const config = moodConfig[mood] || moodConfig['neutral'];
+        
+        if (emojiDisplay) {
+            emojiDisplay.innerHTML = `<span class="text-lg">${config.emoji}</span>`;
+        }
+        
+        if (moodDisplay) {
+            moodDisplay.textContent = config.text;
+            moodDisplay.className = `text-lg font-bold ${config.color} mb-2`;
+        }
+        
+        if (moodBadge) {
+            moodBadge.textContent = config.text;
+            moodBadge.className = `badge badge-sm ${config.badge}`;
+        }
+        
+        if (moodStreak) {
+            // TODO: Calculate mood streak
+            moodStreak.textContent = mood ? 'Heute erfasst ✓' : 'Heute tracken';
+        }
+    }
+
+    updateOverallScore(score) {
+        const display = document.getElementById('overall-score-display');
+        const circle = document.getElementById('overall-progress-circle');
+        const motivation = document.getElementById('overall-motivation');
+        
+        if (display) {
+            // Animate number counting up
+            this.animateNumber(display, 0, score, '%', 1000);
+        }
+        
+        if (circle) {
+            const circumference = 2 * Math.PI * 56; // radius = 56
+            const offset = circumference - (score / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+        
+        if (motivation) {
+            motivation.textContent = this.getOverallMotivation(score);
+        }
+    }
+
+    animateNumber(element, start, end, suffix = '', duration = 1000) {
+        const startTime = performance.now();
+        const range = end - start;
+        
+        function updateNumber(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+            
+            const current = start + (range * easeProgress);
+            element.textContent = Math.round(current) + suffix;
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateNumber);
+            }
+        }
+        
+        requestAnimationFrame(updateNumber);
+    }
+
+    generateSmartActions(todayData, allData) {
+        const container = document.getElementById('today-quick-actions');
+        if (!container) return;
+        
+        const actions = [];
+        const goals = this.healthTracker.goals;
+        
+        // AI-powered smart suggestions based on data patterns
+        const recentAvg = this.calculateRecentAverages(allData.slice(0, 7));
+        
+        // Steps suggestions
+        if (!todayData.steps || todayData.steps < goals.stepsGoal * 0.3) {
+            actions.push({
+                text: '🚶‍♂️ Kurzer Spaziergang',
+                action: 'takeWalk',
+                priority: 'high',
+                description: 'Starte mit 10 Minuten'
+            });
+        } else if (todayData.steps < goals.stepsGoal * 0.8) {
+            const needed = goals.stepsGoal - todayData.steps;
+            actions.push({
+                text: `🎯 ${needed.toLocaleString()} Schritte fehlen`,
+                action: 'finishSteps',
+                priority: 'medium',
+                description: 'Fast geschafft!'
+            });
+        }
+        
+        // Water suggestions with timing
+        const hour = new Date().getHours();
+        if (!todayData.waterIntake || todayData.waterIntake < goals.waterGoal * 0.6) {
+            if (hour < 12) {
+                actions.push({
+                    text: '☀️ Morgendliche Hydration',
+                    action: 'drinkWater',
+                    priority: 'high',
+                    description: 'Starte den Tag mit Wasser'
+                });
+            } else {
+                actions.push({
+                    text: '💧 Wasserpause einlegen',
+                    action: 'drinkWater',
+                    priority: 'medium',
+                    description: 'Dein Körper braucht Flüssigkeit'
+                });
+            }
+        }
+        
+        // Sleep suggestions (evening)
+        if (hour >= 21 && (!todayData.sleepHours || recentAvg.sleep < goals.sleepGoal * 0.9)) {
+            actions.push({
+                text: '🌙 Schlafenszeit vorbereiten',
+                action: 'prepareSleep',
+                priority: 'medium',
+                description: 'Für erholsamen Schlaf'
+            });
+        }
+        
+        // Data entry reminders
+        if (!todayData.weight && Math.random() > 0.7) { // 30% chance
+            actions.push({
+                text: '⚖️ Gewicht erfassen',
+                action: 'recordWeight',
+                priority: 'low',
+                description: 'Tracke deinen Fortschritt'
+            });
+        }
+        
+        if (!todayData.mood) {
+            actions.push({
+                text: '😊 Stimmung festhalten',
+                action: 'recordMood',
+                priority: 'medium',
+                description: 'Wie fühlst du dich heute?'
+            });
+        }
+        
+        // Always show data entry
+        actions.push({
+            text: '📊 Alle Daten eingeben',
+            action: 'enterData',
+            priority: 'low',
+            description: 'Vollständiges Tracking'
+        });
+        
+        // Sort by priority and render
+        const sortedActions = actions.sort((a, b) => {
+            const priorities = { high: 3, medium: 2, low: 1 };
+            return priorities[b.priority] - priorities[a.priority];
+        });
+        
+        container.innerHTML = sortedActions.map(action => `
+            <div class="relative group">
+                <button class="btn btn-sm ${this.getActionButtonClass(action.priority)} gap-2 w-full" 
+                        onclick="window.healthTracker.progressHub.handleQuickAction('${action.action}')">
+                    ${action.text}
+                </button>
+                <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                    ${action.description}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    getActionButtonClass(priority) {
+        switch (priority) {
+            case 'high': return 'btn-primary';
+            case 'medium': return 'btn-secondary';
+            case 'low': return 'btn-outline';
+            default: return 'btn-outline';
+        }
+    }
+
+    generateDailyChallenge() {
+        const challenges = [
+            { desc: 'Erreiche 10.000 Schritte', type: 'steps', target: 10000, reward: 50 },
+            { desc: 'Trinke 2.5L Wasser', type: 'water', target: 2.5, reward: 30 },
+            { desc: 'Schlafe 8 Stunden', type: 'sleep', target: 8, reward: 40 },
+            { desc: 'Tracke alle Daten heute', type: 'complete', target: 4, reward: 75 },
+            { desc: '15 Minuten Spaziergang', type: 'steps', target: 2000, reward: 25 }
+        ];
+        
+        // Select random challenge or based on user's weak points
+        this.dailyChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+        console.log('🎯 Daily challenge generated:', this.dailyChallenge);
+    }
+
+    updateDailyChallenge(todayData) {
+        if (!this.dailyChallenge) return;
+        
+        const desc = document.getElementById('challenge-description');
+        const reward = document.getElementById('challenge-reward');
+        const progress = document.getElementById('challenge-progress');
+        
+        if (desc) desc.textContent = this.dailyChallenge.desc;
+        if (reward) reward.textContent = `+${this.dailyChallenge.reward} XP`;
+        
+        if (progress) {
+            let currentProgress = 0;
+            
+            switch (this.dailyChallenge.type) {
+                case 'steps':
+                    currentProgress = Math.min(100, (todayData.steps || 0) / this.dailyChallenge.target * 100);
+                    break;
+                case 'water':
+                    currentProgress = Math.min(100, (todayData.waterIntake || 0) / this.dailyChallenge.target * 100);
+                    break;
+                case 'sleep':
+                    currentProgress = Math.min(100, (todayData.sleepHours || 0) / this.dailyChallenge.target * 100);
+                    break;
+                case 'complete':
+                    const tracked = [todayData.steps, todayData.waterIntake, todayData.sleepHours, todayData.mood].filter(x => x !== undefined && x !== null).length;
+                    currentProgress = Math.min(100, tracked / this.dailyChallenge.target * 100);
+                    break;
+            }
+            
+            progress.value = currentProgress;
+        }
+    }
+
+    initSparklineCharts() {
+        // Initialize mini sparkline charts for progress cards
+        const stepsCanvas = document.getElementById('steps-sparkline');
+        if (stepsCanvas && typeof Chart !== 'undefined') {
+            this.sparklineCharts.steps = new Chart(stepsCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['', '', '', '', '', '', ''],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: 'rgba(34, 197, 94, 0.8)',
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    animation: false
+                }
+            });
+        }
+    }
+
+    updateSparklines(last7Days) {
+        if (!this.sparklineCharts.steps) return;
+        
+        const stepsData = last7Days.reverse().map(d => d.steps || 0);
+        this.sparklineCharts.steps.data.datasets[0].data = stepsData;
+        this.sparklineCharts.steps.update('none');
+    }
+
+    calculateRecentAverages(recentData) {
+        if (recentData.length === 0) return { steps: 0, water: 0, sleep: 0 };
+        
+        return {
+            steps: recentData.reduce((sum, d) => sum + (d.steps || 0), 0) / recentData.length,
+            water: recentData.reduce((sum, d) => sum + (d.waterIntake || 0), 0) / recentData.length,
+            sleep: recentData.reduce((sum, d) => sum + (d.sleepHours || 0), 0) / recentData.length
+        };
+    }
+
+    updateTabBadges(data) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayData = data.find(entry => entry.date === today) || {};
+        
+        // Today badge - overall score
+        const overallScore = this.calculateOverallScore(todayData);
+        const todayBadge = document.getElementById('today-badge');
+        if (todayBadge) todayBadge.textContent = Math.round(overallScore) + '%';
+        
+        // Week badge - weekly average
+        const last7Days = data.slice(0, 7);
+        const weeklyAvg = last7Days.length > 0 ? 
+            last7Days.reduce((sum, d) => sum + this.calculateOverallScore(d), 0) / last7Days.length : 0;
+        const weekBadge = document.getElementById('week-badge');
+        if (weekBadge) weekBadge.textContent = Math.round(weeklyAvg) + '%';
+        
+        // Achievements badge - count
+        const achievementsBadge = document.getElementById('achievements-badge');
+        if (achievementsBadge) achievementsBadge.textContent = this.achievements.size;
+        
+        // Streaks badge - longest streak
+        const streaksBadge = document.getElementById('streaks-badge');
+        if (streaksBadge) {
+            const longestStreak = this.calculateLongestStreak(data);
+            streaksBadge.textContent = longestStreak;
+        }
+    }
+
+    quickMoodUpdate(mood) {
+        // Quick mood update without opening the full form
+        const formData = {
+            userId: this.healthTracker.userId,
+            date: new Date().toISOString().split('T')[0],
+            mood: mood
+        };
+        
+        // Update locally first
+        this.updateLocalMoodData(formData);
+        
+        // Update UI immediately
+        this.updateMoodCard(mood);
+        
+        // Show feedback
+        this.healthTracker.notificationManager.showInAppNotification(
+            `😊 Stimmung als "${mood}" erfasst!`, 'success', 3000
+        );
+        
+        // Save to server in background
+        if (navigator.onLine) {
+            this.healthTracker.saveToServer(formData).catch(console.error);
+        }
+    }
+
+    updateLocalMoodData(formData) {
+        let healthData = JSON.parse(localStorage.getItem('healthData') || '[]');
+        const existingIndex = healthData.findIndex(entry => 
+            entry.userId === formData.userId && entry.date === formData.date
+        );
+        
+        if (existingIndex >= 0) {
+            healthData[existingIndex].mood = formData.mood;
+        } else {
+            healthData.push(formData);
+        }
+        
+        localStorage.setItem('healthData', JSON.stringify(healthData));
+    }
+
+    exportProgress() {
+        // Export progress data as JSON
+        const data = {
+            userData: {
+                userId: this.healthTracker.userId,
+                goals: this.healthTracker.goals,
+                exportDate: new Date().toISOString()
+            },
+            healthData: JSON.parse(localStorage.getItem('healthData') || '[]'),
+            achievements: Array.from(this.achievements.entries()),
+            streaks: Array.from(this.streaks.entries())
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `health-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.healthTracker.notificationManager.showInAppNotification(
+            '📁 Fortschritt erfolgreich exportiert!', 'success'
+        );
+    }
+
+    refreshActions() {
+        // Regenerate daily challenge and smart actions
+        this.generateDailyChallenge();
+        this.loadViewData();
+        
+        this.healthTracker.notificationManager.showInAppNotification(
+            '🔄 Aktionen aktualisiert!', 'info', 2000
+        );
+    }
+
+    // Existing methods remain the same...
     calculateOverallScore(todayData) {
         const goals = this.healthTracker.goals;
         let score = 0;
         let maxScore = 0;
         
-        // Steps (40 points max)
         if (goals.stepsGoal) {
-            maxScore += 40;
-            score += Math.min((todayData.steps || 0) / goals.stepsGoal, 1) * 40;
+            maxScore += 30;
+            score += Math.min((todayData.steps || 0) / goals.stepsGoal, 1) * 30;
         }
         
-        // Water (30 points max)
         if (goals.waterGoal) {
-            maxScore += 30;
-            score += Math.min((todayData.waterIntake || 0) / goals.waterGoal, 1) * 30;
+            maxScore += 25;
+            score += Math.min((todayData.waterIntake || 0) / goals.waterGoal, 1) * 25;
         }
         
-        // Sleep (30 points max)
         if (goals.sleepGoal) {
-            maxScore += 30;
-            score += Math.min((todayData.sleepHours || 0) / goals.sleepGoal, 1) * 30;
+            maxScore += 25;
+            score += Math.min((todayData.sleepHours || 0) / goals.sleepGoal, 1) * 25;
+        }
+        
+        if (todayData.mood) {
+            maxScore += 20;
+            const moodValues = { terrible: 0.2, bad: 0.4, neutral: 0.6, good: 0.8, excellent: 1.0 };
+            score += (moodValues[todayData.mood] || 0) * 20;
         }
         
         return maxScore > 0 ? (score / maxScore) * 100 : 0;
@@ -2543,11 +3010,6 @@ class ProgressHub {
                 low: 'Erholung ist wichtig! 😴',
                 medium: 'Guter Schlaf! 👍',
                 high: 'Optimal erholt! 🌟'
-            },
-            score: {
-                low: 'Du schaffst das! 💪',
-                medium: 'Toller Fortschritt! 🚀',
-                high: 'Incredible! Du bist ein Star! ⭐'
             }
         };
         
@@ -2555,39 +3017,94 @@ class ProgressHub {
         return messages[type]?.[level] || 'Bleib dran!';
     }
 
-    generateQuickActions(todayData) {
-        const container = document.getElementById('today-quick-actions');
-        if (!container) return;
+    getStatusMessage(type, percentage) {
+        const statusMessages = {
+            steps: {
+                low: 'Inaktiv', medium: 'Aktiv', high: 'Sehr aktiv'
+            },
+            water: {
+                low: 'Dehydriert', medium: 'Hydriert', high: 'Optimal'
+            },
+            sleep: {
+                low: 'Müde', medium: 'Ausgeruht', high: 'Erholt'
+            }
+        };
         
-        const actions = [];
-        
-        // Check what's missing today
-        if (!todayData.steps || todayData.steps < this.healthTracker.goals.stepsGoal * 0.5) {
-            actions.push({ text: '🚶‍♂️ Spaziergang machen', action: 'takeWalk' });
-        }
-        
-        if (!todayData.waterIntake || todayData.waterIntake < this.healthTracker.goals.waterGoal * 0.7) {
-            actions.push({ text: '💧 Wasser trinken', action: 'drinkWater' });
-        }
-        
-        if (!todayData.weight) {
-            actions.push({ text: '⚖️ Gewicht erfassen', action: 'recordWeight' });
-        }
-        
-        if (!todayData.mood) {
-            actions.push({ text: '😊 Stimmung festhalten', action: 'recordMood' });
-        }
-        
-        // Always show data entry option
-        actions.push({ text: '📊 Daten eingeben', action: 'enterData' });
-        
-        container.innerHTML = actions.map(action => `
-            <button class="btn btn-sm btn-outline gap-2" onclick="window.healthTracker.progressHub.handleQuickAction('${action.action}')">
-                ${action.text}
-            </button>
-        `).join('');
+        const level = percentage < 50 ? 'low' : percentage < 90 ? 'medium' : 'high';
+        return statusMessages[type]?.[level] || 'Normal';
     }
 
+    getStatusColor(type, percentage) {
+        if (percentage < 50) return 'text-red-600';
+        if (percentage < 90) return 'text-yellow-600';
+        return 'text-green-600';
+    }
+
+    getOverallMotivation(score) {
+        if (score < 30) return 'Heute ist ein neuer Tag - du schaffst das! 💪';
+        if (score < 60) return 'Du bist auf einem guten Weg! 🚀';
+        if (score < 90) return 'Fantastischer Fortschritt! 🌟';
+        return 'Du bist heute ein echter Gesundheits-Champion! 🏆';
+    }
+
+    calculateLongestStreak(data) {
+        // Simplified streak calculation
+        let maxStreak = 0;
+        let currentStreak = 0;
+        
+        for (let i = 0; i < data.length; i++) {
+            const entry = data[i];
+            if (entry.steps || entry.waterIntake || entry.sleepHours) {
+                currentStreak++;
+                maxStreak = Math.max(maxStreak, currentStreak);
+            } else {
+                currentStreak = 0;
+            }
+        }
+        
+        return maxStreak;
+    }
+
+    updateQuickStatsSummary(todayData, allData) {
+        const completedGoals = document.getElementById('completed-goals');
+        const currentStreak = document.getElementById('current-streak');
+        const weeklyAvg = document.getElementById('weekly-avg');
+        
+        // Calculate completed goals today
+        let completed = 0;
+        let total = 0;
+        
+        if (this.healthTracker.goals.stepsGoal) {
+            total++;
+            if ((todayData.steps || 0) >= this.healthTracker.goals.stepsGoal) completed++;
+        }
+        if (this.healthTracker.goals.waterGoal) {
+            total++;
+            if ((todayData.waterIntake || 0) >= this.healthTracker.goals.waterGoal) completed++;
+        }
+        if (this.healthTracker.goals.sleepGoal) {
+            total++;
+            if ((todayData.sleepHours || 0) >= this.healthTracker.goals.sleepGoal) completed++;
+        }
+        if (todayData.mood) {
+            total++;
+            completed++;
+        }
+        
+        if (completedGoals) completedGoals.textContent = `${completed}/${total} Ziele`;
+        
+        // Calculate current streak
+        const streak = this.calculateLongestStreak(allData);
+        if (currentStreak) currentStreak.textContent = `${streak} Tage Streak`;
+        
+        // Calculate weekly average
+        const last7Days = allData.slice(0, 7);
+        const weekAvg = last7Days.length > 0 ? 
+            last7Days.reduce((sum, d) => sum + this.calculateOverallScore(d), 0) / last7Days.length : 0;
+        if (weeklyAvg) weeklyAvg.textContent = `Ø ${Math.round(weekAvg)}% diese Woche`;
+    }
+
+    // Handle actions
     handleQuickAction(action) {
         switch (action) {
             case 'takeWalk':
@@ -2596,25 +3113,32 @@ class ProgressHub {
             case 'drinkWater':
                 this.healthTracker.notificationManager.showInAppNotification('💧 Trinke ein Glas Wasser! Dein Körper wird es dir danken.', 'info');
                 break;
+            case 'prepareSleep':
+                this.healthTracker.notificationManager.showInAppNotification('🌙 Zeit, sich auf den Schlaf vorzubereiten. Schalte Geräte aus und entspanne dich.', 'info');
+                break;
             case 'recordWeight':
             case 'recordMood':
             case 'enterData':
+            case 'finishSteps':
                 document.getElementById('health-form')?.scrollIntoView({ behavior: 'smooth' });
                 break;
         }
     }
 
-    // Platzhalter für andere Views
+    // Placeholder methods for other views
     updateWeekView(data) {
         console.log('🗓️ Updating week view...', data.length, 'entries');
+        // TODO: Implement enhanced week view
     }
 
     updateAchievementsView(data) {
         console.log('🏆 Updating achievements view...', data.length, 'entries');
+        // TODO: Implement achievements system
     }
 
     updateStreaksView(data) {
         console.log('🔥 Updating streaks view...', data.length, 'entries');
+        // TODO: Implement streaks visualization
     }
 
     resetProgress() {

@@ -905,6 +905,122 @@ async refreshAllComponents() {
         console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
     }
 }
+
+/**
+ * Update dashboard statistics
+ */
+async updateDashboardStats() {
+    try {
+        const data = await this.getAllHealthData();
+        const todayData = this.getTodayData(data);
+        const weekData = this.getWeekData(data);
+
+        // Update today's stats
+        this.updateStatCard('today-weight', todayData.weight, 'kg', '⚖️');
+        this.updateStatCard('today-steps', todayData.steps, '', '🚶♂️');
+        this.updateStatCard('today-water', todayData.waterIntake, 'L', '💧');
+        this.updateStatCard('today-sleep', todayData.sleepHours, 'h', '😴');
+
+        // Update weekly averages
+        const weeklyAvg = this.calculateWeeklyAverages(weekData);
+        this.updateStatCard('week-steps', weeklyAvg.steps, '', '📊');
+        this.updateStatCard('week-water', weeklyAvg.water, 'L', '📈');
+        this.updateStatCard('week-sleep', weeklyAvg.sleep, 'h', '🌙');
+
+        // Update goal progress
+        this.updateGoalProgress(todayData);
+
+        console.log('📊 Dashboard Stats aktualisiert');
+    } catch (error) {
+        console.error('❌ Fehler beim Aktualisieren der Statistiken:', error);
+    }
+}
+
+/**
+ * Update individual stat card
+ */
+updateStatCard(elementId, value, unit, icon) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const displayValue = value ? (typeof value === 'number' ? value.toLocaleString('de-DE') : value) : '—';
+        element.textContent = `${displayValue}${unit}`;
+        
+        // Add subtle animation
+        element.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+/**
+ * Update goal progress indicators
+ */
+updateGoalProgress(todayData) {
+    // Steps progress
+    if (todayData.steps && this.goals.stepsGoal) {
+        const progress = Math.min((todayData.steps / this.goals.stepsGoal) * 100, 100);
+        this.updateProgressIndicator('steps-progress', progress);
+    }
+
+    // Water progress
+    if (todayData.waterIntake && this.goals.waterGoal) {
+        const progress = Math.min((todayData.waterIntake / this.goals.waterGoal) * 100, 100);
+        this.updateProgressIndicator('water-progress', progress);
+    }
+
+    // Sleep progress
+    if (todayData.sleepHours && this.goals.sleepGoal) {
+        const progress = Math.min((todayData.sleepHours / this.goals.sleepGoal) * 100, 100);
+        this.updateProgressIndicator('sleep-progress', progress);
+    }
+
+    // Weight progress (if goal is set)
+    if (todayData.weight && this.goals.weightGoal) {
+        const diff = Math.abs(todayData.weight - this.goals.weightGoal);
+        const maxDiff = this.goals.weightGoal * 0.1; // 10% tolerance
+        const progress = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
+        this.updateProgressIndicator('weight-progress', progress);
+    }
+}
+
+/**
+ * Update progress indicator element
+ */
+updateProgressIndicator(elementId, progress) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.style.setProperty('--value', Math.round(progress));
+        
+        // Update text content if it's a progress element
+        const textEl = element.querySelector('.progress-text') || element;
+        if (textEl !== element) {
+            textEl.textContent = Math.round(progress) + '%';
+        }
+    }
+}
+
+/**
+ * Calculate weekly averages
+ */
+calculateWeeklyAverages(weekData) {
+    if (weekData.length === 0) {
+        return { steps: 0, water: 0, sleep: 0 };
+    }
+
+    const totals = weekData.reduce((acc, entry) => {
+        acc.steps += entry.steps || 0;
+        acc.water += entry.waterIntake || 0;
+        acc.sleep += entry.sleepHours || 0;
+        return acc;
+    }, { steps: 0, water: 0, sleep: 0 });
+
+    return {
+        steps: Math.round(totals.steps / weekData.length),
+        water: Math.round((totals.water / weekData.length) * 10) / 10,
+        sleep: Math.round((totals.sleep / weekData.length) * 10) / 10
+    };
+}
     
     // ====================================================================
     // NETWORK & SYNC MANAGEMENT
@@ -2112,123 +2228,32 @@ class ProgressHub {
     }
 
     /**
-     * Load data for all views with improved aggregation
-     */
-    async loadViewData() {
-        try {
-            const allData = await this.healthTracker.getAllHealthData();
-            
-            // Get today's aggregated data with enhanced method
-            this.todayData = this.getEnhancedTodayData(allData);
-            
-            // Get week data
-            this.weekData = this.healthTracker.getWeekData(allData);
-            
-            // Get month data
-            this.monthData = this.getMonthData(allData);
-            
-            console.log('📊 Progress Hub Daten geladen:', {
-                today: this.todayData,
-                weekEntries: this.weekData.length,
-                monthEntries: this.monthData.length
-            });
-            
-        } catch (error) {
-            console.error('❌ Fehler beim Laden der Progress Hub Daten:', error);
-            this.healthTracker.showToast('⚠️ Fehler beim Laden der Daten', 'error');
-        }
-    }
-
-    /**
-     * Enhanced today data aggregation with multiple entries support
-     */
-    getEnhancedTodayData(allData) {
-        const today = new Date().toISOString().split('T')[0];
-        const todayEntries = allData.filter(entry => entry.date === today);
+ * Load data for all views
+ */
+async loadViewData() {
+    try {
+        const allData = await this.healthTracker.getAllHealthData();
         
-        if (todayEntries.length === 0) {
-            return { date: today };
-        }
+        // KORREKTUR: Verwende die funktionierende HealthTracker Methode direkt
+        this.todayData = this.healthTracker.getTodayData(allData);
         
-        // Sort entries by creation time (newest first)
-        todayEntries.sort((a, b) => {
-            const timeA = new Date(a.createdAt || a.date).getTime();
-            const timeB = new Date(b.createdAt || b.date).getTime();
-            return timeB - timeA;
+        // Get week data
+        this.weekData = this.healthTracker.getWeekData(allData);
+        
+        // Get month data  
+        this.monthData = this.getMonthData(allData);
+        
+        console.log('📊 Progress Hub Daten geladen:', {
+            today: this.todayData,
+            weekEntries: this.weekData.length,
+            monthEntries: this.monthData.length
         });
         
-        // Aggregate multiple entries for the same day
-        const aggregatedData = {
-            date: today,
-            weight: null,
-            steps: 0,
-            waterIntake: 0,
-            sleepHours: 0,
-            mood: null,
-            notes: [],
-            entryCount: todayEntries.length,
-            lastUpdated: null
-        };
-        
-        todayEntries.forEach(entry => {
-            // For weight, take the most recent entry
-            if (entry.weight !== null && entry.weight !== undefined && !aggregatedData.weight) {
-                aggregatedData.weight = entry.weight;
-            }
-            
-            // For steps, sum all entries
-            if (entry.steps) {
-                aggregatedData.steps += entry.steps;
-            }
-            
-            // For water, sum all entries
-            if (entry.waterIntake) {
-                aggregatedData.waterIntake += entry.waterIntake;
-            }
-            
-            // For sleep, sum all entries (supports naps and main sleep)
-            if (entry.sleepHours) {
-                aggregatedData.sleepHours += entry.sleepHours;
-            }
-            
-            // For mood, take the most recent entry
-            if (entry.mood && !aggregatedData.mood) {
-                aggregatedData.mood = entry.mood;
-            }
-            
-            // Collect all notes with timestamps
-            if (entry.notes && entry.notes.trim()) {
-                const timestamp = new Date(entry.createdAt || entry.date).toLocaleTimeString('de-DE', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                aggregatedData.notes.push(`${timestamp}: ${entry.notes.trim()}`);
-            }
-            
-            // Track last update time
-            const entryTime = new Date(entry.createdAt || entry.date).getTime();
-            if (!aggregatedData.lastUpdated || entryTime > aggregatedData.lastUpdated) {
-                aggregatedData.lastUpdated = entryTime;
-            }
-        });
-        
-        // Process notes
-        aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join('\n') : null;
-        
-        // Round decimal values
-        aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
-        aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
-        
-        // Convert lastUpdated to readable format
-        if (aggregatedData.lastUpdated) {
-            aggregatedData.lastUpdatedFormatted = new Date(aggregatedData.lastUpdated).toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-        
-        return aggregatedData;
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Progress Hub Daten:', error);
+        this.healthTracker.showToast('⚠️ Fehler beim Laden der Daten', 'error');
     }
+}
 
     /**
      * Get current month's data
@@ -2850,141 +2875,119 @@ class ActivityFeed {
     }
     
     /**
-     * Parse health data into activity entries
-     */
-    parseActivities(data) {
-        if (!Array.isArray(data)) return [];
-        
-        const activities = [];
-        
-        // Sort by date (newest first)
-        const sortedData = data.sort((a, b) => 
-            new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
-        );
-        
-        sortedData.forEach(entry => {
-            const date = new Date(entry.date);
-            const timeStr = this.formatTimeAgo(activity.date);
-            
-            // Create activities for each data type
-            if (entry.steps && entry.steps > 0) {
-                activities.push({
-                    type: 'steps',
-                    label: `${entry.steps.toLocaleString()} Schritte erfasst`,
-                    time: timeStr,
-                    value: entry.steps,
-                    date: date,
-                    goal: this.healthTracker.goals.stepsGoal,
-                    entry: entry
-                });
-            }
-            
-            if (entry.waterIntake && entry.waterIntake > 0) {
-                activities.push({
-                    type: 'water',
-                    label: `${entry.waterIntake}L Wasser getrunken`,
-                    time: timeStr,
-                    value: entry.waterIntake,
-                    date: date,
-                    goal: this.healthTracker.goals.waterGoal,
-                    entry: entry
-                });
-            }
-            
-            if (entry.sleepHours && entry.sleepHours > 0) {
-                const hours = Math.floor(entry.sleepHours);
-                const minutes = Math.round((entry.sleepHours - hours) * 60);
-                activities.push({
-                    type: 'sleep',
-                    label: `${hours}h ${minutes}min geschlafen`,
-                    time: timeStr,
-                    value: entry.sleepHours,
-                    date: date,
-                    goal: this.healthTracker.goals.sleepGoal,
-                    entry: entry
-                });
-            }
-            
-            if (entry.weight && entry.weight > 0) {
-                activities.push({
-                    type: 'weight',
-                    label: `Gewicht: ${entry.weight}kg erfasst`,
-                    time: timeStr,
-                    value: entry.weight,
-                    date: date,
-                    goal: this.healthTracker.goals.weightGoal,
-                    entry: entry
-                });
-            }
-            
-            if (entry.mood) {
-                const moodLabels = {
-                    excellent: 'Ausgezeichnete Stimmung',
-                    good: 'Gute Stimmung',
-                    neutral: 'Neutrale Stimmung',
-                    bad: 'Schlechte Stimmung',
-                    terrible: 'Schlechte Stimmung'
-                };
-                activities.push({
-                    type: 'mood',
-                    label: moodLabels[entry.mood] || 'Stimmung erfasst',
-                    time: timeStr,
-                    value: entry.mood,
-                    date: date,
-                    entry: entry
-                });
-            }
-            
-            if (entry.notes && entry.notes.trim()) {
-                activities.push({
-                    type: 'note',
-                    label: 'Notiz hinzugefügt',
-                    time: timeStr,
-                    value: entry.notes.substring(0, 100),
-                    date: date,
-                    entry: entry
-                });
-            }
-        });
-        
-        // Sort by date (newest first)
-        return activities.sort((a, b) => b.date - a.date);
-    }
+ * Parse activities from health data
+ */
+parseActivities(data) {
+    const activities = [];
+
+    data.forEach(entry => {
+        // Erstelle Activity-Objekte für jede Art von Daten
+        if (entry.steps) {
+            activities.push({
+                type: 'steps',
+                value: entry.steps,
+                unit: 'Schritte',
+                date: entry.date,
+                icon: '🚶♂️',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+
+        if (entry.waterIntake) {
+            activities.push({
+                type: 'water',
+                value: entry.waterIntake,
+                unit: 'L',
+                date: entry.date,
+                icon: '💧',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+
+        if (entry.sleepHours) {
+            activities.push({
+                type: 'sleep',
+                value: entry.sleepHours,
+                unit: 'h',
+                date: entry.date,
+                icon: '😴',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+
+        if (entry.weight) {
+            activities.push({
+                type: 'weight',
+                value: entry.weight,
+                unit: 'kg',
+                date: entry.date,
+                icon: '⚖️',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+
+        if (entry.mood) {
+            const moodEmojis = {
+                'excellent': '😄',
+                'good': '😊',
+                'neutral': '😐',
+                'bad': '😞',
+                'terrible': '😢'
+            };
+
+            activities.push({
+                type: 'mood',
+                value: entry.mood,
+                unit: '',
+                date: entry.date,
+                icon: moodEmojis[entry.mood] || '😐',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+
+        if (entry.notes) {
+            activities.push({
+                type: 'note',
+                value: entry.notes,
+                unit: '',
+                date: entry.date,
+                icon: '📝',
+                createdAt: entry.createdAt || entry.date
+            });
+        }
+    });
+
+    // Sortiere nach Erstellungsdatum (neueste zuerst)
+    return activities.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+    });
+}
 
 /**
- * Format time ago - VOLLSTÄNDIGE IMPLEMENTATION
+ * Format time ago for activity display
  */
 formatTimeAgo(dateInput) {
     try {
         let date;
         
-        // Handle verschiedene Eingabeformate
         if (typeof dateInput === 'string') {
             date = new Date(dateInput);
         } else if (dateInput instanceof Date) {
             date = dateInput;
         } else {
-            console.log('❌ Ungültiges Datums-Input:', dateInput);
             return 'Unbekannt';
         }
         
-        // Validiere Datum
         if (isNaN(date.getTime())) {
-            console.error('❌ Ungültiges Datum:', dateInput);
             return 'Ungültiges Datum';
         }
         
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         
-        console.log('⏰ Zeitberechnung:', {
-            now: now.toLocaleString('de-DE'),
-            date: date.toLocaleString('de-DE'),
-            diffMs: diffMs,
-            diffHours: Math.floor(diffMs / (1000 * 60 * 60))
-        });
-        
-        // Negative Zeiten abfangen (Zukunft)
+        // Negative Zeiten abfangen
         if (diffMs < 0) {
             return 'In der Zukunft';
         }
@@ -2994,12 +2997,11 @@ formatTimeAgo(dateInput) {
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         
-        // Gleicher Tag check (bessere Methode)
+        // Gleicher Tag check
         const nowDate = now.toDateString();
         const entryDate = date.toDateString();
         
         if (nowDate === entryDate) {
-            // Heute
             if (diffSeconds < 30) return 'Gerade eben';
             if (diffMinutes < 1) return 'vor wenigen Sekunden';
             if (diffMinutes < 60) return `vor ${diffMinutes} Min.`;
@@ -3013,11 +3015,9 @@ formatTimeAgo(dateInput) {
             return 'Gestern';
         }
         
-        // Weitere Zeiträume
         if (diffDays < 7) return `vor ${diffDays} Tagen`;
         if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
-        if (diffDays < 365) return `vor ${Math.floor(diffDays / 30)} Monaten`;
-        return `vor ${Math.floor(diffDays / 365)} Jahren`;
+        return `vor ${Math.floor(diffDays / 30)} Monaten`;
         
     } catch (error) {
         console.error('❌ formatTimeAgo Fehler:', error);

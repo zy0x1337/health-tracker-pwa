@@ -194,6 +194,11 @@ class HealthTracker {
             if (success) {
                 this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
                 event.target.reset();
+
+                // ProgressHub über neue Daten informieren
+                if (this.progressHub) {
+                await this.progressHub.updateAllViews();
+            }
                 
                 // Update all components with new data
                 await this.refreshAllComponents();
@@ -208,6 +213,17 @@ class HealthTracker {
         } finally {
             this.setLoadingState(false);
         }
+
+        if (success) {
+    console.log('✅ Daten gespeichert, aktualisiere ProgressHub...');
+    
+    if (this.progressHub) {
+        console.log('🔄 ProgressHub gefunden, starte Update...');
+        await this.progressHub.updateAllViews();
+    } else {
+        console.error('❌ ProgressHub nicht initialisiert!');
+    }
+}
     }
     
     /**
@@ -1532,6 +1548,15 @@ class ProgressHub {
         
         // Wait briefly for HTML to load
         setTimeout(() => this.initialize(), 500);
+
+        // Event-Listener für Datenänderungen
+    document.addEventListener('health-data-saved', (event) => {
+        this.updateAllViews();
+    });
+    
+    document.addEventListener('goals-updated', (event) => {
+        this.updateAllViews();
+    });
     }
     
     /**
@@ -1552,6 +1577,26 @@ class ProgressHub {
         // Setup navigation
         this.setupTabNavigation();
     }
+    
+async updateAllViews() {
+    try {
+        console.log('🔄 ProgressHub wird aktualisiert...');
+        
+        // Lade aktuelle Daten
+        const allData = await this.healthTracker.getAllHealthData();
+        const goals = this.healthTracker.goals;
+        
+        // Update alle Views
+        await this.updateTodayView(allData, goals);
+        await this.updateWeekView(allData, goals);
+        await this.updateAchievementsView(allData);
+        await this.updateStreaksView(allData);
+        
+        console.log('✅ ProgressHub aktualisiert');
+    } catch (error) {
+        console.error('❌ ProgressHub Update Fehler:', error);
+    }
+}
     
     /**
      * Setup tab navigation

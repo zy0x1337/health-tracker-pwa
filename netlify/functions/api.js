@@ -282,6 +282,39 @@ const handler = async (event, context) => {
             };
         }
 
+        // Route für aggregierte Tagesdaten
+if (httpMethod === 'GET' && path.startsWith('/health-data-aggregated/')) {
+    const pathSegments = path.split('/').filter(segment => segment.length > 0);
+    const userId = pathSegments[1];
+    
+    const pipeline = [
+        { $match: { userId: userId } },
+        { 
+            $group: {
+                _id: { 
+                    $dateToString: { format: "%Y-%m-%d", date: "$date" }
+                },
+                weight: { $last: "$weight" }, // Latest weight
+                steps: { $sum: "$steps" }, // Sum steps
+                waterIntake: { $sum: "$waterIntake" }, // Sum water
+                sleepHours: { $sum: "$sleepHours" }, // Sum sleep
+                mood: { $last: "$mood" }, // Latest mood
+                notes: { $push: "$notes" }
+            }
+        },
+        { $sort: { "_id": -1 } },
+        { $limit: 30 }
+    ];
+    
+    const aggregatedData = await HealthData.aggregate(pipeline);
+    
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(aggregatedData)
+    };
+}
+
         // Database Test Route
         if (httpMethod === 'GET' && (path === '/test-db' || path.endsWith('/test-db'))) {
             const collections = await mongoose.connection.db.listCollections().toArray();

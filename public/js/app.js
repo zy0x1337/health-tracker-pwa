@@ -14,11 +14,6 @@ class SmartNotificationManager {
         this.initializeNotifications();
         this.setupReminderSchedule();
         this.startSmartChecks();
-        this.loadNotificationState();
-
-        // Save state periodically and on page unload
-setInterval(() => this.saveNotificationState(), 300000); // Every 5 minutes
-window.addEventListener('beforeunload', () => this.saveNotificationState());
     }
 
     async initializeNotifications() {
@@ -241,51 +236,6 @@ this.cleanupOldNotificationData(now);
         // Always show in-app notification
         this.showInAppNotification(`${title}: ${body}`, this.getNotificationStyle(type));
     }
-
-    cleanupOldNotificationData(now) {
-    // Cleanup notifications older than 24 hours
-    for (let [key, timestamp] of this.lastNotifications) {
-        if (now - timestamp > 86400000) { // 24 hours
-            this.lastNotifications.delete(key);
-        }
-    }
-    
-    // Cleanup hourly counts older than 24 hours
-    const currentHour = Math.floor(now / 3600000);
-    for (let [hourKey] of this.notificationCounts) {
-        const hour = parseInt(hourKey.split('-')[0]);
-        if (currentHour - hour > 24) {
-            this.notificationCounts.delete(hourKey);
-        }
-    }
-}
-
-// Persist notification state to localStorage
-saveNotificationState() {
-    const state = {
-        lastNotifications: Array.from(this.lastNotifications.entries()),
-        notificationCounts: Array.from(this.notificationCounts.entries()),
-        timestamp: Date.now()
-    };
-    localStorage.setItem('notificationState', JSON.stringify(state));
-}
-
-// Load notification state from localStorage
-loadNotificationState() {
-    try {
-        const saved = localStorage.getItem('notificationState');
-        if (saved) {
-            const state = JSON.parse(saved);
-            // Only load if saved within last 24 hours
-            if (Date.now() - state.timestamp < 86400000) {
-                this.lastNotifications = new Map(state.lastNotifications || []);
-                this.notificationCounts = new Map(state.notificationCounts || []);
-            }
-        }
-    } catch (error) {
-        console.warn('Failed to load notification state:', error);
-    }
-}
 
     getNotificationStyle(type) {
         const styles = {

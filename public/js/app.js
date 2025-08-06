@@ -215,13 +215,15 @@ class HealthTracker {
         }
 
         if (success) {
-    console.log('✅ Daten gespeichert, aktualisiere ProgressHub...');
+    this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
+    event.target.reset();
     
-    if (this.progressHub) {
-        console.log('🔄 ProgressHub gefunden, starte Update...');
-        await this.progressHub.updateAllViews();
+    // **WICHTIG: ProgressHub explizit aktualisieren**
+    if (this.progressHub && typeof this.progressHub.updateTodayView === 'function') {
+        console.log('🔄 Aktualisiere ProgressHub nach Datenspeicherung...');
+        await this.progressHub.updateTodayView();
     } else {
-        console.error('❌ ProgressHub nicht initialisiert!');
+        console.error('❌ ProgressHub nicht verfügbar oder updateTodayView-Methode fehlt');
     }
 }
     }
@@ -1676,27 +1678,114 @@ async updateAllViews() {
     /**
      * Update today view with current progress
      */
-    updateTodayView(data) {
+    async updateTodayView() {
+    try {
+        console.log('🔄 Aktualisiere Today View...');
+        
+        // Debug aufrufen
+        this.debugTodayView();
+        
         const today = new Date().toISOString().split('T')[0];
-        const todayData = data.find(entry => entry.date === today) || {};
+        const allData = await this.healthTracker.getAllHealthData();
+        const todayData = allData.find(entry => entry.date === today) || {};
+        const goals = this.healthTracker.goals;
         
-        console.log('📊 Updating Progress Hub with today data:', todayData);
+        console.log('Today Data:', todayData);
+        console.log('Goals:', goals);
+
+        // Steps Progress
+        const currentSteps = todayData.steps || 0;
+        const stepsGoal = goals.stepsGoal || 10000;
+        const stepsProgress = Math.round((currentSteps / stepsGoal) * 100);
         
-        // Update progress cards
-        this.updateProgressCard('steps', todayData.steps || 0, this.healthTracker.goals.stepsGoal);
-        this.updateProgressCard('water', todayData.waterIntake || 0, this.healthTracker.goals.waterGoal);
-        this.updateProgressCard('sleep', todayData.sleepHours || 0, this.healthTracker.goals.sleepGoal);
+        this.updateProgressElement('today-steps-display', currentSteps.toLocaleString());
+        this.updateProgressElement('steps-progress-bar', Math.min(stepsProgress, 100), 'progress');
+        this.updateProgressElement('steps-progress-badge', `${Math.min(stepsProgress, 100)}%`);
+
+        // Water Progress
+        const currentWater = todayData.waterIntake || 0;
+        const waterGoal = goals.waterGoal || 2.0;
+        const waterProgress = Math.round((currentWater / waterGoal) * 100);
         
-        // Calculate and update overall score
-        const overallScore = this.calculateOverallScore(todayData);
-        this.updateProgressCard('score', overallScore, 100);
+        this.updateProgressElement('today-water-display', `${currentWater.toFixed(1)}L`);
+        this.updateProgressElement('water-progress-bar', Math.min(waterProgress, 100), 'progress');
+        this.updateProgressElement('water-progress-badge', `${Math.min(waterProgress, 100)}%`);
+
+        // Sleep Progress
+        const currentSleep = todayData.sleepHours || 0;
+        const sleepGoal = goals.sleepGoal || 8;
+        const sleepProgress = Math.round((currentSleep / sleepGoal) * 100);
         
-        // Generate quick actions
-        this.generateQuickActions(todayData);
+        this.updateProgressElement('today-sleep-display', `${currentSleep.toFixed(1)}h`);
+        this.updateProgressElement('sleep-progress-bar', Math.min(sleepProgress, 100), 'progress');
+        this.updateProgressElement('sleep-progress-badge', `${Math.min(sleepProgress, 100)}%`);
+
+        // Overall Score
+        const overallScore = Math.round((stepsProgress + waterProgress + sleepProgress) / 3);
+        this.updateProgressElement('today-score-display', `${overallScore}%`);
+        this.updateProgressElement('score-progress-bar', overallScore, 'progress');
+        this.updateProgressElement('score-progress-badge', `${overallScore}%`);
+
+        // Update motivational messages
+        this.updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallScore);
         
-        // Update mood display
-        this.updateMoodDisplay(todayData.mood);
+        console.log('✅ Today View aktualisiert');
+        
+    } catch (error) {
+        console.error('❌ Fehler bei Today View Update:', error);
     }
+}
+
+// Helper method
+updateProgressElement(elementId, value, type = 'text') {
+    const element = document.getElementById(elementId);
+    if (element) {
+        if (type === 'progress') {
+            element.value = value;
+            element.style.setProperty('--value', value);
+        } else {
+            element.textContent = value;
+        }
+        console.log(`✅ Updated ${elementId}: ${value}`);
+    } else {
+        console.error(`❌ Element not found: ${elementId}`);
+    }
+}
+
+updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallScore) {
+    // Steps motivation
+    const stepsMotivation = document.getElementById('steps-motivation');
+    if (stepsMotivation) {
+        if (stepsProgress >= 100) stepsMotivation.textContent = '🎉 Ziel erreicht!';
+        else if (stepsProgress >= 80) stepsMotivation.textContent = '💪 Fast geschafft!';
+        else if (stepsProgress >= 50) stepsMotivation.textContent = '🚶‍♂️ Auf gutem Weg!';
+        else stepsMotivation.textContent = '🌟 Jeder Schritt zählt!';
+    }
+
+    // Water motivation
+    const waterMotivation = document.getElementById('water-motivation');
+    if (waterMotivation) {
+        if (waterProgress >= 100) waterMotivation.textContent = '💧 Perfekt hydriert!';
+        else if (waterProgress >= 75) waterMotivation.textContent = '💪 Gut gemacht!';
+        else waterMotivation.textContent = '💧 Denk ans Trinken!';
+    }
+
+    // Sleep motivation
+    const sleepMotivation = document.getElementById('sleep-motivation');
+    if (sleepMotivation) {
+        if (sleepProgress >= 100) sleepMotivation.textContent = '😴 Ausgeruht!';
+        else sleepMotivation.textContent = '💤 Erholung ist wichtig!';
+    }
+
+    // Overall motivation
+    const scoreMotivation = document.getElementById('score-motivation');
+    if (scoreMotivation) {
+        if (overallScore >= 90) scoreMotivation.textContent = '🌟 Fantastisch!';
+        else if (overallScore >= 70) scoreMotivation.textContent = '💪 Super Tag!';
+        else if (overallScore >= 50) scoreMotivation.textContent = '👍 Gut gemacht!';
+        else scoreMotivation.textContent = '🚀 Du schaffst das!';
+    }
+}
     
     /**
      * Update progress card with data
@@ -2278,6 +2367,35 @@ async updateAllViews() {
             setTimeout(() => location.reload(), 1000);
         }
     }
+
+    // In der ProgressHub-Klasse hinzufügen:
+debugTodayView() {
+    console.log('🔍 Progress Hub Today View Debug:');
+    
+    // Check HTML elements
+    const elements = [
+        'today-steps-display',
+        'today-water-display', 
+        'today-sleep-display',
+        'today-score-display',
+        'steps-progress-bar',
+        'water-progress-bar',
+        'sleep-progress-bar',
+        'score-progress-bar'
+    ];
+    
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`Element ${id}:`, element ? 'FOUND' : 'NOT FOUND');
+    });
+    
+    // Check data
+    const today = new Date().toISOString().split('T')[0];
+    const allData = this.healthTracker.getAllHealthData();
+    console.log('Today date:', today);
+    console.log('All data:', allData);
+    console.log('Goals:', this.healthTracker.goals);
+}
 }
 
 // ====================================================================

@@ -172,61 +172,67 @@ class HealthTracker {
      * Handle health data form submission
      */
     async handleFormSubmission(event) {
-        event.preventDefault();
+    event.preventDefault();
+    console.log('🔥 Form submission started!');
+    
+    if (this.isLoading) {
+        return;
+    }
+
+    this.isLoading = true;
+    
+    try {
+        const formData = this.extractFormData(event.target);
+        console.log('📝 Form data extracted:', formData);
         
-        if (this.isLoading) {
+        // Validierung
+        if (!this.validateHealthData(formData)) {
+            this.isLoading = false;
             return;
         }
+
+        // Speichere Daten in API/Database
+        const success = await this.saveHealthData(formData);
         
-        try {
-            this.setLoadingState(true);
-            
-            const formData = this.extractFormData(event.target);
-            const validationResult = this.validateFormData(formData);
-            
-            if (!validationResult.isValid) {
-                this.showToast(`❌ ${validationResult.message}`, 'error');
-                return;
-            }
-            
-            const success = await this.saveHealthData(formData);
-            
-            if (success) {
-                this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
-                event.target.reset();
-
-                // ProgressHub über neue Daten informieren
-                if (this.progressHub) {
-                await this.progressHub.updateAllViews();
-            }
-                
-                // Update all components with new data
-                await this.refreshAllComponents();
-                
-                // Dispatch custom event for other components
-                this.dispatchHealthDataEvent('health-data-saved', formData);
-            }
-            
-        } catch (error) {
-            console.error('❌ Fehler beim Speichern:', error);
-            this.showToast('❌ Speichern fehlgeschlagen - Daten lokal gesichert', 'warning');
-        } finally {
-            this.setLoadingState(false);
-        }
-
         if (success) {
-    this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
-    event.target.reset();
-    
-    // **WICHTIG: ProgressHub explizit aktualisieren**
-    if (this.progressHub && typeof this.progressHub.updateTodayView === 'function') {
-        console.log('🔄 Aktualisiere ProgressHub nach Datenspeicherung...');
-        await this.progressHub.updateTodayView();
-    } else {
-        console.error('❌ ProgressHub nicht verfügbar oder updateTodayView-Methode fehlt');
+            this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
+            event.target.reset();
+            
+            // **WICHTIG: Synchrone Aktualisierung aller Komponenten**
+            console.log('🔄 Aktualisiere alle Komponenten nach Datenspeicherung...');
+            
+            // 1. Dashboard zuerst (funktioniert ja)
+            await this.updateDashboard();
+            
+            // 2. ProgressHub mit Delay
+            if (this.progressHub) {
+                console.log('🔄 Aktualisiere ProgressHub...');
+                setTimeout(async () => {
+                    await this.progressHub.updateTodayView();
+                }, 100);
+            } else {
+                console.error('❌ ProgressHub nicht verfügbar');
+            }
+            
+            // 3. Event für andere Komponenten dispatchen
+            this.dispatchHealthDataEvent('health-data-saved', formData);
+            this.dispatchHealthDataEvent('health-data-updated', formData);
+            this.dispatchHealthDataEvent('dashboard-updated', formData);
+            
+            // 4. Alle anderen Komponenten
+            await this.refreshAllComponents();
+            
+        } else {
+            this.showToast('❌ Fehler beim Speichern der Gesundheitsdaten', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Form submission error:', error);
+        this.showToast('❌ Unerwarteter Fehler beim Speichern', 'error');
+    } finally {
+        this.isLoading = false;
     }
 }
-    }
     
     /**
      * Handle goals form submission
@@ -1543,23 +1549,35 @@ class SmartNotificationManager {
 
 class ProgressHub {
     constructor(healthTracker) {
-        this.healthTracker = healthTracker;
-        this.currentView = 'today';
-        this.achievements = new Map();
-        this.streaks = new Map();
-        
-        // Wait briefly for HTML to load
-        setTimeout(() => this.initialize(), 500);
-
-        // Event-Listener für Datenänderungen
+    this.healthTracker = healthTracker;
+    this.currentView = 'today';
+    
+    // Event-Listener für Datenänderungen
     document.addEventListener('health-data-saved', (event) => {
-        this.updateAllViews();
+        console.log('🔔 ProgressHub: Health data saved event empfangen');
+        setTimeout(() => this.updateTodayView(), 150); // Kurzer Delay
     });
     
     document.addEventListener('goals-updated', (event) => {
-        this.updateAllViews();
+        console.log('🔔 ProgressHub: Goals updated event empfangen');
+        this.updateTodayView();
     });
-    }
+    
+    document.addEventListener('dashboard-updated', (event) => {
+        console.log('🔔 ProgressHub: Dashboard updated event empfangen');
+        this.updateTodayView();
+    });
+    
+    document.addEventListener('health-data-updated', (event) => {
+        console.log('🔔 ProgressHub: Health data updated event empfangen');
+        this.updateTodayView();
+    });
+    
+    // Initiale Aktualisierung
+    setTimeout(() => {
+        this.updateTodayView();
+    }, 500);
+}
     
     /**
      * Initialize Progress Hub
@@ -1680,78 +1698,114 @@ async updateAllViews() {
      */
     async updateTodayView() {
     try {
-        console.log('🔄 Aktualisiere Today View...');
+        console.log('🔄 ProgressHub: Aktualisiere Today View...');
         
-        // Debug aufrufen
-        this.debugTodayView();
-        
+        // Korrigierte Datenabfrage - verwende dieselbe Methode wie Dashboard
         const today = new Date().toISOString().split('T')[0];
-        const allData = await this.healthTracker.getAllHealthData();
-        const todayData = allData.find(entry => entry.date === today) || {};
-        const goals = this.healthTracker.goals;
+        const todayData = this.healthTracker.data[today] || {};
+        const goals = this.healthTracker.getGoals();
         
-        console.log('Today Data:', todayData);
-        console.log('Goals:', goals);
+        console.log('📊 ProgressHub Debug:');
+        console.log('- Today Date:', today);
+        console.log('- Today Data:', todayData);
+        console.log('- Goals:', goals);
 
-        // Steps Progress
-        const currentSteps = todayData.steps || 0;
-        const stepsGoal = goals.stepsGoal || 10000;
-        const stepsProgress = Math.round((currentSteps / stepsGoal) * 100);
-        
-        this.updateProgressElement('today-steps-display', currentSteps.toLocaleString());
-        this.updateProgressElement('steps-progress-bar', Math.min(stepsProgress, 100), 'progress');
-        this.updateProgressElement('steps-progress-badge', `${Math.min(stepsProgress, 100)}%`);
+        // Falls todayData leer ist, debugging
+        if (Object.keys(todayData).length === 0) {
+            console.warn('⚠️ Keine Daten für heute gefunden, teste alternative Zugriffe...');
+            console.log('Available dates:', Object.keys(this.healthTracker.data || {}));
+        }
 
-        // Water Progress
-        const currentWater = todayData.waterIntake || 0;
-        const waterGoal = goals.waterGoal || 2.0;
-        const waterProgress = Math.round((currentWater / waterGoal) * 100);
+        // Verwende die korrekten Feldnamen (mehrere Varianten testen)
+        const currentSteps = todayData.steps || todayData.stepsCount || 0;
+        const currentWater = todayData.waterIntake || todayData.water || 0;
+        const currentSleep = todayData.sleepHours || todayData.sleep || 0;
         
-        this.updateProgressElement('today-water-display', `${currentWater.toFixed(1)}L`);
-        this.updateProgressElement('water-progress-bar', Math.min(waterProgress, 100), 'progress');
-        this.updateProgressElement('water-progress-badge', `${Math.min(waterProgress, 100)}%`);
+        // Goals mit korrekten Feldnamen
+        const stepsGoal = goals.stepsGoal || goals.steps || 10000;
+        const waterGoal = goals.waterGoal || goals.water || 2.0;
+        const sleepGoal = goals.sleepGoal || goals.sleep || 8;
 
-        // Sleep Progress
-        const currentSleep = todayData.sleepHours || 0;
-        const sleepGoal = goals.sleepGoal || 8;
-        const sleepProgress = Math.round((currentSleep / sleepGoal) * 100);
-        
-        this.updateProgressElement('today-sleep-display', `${currentSleep.toFixed(1)}h`);
-        this.updateProgressElement('sleep-progress-bar', Math.min(sleepProgress, 100), 'progress');
-        this.updateProgressElement('sleep-progress-badge', `${Math.min(sleepProgress, 100)}%`);
+        console.log('📈 Berechnete Werte:');
+        console.log('- Steps:', currentSteps, '/', stepsGoal);
+        console.log('- Water:', currentWater, '/', waterGoal);
+        console.log('- Sleep:', currentSleep, '/', sleepGoal);
+
+        // Progress berechnen
+        const stepsProgress = stepsGoal > 0 ? Math.round((currentSteps / stepsGoal) * 100) : 0;
+        const waterProgress = waterGoal > 0 ? Math.round((currentWater / waterGoal) * 100) : 0;
+        const sleepProgress = sleepGoal > 0 ? Math.round((currentSleep / sleepGoal) * 100) : 0;
+
+        // UI Updates
+        this.updateElement('today-steps-display', currentSteps.toLocaleString());
+        this.updateElement('today-water-display', `${currentWater.toFixed(1)}L`);
+        this.updateElement('today-sleep-display', `${currentSleep.toFixed(1)}h`);
+
+        // Progress Bars
+        this.updateProgressBar('steps-progress-bar', stepsProgress);
+        this.updateProgressBar('water-progress-bar', waterProgress);
+        this.updateProgressBar('sleep-progress-bar', sleepProgress);
+
+        // Badges
+        this.updateElement('steps-progress-badge', `${Math.min(stepsProgress, 100)}%`);
+        this.updateElement('water-progress-badge', `${Math.min(waterProgress, 100)}%`);
+        this.updateElement('sleep-progress-badge', `${Math.min(sleepProgress, 100)}%`);
 
         // Overall Score
         const overallScore = Math.round((stepsProgress + waterProgress + sleepProgress) / 3);
-        this.updateProgressElement('today-score-display', `${overallScore}%`);
-        this.updateProgressElement('score-progress-bar', overallScore, 'progress');
-        this.updateProgressElement('score-progress-badge', `${overallScore}%`);
+        this.updateElement('today-score-display', `${overallScore}%`);
+        this.updateProgressBar('score-progress-bar', overallScore);
+        this.updateElement('score-progress-badge', `${overallScore}%`);
 
-        // Update motivational messages
+        // Motivational messages
         this.updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallScore);
-        
-        console.log('✅ Today View aktualisiert');
+
+        // Mood Display
+        const moodDisplay = document.getElementById('today-mood-display');
+        if (moodDisplay) {
+            const moodEmojis = {
+                excellent: '😊 Ausgezeichnet',
+                good: '🙂 Gut',
+                neutral: '😐 Neutral',
+                bad: '😞 Schlecht',
+                terrible: '😢 Furchtbar'
+            };
+            moodDisplay.textContent = todayData.mood ? moodEmojis[todayData.mood] : '😐 Nicht erfasst';
+        }
+
+        // Quick Actions
+        this.updateQuickActions(todayData, goals);
+
+        console.log('✅ ProgressHub Today View aktualisiert');
         
     } catch (error) {
-        console.error('❌ Fehler bei Today View Update:', error);
+        console.error('❌ ProgressHub Today View Fehler:', error);
     }
 }
 
-// Helper method
-updateProgressElement(elementId, value, type = 'text') {
-    const element = document.getElementById(elementId);
+// Element-Update Helper
+updateElement(id, value) {
+    const element = document.getElementById(id);
     if (element) {
-        if (type === 'progress') {
-            element.value = value;
-            element.style.setProperty('--value', value);
-        } else {
-            element.textContent = value;
-        }
-        console.log(`✅ Updated ${elementId}: ${value}`);
+        element.textContent = value;
+        console.log(`✅ Updated ${id}: ${value}`);
     } else {
-        console.error(`❌ Element not found: ${elementId}`);
+        console.error(`❌ Element not found: ${id}`);
     }
 }
 
+// Progress Bar Helper
+updateProgressBar(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.value = Math.min(value, 100);
+        console.log(`✅ Updated progress ${id}: ${value}%`);
+    } else {
+        console.error(`❌ Progress bar not found: ${id}`);
+    }
+}
+
+// Motivational Messages Update
 updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallScore) {
     // Steps motivation
     const stepsMotivation = document.getElementById('steps-motivation');
@@ -1786,59 +1840,135 @@ updateMotivationalMessages(stepsProgress, waterProgress, sleepProgress, overallS
         else scoreMotivation.textContent = '🚀 Du schaffst das!';
     }
 }
-    
-    /**
-     * Update progress card with data
-     */
-    updateProgressCard(type, current, goal) {
-        if (type === 'score') {
-            // Special handling for overall score
-            const percentage = current;
-            this.updateElement(`${type}-progress-badge`, Math.round(percentage) + '%');
-            this.updateElement(`today-${type}-display`, Math.round(current));
-            this.updateElement(`${type}-progress-bar`, null, (el) => {
-                if (el) el.value = percentage;
-            });
-            this.updateElement(`${type}-motivation`, this.getMotivationalMessage(type, percentage));
-            return;
-        }
-        
-        if (!goal || goal <= 0) return;
-        
-        const percentage = Math.min((current / goal) * 100, 100);
-        
-        // Update elements with safe checks
-        this.updateElement(`${type}-progress-badge`, Math.round(percentage) + '%');
-        
-        if (type === 'steps') {
-            this.updateElement(`today-${type}-display`, current.toLocaleString());
-        } else if (type === 'water') {
-            this.updateElement(`today-${type}-display`, current.toLocaleString() + 'L');
-        } else if (type === 'sleep') {
-            this.updateElement(`today-${type}-display`, current.toLocaleString() + 'h');
-        }
-        
-        this.updateElement(`${type}-progress-bar`, null, (el) => {
-            if (el) el.value = percentage;
-        });
-        
-        this.updateElement(`${type}-goal-display`, goal.toLocaleString() + (type === 'steps' ? '' : type === 'water' ? 'L' : 'h'));
-        this.updateElement(`${type}-motivation`, this.getMotivationalMessage(type, percentage));
+
+// Quick Actions Update
+updateQuickActions(todayData, goals) {
+    const quickActionsContainer = document.getElementById('today-quick-actions');
+    if (!quickActionsContainer) return;
+
+    let actions = [];
+
+    // Add water if under 50%
+    if ((todayData.waterIntake || 0) < (goals.waterGoal || goals.water || 2.0) * 0.5) {
+        actions.push('<button class="btn btn-sm btn-info gap-1"><i data-lucide="droplets" class="w-3 h-3"></i>Wasser trinken</button>');
     }
+
+    // Add steps reminder if under 50%
+    if ((todayData.steps || 0) < (goals.stepsGoal || goals.steps || 10000) * 0.5) {
+        actions.push('<button class="btn btn-sm btn-success gap-1"><i data-lucide="footprints" class="w-3 h-3"></i>Spazieren gehen</button>');
+    }
+
+    // Add sleep reminder if evening and no sleep data
+    const hour = new Date().getHours();
+    if (hour >= 20 && !todayData.sleepHours) {
+        actions.push('<button class="btn btn-sm btn-warning gap-1"><i data-lucide="moon" class="w-3 h-3"></i>Schlafenszeit</button>');
+    }
+
+    if (actions.length === 0) {
+        actions.push('<div class="text-sm text-base-content/70">🎉 Alle Ziele auf gutem Weg!</div>');
+    }
+
+    quickActionsContainer.innerHTML = actions.join(' ');
     
-    /**
-     * Safely update element content
-     */
-    updateElement(id, content, customHandler = null) {
+    // Lucide icons neu initialisieren
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// Debug-Methode für ProgressHub
+debugTodayView() {
+    console.log('🔍 Progress Hub Today View Debug:');
+    
+    // Check HTML elements
+    const elements = [
+        'today-steps-display',
+        'today-water-display', 
+        'today-sleep-display',
+        'today-score-display',
+        'steps-progress-bar',
+        'water-progress-bar',
+        'sleep-progress-bar',
+        'score-progress-bar',
+        'steps-progress-badge',
+        'water-progress-badge',
+        'sleep-progress-badge',
+        'score-progress-badge'
+    ];
+    
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`Element ${id}:`, element ? 'FOUND' : 'NOT FOUND');
+    });
+    
+    // Check data
+    const today = new Date().toISOString().split('T')[0];
+    const allData = this.healthTracker.data;
+    console.log('Today date:', today);
+    console.log('All data:', allData);
+    console.log('Today data:', allData[today]);
+    console.log('Goals:', this.healthTracker.getGoals());
+}
+
+// Notfall-Update für direkten Test
+forceUpdateToday() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Direkter Zugriff auf die Daten
+    const todayData = this.healthTracker.data[today] || {};
+    const goals = this.healthTracker.goals || {};
+    
+    console.log('🚨 Force Update - Today Data:', todayData);
+    console.log('🚨 Force Update - Goals:', goals);
+    
+    // Direkte UI-Updates ohne Berechnungen (zum Testen)
+    const elements = {
+        'today-steps-display': (todayData.steps || 0).toLocaleString(),
+        'today-water-display': `${(todayData.waterIntake || 0).toFixed(1)}L`,
+        'today-sleep-display': `${(todayData.sleepHours || 0).toFixed(1)}h`
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
-            if (customHandler) {
-                customHandler(element);
-            } else if (content !== null) {
-                element.textContent = content;
-            }
+            element.textContent = value;
+            console.log(`✅ Force updated ${id}: ${value}`);
         }
-    }
+    });
+}
+
+// Dashboard-ähnliche Update-Methode
+updateTodayViewLikeDashboard() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Kopiere exakt die Logik aus updateDashboard/updateTodayStats:
+    const todayData = this.healthTracker.data[today] || {};
+    
+    // Verwende dieselben Feldnamen wie im Dashboard
+    const weight = todayData.weight || 0;
+    const steps = todayData.steps || 0;
+    const waterIntake = todayData.waterIntake || 0;
+    const sleepHours = todayData.sleepHours || 0;
+    
+    console.log('📊 ProgressHub mit Dashboard-Logik:');
+    console.log('Weight:', weight, 'Steps:', steps, 'Water:', waterIntake, 'Sleep:', sleepHours);
+    
+    // Jetzt die UI aktualisieren...
+    document.getElementById('today-steps-display').textContent = steps.toLocaleString();
+    document.getElementById('today-water-display').textContent = `${waterIntake.toFixed(1)}L`;
+    document.getElementById('today-sleep-display').textContent = `${sleepHours.toFixed(1)}h`;
+    
+    // Goals für Progress-Berechnung
+    const goals = this.healthTracker.getGoals();
+    const stepsProgress = goals.stepsGoal > 0 ? Math.round((steps / goals.stepsGoal) * 100) : 0;
+    const waterProgress = goals.waterGoal > 0 ? Math.round((waterIntake / goals.waterGoal) * 100) : 0;
+    const sleepProgress = goals.sleepGoal > 0 ? Math.round((sleepHours / goals.sleepGoal) * 100) : 0;
+    
+    // Progress bars aktualisieren
+    this.updateProgressBar('steps-progress-bar', stepsProgress);
+    this.updateProgressBar('water-progress-bar', waterProgress);
+    this.updateProgressBar('sleep-progress-bar', sleepProgress);
+}
     
     /**
      * Calculate overall health score for today

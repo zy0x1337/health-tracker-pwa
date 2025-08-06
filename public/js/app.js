@@ -1203,6 +1203,7 @@ async initApp() {
     }
 }
 
+// ➕ VOLLSTÄNDIGE loadAndUpdateCharts Methode mit Online/Offline Support
 async loadAndUpdateCharts() {
     console.log('📊 Queueing loadAndUpdateCharts...');
     
@@ -1210,22 +1211,9 @@ async loadAndUpdateCharts() {
         try {
             console.log('🔄 Loading and updating all charts...');
             
-            // ➕ VARIANTE 1: Falls du eine andere Methode zum Daten laden hast
-            // Ersetze eine dieser Zeilen mit deiner tatsächlichen Datenlade-Methode:
-            
-            // Option A: Falls du loadData() hast
-            // const data = await this.loadData();
-            
-            // Option B: Falls du API direkt aufrufst  
-            // const data = await this.apiService.getHealthData(this.userId);
-            
-            // Option C: Falls du Local Storage verwendest
-            // const data = this.getLocalData();
-            
-            // Option D: Falls du eine andere Methode hast
-            // const data = await this.deine_datenlade_methode();
-            
-            // ➕ VARIANTE 2: Direkte API/Local Storage Abfrage (EMPFOHLEN)
+            // ==========================================
+            // DATEN LADEN - Online/Offline Strategy
+            // ==========================================
             let data = [];
             
             try {
@@ -1255,7 +1243,11 @@ async loadAndUpdateCharts() {
                 return;
             }
             
-            // Charts sequenziell erstellen mit Delays
+            // ==========================================
+            // CHARTS SEQUENZIELL ERSTELLEN
+            // ==========================================
+            console.log('🎨 Creating charts sequentially...');
+            
             await this.createWeightChart(data);
             await new Promise(resolve => setTimeout(resolve, 50));
             

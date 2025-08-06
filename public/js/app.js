@@ -43,34 +43,35 @@ class HealthTracker {
      * Initialize all components and event listeners
      */
     async initialize() {
-        try {
-            console.log('🚀 Health Tracker Pro wird initialisiert...');
-            
-            // Load user goals first
-            await this.loadUserGoals();
-            
-            // Initialize components in dependency order
-            this.initializeComponents();
-            
-            // Setup event listeners
-            this.setupEventListeners();
-            
-            // Initial data load
-            await this.loadInitialData();
-            
-            // Setup periodic sync
-            this.setupPeriodicSync();
-            
-            console.log('✅ Health Tracker Pro erfolgreich initialisiert');
-            
-            // Show welcome notification
-            this.showToast('🎯 Health Tracker Pro bereit!', 'success');
-            
-        } catch (error) {
-            console.error('❌ Initialisierungsfehler:', error);
-            this.showToast('⚠️ Initialisierung fehlgeschlagen - Offline-Modus aktiv', 'warning');
-        }
+    try {
+        console.log('🚀 Health Tracker Pro wird initialisiert...');
+        
+        // Load user goals first
+        await this.loadUserGoals();
+        
+        // Initialize components in dependency order
+        this.initializeComponents();
+        
+        // Setup event listeners
+        this.setupEventListeners();
+        
+        // Initialize form defaults
+        this.initializeFormDefaults();
+        
+        // Initial data load
+        await this.loadInitialData();
+        
+        // Setup periodic sync
+        this.setupPeriodicSync();
+        
+        console.log('✅ Health Tracker Pro erfolgreich initialisiert');
+        this.showToast('🎯 Health Tracker Pro bereit!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Initialisierungsfehler:', error);
+        this.showToast('⚠️ Initialisierung fehlgeschlagen - Offline-Modus aktiv', 'warning');
     }
+}
     
     /**
  * Initialize all component classes
@@ -272,22 +273,34 @@ async handleFormSubmission(event) {
     }
     
     /**
-     * Extract and sanitize form data
-     */
-    extractFormData(form) {
-        const formData = new FormData(form);
-        
-        return {
-            userId: this.userId,
-            date: formData.get('date') || new Date().toISOString().split('T')[0],
-            weight: this.parseNumber(formData.get('weight')),
-            steps: this.parseInt(formData.get('steps')),
-            waterIntake: this.parseNumber(formData.get('waterIntake')),
-            sleepHours: this.parseNumber(formData.get('sleepHours')),
-            mood: formData.get('mood') || null,
-            notes: this.sanitizeString(formData.get('notes'))
-        };
+ * Extract and sanitize form data with correct date handling
+ */
+extractFormData(form) {
+    const formData = new FormData(form);
+    
+    // Get date from form or use today
+    let dateValue = formData.get('date');
+    if (!dateValue) {
+        const today = new Date();
+        dateValue = today.getFullYear() + '-' + 
+                   String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(today.getDate()).padStart(2, '0');
     }
+    
+    console.log('📅 Form date value:', dateValue);
+    
+    return {
+        userId: this.userId,
+        date: dateValue, // Store as string in YYYY-MM-DD format
+        weight: this.parseNumber(formData.get('weight')),
+        steps: this.parseInt(formData.get('steps')),
+        waterIntake: this.parseNumber(formData.get('waterIntake')),
+        sleepHours: this.parseNumber(formData.get('sleepHours')),
+        mood: formData.get('mood') || null,
+        notes: this.sanitizeString(formData.get('notes')),
+        createdAt: new Date().toISOString() // Full timestamp for ordering
+    };
+}
     
     /**
      * Extract goals data from form
@@ -591,11 +604,40 @@ async handleFormSubmission(event) {
  * Enhanced today data aggregation with multiple entries support
  */
 getTodayData(allData) {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEntries = allData.filter(entry => entry.date === today);
+    // Berücksichtige lokale Zeitzone
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(today.getDate()).padStart(2, '0');
+    
+    console.log('🗓️ Suche Daten für heute:', todayStr);
+    
+    // Filter entries for today with flexible date parsing
+    const todayEntries = allData.filter(entry => {
+        if (!entry.date) return false;
+        
+        // Handle different date formats
+        let entryDateStr;
+        if (entry.date instanceof Date) {
+            entryDateStr = entry.date.getFullYear() + '-' + 
+                          String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(entry.date.getDate()).padStart(2, '0');
+        } else if (typeof entry.date === 'string') {
+            // Extract date part from ISO string or regular date string
+            entryDateStr = entry.date.split('T')[0];
+        } else {
+            return false;
+        }
+        
+        const isToday = entryDateStr === todayStr;
+        console.log(`📅 Entry date: ${entryDateStr}, Today: ${todayStr}, Match: ${isToday}`);
+        return isToday;
+    });
+    
+    console.log(`✅ Found ${todayEntries.length} entries for today:`, todayEntries);
     
     if (todayEntries.length === 0) {
-        return { date: today };
+        return { date: todayStr };
     }
     
     // Sort entries by creation time (newest first)
@@ -607,7 +649,7 @@ getTodayData(allData) {
     
     // Aggregate multiple entries for the same day
     const aggregatedData = {
-        date: today,
+        date: todayStr,
         weight: null,
         steps: 0,
         waterIntake: 0,
@@ -619,29 +661,36 @@ getTodayData(allData) {
     };
     
     todayEntries.forEach(entry => {
+        console.log('🔄 Processing entry:', entry);
+        
         // For weight, take the most recent entry
         if (entry.weight !== null && entry.weight !== undefined && !aggregatedData.weight) {
             aggregatedData.weight = entry.weight;
+            console.log('⚖️ Weight set to:', aggregatedData.weight);
         }
         
         // For steps, sum all entries
         if (entry.steps) {
             aggregatedData.steps += entry.steps;
+            console.log('🚶♂️ Steps total:', aggregatedData.steps);
         }
         
         // For water, sum all entries
         if (entry.waterIntake) {
             aggregatedData.waterIntake += entry.waterIntake;
+            console.log('💧 Water total:', aggregatedData.waterIntake);
         }
         
         // For sleep, sum all entries (supports naps and main sleep)
         if (entry.sleepHours) {
             aggregatedData.sleepHours += entry.sleepHours;
+            console.log('😴 Sleep total:', aggregatedData.sleepHours);
         }
         
         // For mood, take the most recent entry
         if (entry.mood && !aggregatedData.mood) {
             aggregatedData.mood = entry.mood;
+            console.log('😊 Mood set to:', aggregatedData.mood);
         }
         
         // Collect all notes with timestamps
@@ -675,6 +724,7 @@ getTodayData(allData) {
         });
     }
     
+    console.log('📊 Final aggregated data:', aggregatedData);
     return aggregatedData;
 }
     
@@ -1131,6 +1181,22 @@ async refreshAllComponents() {
             return [];
         }
     }
+
+    /**
+ * Initialize form with today's date
+ */
+initializeFormDefaults() {
+    const dateInput = document.getElementById('date');
+    if (dateInput && !dateInput.value) {
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' + 
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(today.getDate()).padStart(2, '0');
+        
+        dateInput.value = todayStr;
+        console.log('📅 Form date initialized to:', todayStr);
+    }
+}
 
     /**
  * Debug ProgressHub status

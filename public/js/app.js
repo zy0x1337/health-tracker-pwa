@@ -169,55 +169,62 @@ class HealthTracker {
     }
     
     /**
- * Handle health data form submission
- */
-async handleFormSubmission(event) {
-    event.preventDefault();
-    
-    if (this.isLoading) {
-        return;
-    }
-
-    try {
-        this.setLoadingState(true);
+     * Handle health data form submission
+     */
+    async handleFormSubmission(event) {
+        event.preventDefault();
         
-        const formData = this.extractFormData(event.target);
-        const validationResult = this.validateFormData(formData);
-        
-        if (!validationResult.isValid) {
-            this.showToast(`❌ ${validationResult.message}`, 'error');
+        if (this.isLoading) {
             return;
         }
-
-        // Save data with offline-first strategy
-        const success = await this.saveHealthData(formData);
         
-        if (success) {
-            this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
-            event.target.reset();
+        try {
+            this.setLoadingState(true);
             
-            // Update all components with new data
-            await this.refreshAllComponents();
+            const formData = this.extractFormData(event.target);
+            const validationResult = this.validateFormData(formData);
             
-            // Dispatch custom event for other components
-            this.dispatchHealthDataEvent('health-data-saved', formData);
-            
-            // ProgressHub korrekt aktualisieren
-            if (this.progressHub) {
-                await this.progressHub.loadViewData();
-                this.progressHub.showView(this.progressHub.currentView);
+            if (!validationResult.isValid) {
+                this.showToast(`❌ ${validationResult.message}`, 'error');
+                return;
             }
-        } else {
+            
+            const success = await this.saveHealthData(formData);
+            
+            if (success) {
+                this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert!', 'success');
+                event.target.reset();
+
+                // ProgressHub über neue Daten informieren
+                if (this.progressHub) {
+                await this.progressHub.updateAllViews();
+            }
+                
+                // Update all components with new data
+                await this.refreshAllComponents();
+                
+                // Dispatch custom event for other components
+                this.dispatchHealthDataEvent('health-data-saved', formData);
+            }
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Speichern:', error);
             this.showToast('❌ Speichern fehlgeschlagen - Daten lokal gesichert', 'warning');
+        } finally {
+            this.setLoadingState(false);
         }
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Speichern:', error);
-        this.showToast('❌ Speichern fehlgeschlagen - Daten lokal gesichert', 'warning');
-    } finally {
-        this.setLoadingState(false);
+
+        if (success) {
+    console.log('✅ Daten gespeichert, aktualisiere ProgressHub...');
+    
+    if (this.progressHub) {
+        console.log('🔄 ProgressHub gefunden, starte Update...');
+        await this.progressHub.updateAllViews();
+    } else {
+        console.error('❌ ProgressHub nicht initialisiert!');
     }
 }
+    }
     
     /**
      * Handle goals form submission
@@ -664,36 +671,29 @@ getTodayData(allData) {
     }
     
     /**
- * Refresh all components with new data
- */
-async refreshAllComponents() {
-    try {
-        // Clear cache to force fresh data
-        this.cache.delete('allHealthData');
-        
-        // Update dashboard
-        await this.updateDashboardStats();
-        
-        // Refresh activity feed
-        if (this.activityFeed && typeof this.activityFeed.load === 'function') {
-            await this.activityFeed.load();
+     * Refresh all components with new data
+     */
+    async refreshAllComponents() {
+        try {
+            // Clear cache to force fresh data
+            this.cache.delete('allHealthData');
+            
+            // Update dashboard
+            await this.updateDashboardStats();
+            
+            // Refresh activity feed
+            await this.activityFeed?.load();
+            
+            // Refresh progress hub
+            await this.progressHub?.loadViewData();
+            
+            // Refresh analytics
+            await this.analyticsEngine?.updateAllAnalytics();
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
         }
-        
-        // **FIX: ProgressHub korrekt refreshen**
-        if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
-            await this.progressHub.loadViewData();
-            // Aktueller View wird automatisch durch handleDataUpdate aktualisiert
-        }
-        
-        // Refresh analytics
-        if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
-            await this.analyticsEngine.updateAllAnalytics();
-        }
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
     }
-}
     
     // ====================================================================
     // NETWORK & SYNC MANAGEMENT

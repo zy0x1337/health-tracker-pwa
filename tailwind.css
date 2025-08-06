@@ -1,3 +1,22 @@
 @tailwind base;
-@tailwind components;
+@tailwind components; 
 @tailwind utilities;
+
+/* Custom Health Tracker Styles */
+@layer components {
+  .card-health {
+    @apply bg-base-100 shadow-lg rounded-lg p-6 border border-base-200;
+  }
+  
+  .btn-health-primary {
+    @apply btn btn-primary shadow-md hover:shadow-lg transition-all;
+  }
+  
+  .progress-ring {
+    @apply relative inline-block;
+  }
+  
+  .sparkline-container {
+    @apply w-full h-16 relative;
+  }
+}

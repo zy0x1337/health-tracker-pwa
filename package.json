@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:css": "tailwindcss-windows-x64.exe -i ./tailwind.css -o ./public/dist/output.css --minify"
+    "build:css": "tailwindcss-windows-x64.exe -i ./tailwind.css -o ./public/dist/output.css --watch",
+    "build:css-prod": "tailwindcss-windows-x64.exe -i ./tailwind.css -o ./public/dist/output.css --minify"
   },
   "keywords": [],
   "author": "",

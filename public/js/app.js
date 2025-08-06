@@ -527,83 +527,44 @@ class HealthTrackerPro {
     triggerAchievementNotification(message) {
     this.notificationManager.showInAppNotification(message, 'success', 6000);
 
-    this.initChartQueue();
-    this.isSubmitting = false;
     this.initApp();
 }
 
-// Chart Update Queue System
-initChartQueue() {
-    this.chartUpdateQueue = [];
-    this.isProcessingCharts = false;
-    this.chartUpdateDebouncer = null;
-}
-
-async queueChartUpdate(updateFunction, delay = 300) {
-    // Clear existing debouncer
-    if (this.chartUpdateDebouncer) {
-        clearTimeout(this.chartUpdateDebouncer);
-    }
-    
-    // Debounce chart updates
-    this.chartUpdateDebouncer = setTimeout(async () => {
-        if (this.isProcessingCharts) {
-            console.log('🚫 Charts already being processed, skipping');
-            return;
-        }
+initApp() {
+        console.log('🚀 Health Tracker Pro wird initialisiert...');
         
-        this.isProcessingCharts = true;
-        console.log('🔄 Processing queued chart update');
-        
-        try {
-            // Destroy all charts first
-            this.destroyAllCharts();
-            
-            // Wait for DOM to settle
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Execute the update
-            await updateFunction();
-            
-        } catch (error) {
-            console.error('❌ Chart update error:', error);
-        } finally {
-            this.isProcessingCharts = false;
-        }
-    }, delay);
-}
-
-async initApp() {
-    console.log('🚀 Initializing Health Tracker App...');
-    
-    // Initialisiere Chart Update Queue System
-    this.initChartQueue();
-    this.isSubmitting = false;
-    
-    try {
-        // Initialize goals first
-        await this.initializeGoals();
-        
-        // ➕ NEU: Event Handler Cleanup und Single Registration
-        await this.initializeEventHandlers();
-        
-        // Initialize other components
-        this.updateConnectionStatus(navigator.onLine);
-        await this.loadInitialData();
+        this.initTheme();
+        this.setupEventListeners();
+        this.loadGoals();
+        this.updateGoalsDisplay();
+        this.loadTodaysData();
         this.initAnimations();
         
-        // Initialize notifications after everything else
-        if (this.notificationManager) {
-            await this.notificationManager.initializeNotifications();
-        }
+        // Initialize components
+        this.notificationManager = new SmartNotificationManager(this);
+        this.analytics = new AdvancedAnalytics(this);
+        this.progressHub = new ProgressHub(this);
+        this.activityFeed = new ActivityFeed(this);
         
-        console.log('✅ Health Tracker App initialized successfully');
+        // Load Progress Hub data after initialization
+        setTimeout(() => {
+            if (this.progressHub) {
+                this.progressHub.loadViewData();
+            }
+        }, 1000);
         
-    } catch (error) {
-        console.error('❌ App initialization failed:', error);
-        this.showToast('Fehler beim Laden der App', 'error');
+        // Initialize charts safely after DOM is ready
+        setTimeout(() => this.initializeAllCharts(), 800);
+
+        // Start analytics
+        setTimeout(() => {
+            if (this.analytics) {
+                this.analytics.showView('heatmap');
+            }
+        }, 2000);
+        
+        console.log('✅ Health Tracker Pro erfolgreich initialisiert!');
     }
-}
 
     setupEventListeners() {
         console.log('🔗 Setting up event listeners...');
@@ -793,9 +754,12 @@ async initApp() {
         this.chartInitializing = false;
         
         console.log('✅ All charts initialized successfully');
-
-            await this.loadAndUpdateCharts();
-
+        
+        // Load data after all charts are ready
+        setTimeout(() => {
+            console.log('📊 Loading chart data after initialization...');
+            this.loadAndUpdateCharts();
+        }, 500);
         
     } catch (error) {
         console.error('❌ Chart initialization failed:', error);
@@ -1203,73 +1167,70 @@ async initApp() {
     }
 }
 
-// ➕ VOLLSTÄNDIGE loadAndUpdateCharts Methode mit Online/Offline Support
-async loadAndUpdateCharts() {
-    console.log('📊 Queueing loadAndUpdateCharts...');
-    
-    await this.queueChartUpdate(async () => {
+    async loadAndUpdateCharts() {
+        if (!this.chartInitialized) return;
+        
+        console.log('🔄 Loading chart data...');
         try {
-            console.log('🔄 Loading and updating all charts...');
+            let allData = [];
             
-            // ==========================================
-            // DATEN LADEN - Online/Offline Strategy
-            // ==========================================
-            let data = [];
-            
-            try {
-                if (navigator.onLine) {
-                    // Online: Von Server laden
-                    const response = await fetch(`/api/health-data?userId=${this.userId}`);
+            if (navigator.onLine) {
+                try {
+                    const url = `/api/health-data/${this.userId}`;
+                    console.log('🌐 Fetching from URL:', url);
+                    const response = await fetch(url);
+                    console.log('📡 Response status:', response.status);
+                    
                     if (response.ok) {
-                        data = await response.json();
+                        const serverData = await response.json();
+                        console.log('📦 Raw server response:', serverData);
+                        
+                        if (Array.isArray(serverData)) {
+                            allData = serverData;
+                            console.log('📊 Server data loaded:', allData.length, 'entries');
+                        } else {
+                            console.warn('⚠️ Server returned non-array data:', typeof serverData, serverData);
+                            allData = [];
+                        }
                     } else {
-                        throw new Error('Server request failed');
+                        console.warn('⚠️ Server response not ok:', response.status);
                     }
-                } else {
-                    // Offline: Aus Local Storage laden
-                    const localData = localStorage.getItem(`healthData_${this.userId}`);
-                    data = localData ? JSON.parse(localData) : [];
+                } catch (error) {
+                    console.log('⚠️ Server error:', error.message);
                 }
-            } catch (error) {
-                console.warn('⚠️ Loading from server failed, trying local storage:', error);
-                const localData = localStorage.getItem(`healthData_${this.userId}`);
-                data = localData ? JSON.parse(localData) : [];
             }
             
-            console.log(`📊 Loaded ${data.length} data points for charts`);
-            
-            if (!data || data.length === 0) {
-                this.showEmptyState();
-                return;
+            // Fallback zu lokalen Daten
+            if (allData.length === 0) {
+                const localDataString = localStorage.getItem('healthData') || '[]';
+                try {
+                    const localData = JSON.parse(localDataString);
+                    if (Array.isArray(localData)) {
+                        allData = localData;
+                        console.log('💾 Local data loaded:', allData.length, 'entries');
+                    } else {
+                        console.warn('⚠️ Local data is not an array, resetting');
+                        localStorage.setItem('healthData', '[]');
+                        allData = [];
+                    }
+                } catch (parseError) {
+                    console.error('❌ Error parsing local data:', parseError);
+                    localStorage.setItem('healthData', '[]');
+                    allData = [];
+                }
             }
             
-            // ==========================================
-            // CHARTS SEQUENZIELL ERSTELLEN
-            // ==========================================
-            console.log('🎨 Creating charts sequentially...');
-            
-            await this.createWeightChart(data);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            await this.createStepsChart(data);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            await this.createWaterChart(data);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            await this.createSleepChart(data);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            await this.createMoodChart(data);
-            
-            console.log('✅ All charts loaded and updated successfully');
-            
+            // Charts aktualisieren
+            this.updateChartsWithData(allData);
+            setTimeout(() => {
+            if (this.analytics) {
+                this.analytics.loadViewData();
+            }
+        }, 500);
         } catch (error) {
-            console.error('❌ loadAndUpdateCharts failed:', error);
-            this.showToast('Fehler beim Laden der Charts', 'error');
+            console.error('❌ Error loading chart data:', error);
         }
-    });
-}
+    }
 
     updateChartsWithData(allData) {
     if (!this.chartInitialized) {
@@ -1644,9 +1605,11 @@ if (editGoalsBtn) {
             
             this.updateGoalsDisplay();
             this.closeGoalsModal();
-
-            await this.loadAndUpdateCharts();
-
+            
+            // Reload charts to show new goal lines
+            setTimeout(() => {
+                this.loadAndUpdateCharts();
+            }, 300);
             
         } catch (error) {
             console.error('❌ Error saving goals:', error);
@@ -1717,14 +1680,6 @@ updateModalTheme() {
 
     async handleSubmit(e) {
     e.preventDefault();
-    
-    // ➕ Submission Lock aus der initApp Methode
-    if (this.isSubmitting) {
-        console.log('🚫 Form submission already in progress');
-        return;
-    }
-    
-    this.isSubmitting = true;
     this.showLoading(true);
 
     const formData = {
@@ -1741,9 +1696,6 @@ updateModalTheme() {
     console.log('💾 Saving data:', formData);
 
     try {
-        // ==========================================
-        // DATEN SPEICHERN
-        // ==========================================
         if (navigator.onLine) {
             await this.saveToServer(formData);
             this.showToast('Daten erfolgreich gespeichert!', 'success');
@@ -1752,53 +1704,43 @@ updateModalTheme() {
             this.showToast('Daten offline gespeichert!', 'success');
         }
 
-        // ==========================================
-        // UI UPDATES SEQUENZIELL (ohne setTimeout!)
-        // ==========================================
-        
-        // 1. Dashboard mit neuen Daten aktualisieren
+        // Dashboard mit neuen Daten aktualisieren
         this.updateDashboard(formData);
         
-        // 2. Goal-Achievements prüfen
+        // Goal-Achievements prüfen
         this.checkGoalAchievements(formData);
         
-        // 3. Activity Feed aktualisieren
+        // Activity Feed aktualisieren
         if (this.activityFeed) {
-            await this.activityFeed.load();
+            this.activityFeed.load();
         }
         
-        // ➕ 4. CHARTS MIT QUEUE SYSTEM AKTUALISIEREN (KRITISCH!)
-        console.log('🔄 Updating charts with queue system...');
-        await this.loadAndUpdateCharts(); // ✅ Verwendet automatisch das Queue System
-        
-        // 5. Progress Hub nach Chart-Update aktualisieren
+        // Progress Hub aktualisieren (falls vorhanden)
         if (this.progressHub) {
-            await this.progressHub.loadViewData(); // ✅ Verwendet ebenfalls die Queue
+            this.progressHub.loadViewData();
         }
         
-        // 6. Analytics nach allen Updates aktualisieren
-        if (this.analytics) {
-            await this.analytics.loadViewData();
-        }
+        // Charts nach kurzer Verzögerung aktualisieren
+        setTimeout(() => {
+            console.log('🔄 Reloading charts after data save...');
+            this.loadAndUpdateCharts();
+            
+            // Analytics nach Chart-Update aktualisieren
+            setTimeout(() => {
+                if (this.analytics) {
+                    this.analytics.loadViewData();
+                }
+            }, 800);
+        }, 500);
         
-        // ==========================================
-        // FORMULAR ZURÜCKSETZEN
-        // ==========================================
+        // Formular zurücksetzen
         this.resetForm();
-
-        console.log('✅ All updates completed successfully');
 
     } catch (error) {
         console.error('❌ Fehler beim Speichern:', error);
         this.showToast('Fehler beim Speichern der Daten', 'error');
     } finally {
         this.showLoading(false);
-        
-        // ➕ Submission Lock zurücksetzen mit Delay
-        setTimeout(() => {
-            this.isSubmitting = false;
-            console.log('✅ Form submission completed');
-        }, 1000);
     }
 }
 
@@ -2289,20 +2231,10 @@ updateGoalProgressIndicators(data) {
     }
 }
 
-// Enhanced Cleanup
 destroyAllCharts() {
     console.log('🔥 Destroying all Chart.js instances...');
     
-    // Stop any pending chart updates
-    if (this.chartUpdateDebouncer) {
-        clearTimeout(this.chartUpdateDebouncer);
-        this.chartUpdateDebouncer = null;
-    }
-    
-    // Set processing flag to prevent new charts
-    this.isProcessingCharts = true;
-    
-    // 1. Destroy tracked charts
+    // 1. Destroy tracked charts with improved error handling
     if (this.charts) {
         Object.keys(this.charts).forEach(key => {
             if (this.charts[key]) {
@@ -2314,15 +2246,16 @@ destroyAllCharts() {
                     delete this.charts[key];
                 } catch (error) {
                     console.warn(`❌ Chart ${key} destroy error:`, error);
-                    delete this.charts[key];
+                    delete this.charts[key]; // Force cleanup even on error
                 }
             }
         });
         this.charts = {};
     }
     
-    // 2. Enhanced canvas cleanup
+    // 2. Enhanced canvas cleanup with context clearing
     document.querySelectorAll('canvas').forEach(canvas => {
+        // Clear Chart.js instance reference
         if (canvas.chartInstance) {
             try {
                 canvas.chartInstance.destroy();
@@ -2332,19 +2265,32 @@ destroyAllCharts() {
             }
         }
         
+        // Clear canvas context completely
         const ctx = canvas.getContext('2d');
         if (ctx) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Reset canvas dimensions
+            // Reset canvas size to prevent memory leaks
             canvas.width = canvas.width;
             canvas.height = canvas.height;
         }
     });
     
-    // Reset processing flag after cleanup
-    setTimeout(() => {
-        this.isProcessingCharts = false;
-    }, 50);
+    // 3. Clear Chart.js global registry (prevents ghost instances)
+    if (window.Chart && Chart.registry) {
+        // Force cleanup of Chart.js internal state
+        Chart.helpers.each(Chart.instances, (instance) => {
+            if (instance && typeof instance.destroy === 'function') {
+                try {
+                    instance.destroy();
+                } catch (e) {
+                    console.warn('Global Chart instance cleanup error:', e);
+                }
+            }
+        });
+    }
+    
+    // 4. Force garbage collection hint
+    if (window.gc) window.gc();
 }
 
 // Verhindere doppelte Event Listener
@@ -2540,18 +2486,14 @@ class ProgressHub {
     }, 100);
 }
 
-    // Queued Chart Updates
-async loadViewData() {
-    try {
-        const data = await this.getHealthData();
-        
-        // Queue chart updates to prevent duplications
-        await this.healthTracker.queueChartUpdate(async () => {
+    async loadViewData() {
+        try {
+            const data = await this.getHealthData();
+            
             switch (this.currentView) {
-    case 'today':
-        this.updateTodayView(data);
-        await this.healthTracker.loadAndUpdateCharts();
-        break;
+                case 'today':
+                    this.updateTodayView(data);
+                    break;
                 case 'week':
                     this.updateWeekView(data);
                     break;
@@ -2562,13 +2504,14 @@ async loadViewData() {
                     this.updateStreaksView(data);
                     break;
             }
+            
+            // Update tab badges
             this.updateTabBadges(data);
-        });
-        
-    } catch (error) {
-        console.error('❌ Error loading Progress Hub data:', error);
+            
+        } catch (error) {
+            console.error('❌ Error loading Progress Hub data:', error);
+        }
     }
-}
 
     async getHealthData() {
         try {

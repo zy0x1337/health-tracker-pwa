@@ -85,6 +85,32 @@
         .animate-spin-slow {
             animation: spin 2s linear infinite;
         }
+
+        /* Heatmap Styles */
+.heatmap-grid {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.heatmap-cell {
+    aspect-ratio: 1;
+    min-height: 20px;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.1);
+    border-color: #3b82f6 !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Tooltip styles (falls du daisyUI Tooltips verwendest) */
+.tooltip:before {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
     </style>
 </head>
 

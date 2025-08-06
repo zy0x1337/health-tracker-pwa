@@ -2669,6 +2669,47 @@ class AnalyticsEngine {
         this.charts = new Map();
         this.currentPeriod = 30; // Default to 30 days
         this.currentMetric = 'steps';
+
+        // intensityColors Definition
+        this.intensityColors = [
+            '#f7fbff', // Sehr niedrig (fast weiß)
+            '#deebf7', // Niedrig
+            '#c6dbef', // Niedrig-mittel
+            '#9ecae1', // Mittel
+            '#6baed6', // Mittel-hoch
+            '#4292c6', // Hoch
+            '#2171b5', // Sehr hoch
+            '#08519c', // Extrem hoch
+            '#08306b'  // Maximum (dunkelblau)
+        ];
+        
+        // Weitere Farbschemata für verschiedene Metriken
+        this.colorSchemas = {
+            steps: {
+                low: '#ffebee',
+                medium: '#ffcdd2', 
+                high: '#ef5350',
+                max: '#c62828'
+            },
+            water: {
+                low: '#e1f5fe',
+                medium: '#81d4fa',
+                high: '#039be5',
+                max: '#01579b'
+            },
+            sleep: {
+                low: '#fce4ec',
+                medium: '#f8bbd9',
+                high: '#e91e63',
+                max: '#880e4f'
+            },
+            weight: {
+                low: '#f3e5f5',
+                medium: '#ce93d8',
+                high: '#9c27b0',
+                max: '#4a148c'
+            }
+        };
         
         // Initialize after short delay to ensure DOM is ready
         setTimeout(() => this.initialize(), 1000);
@@ -3016,69 +3057,98 @@ class AnalyticsEngine {
     }
     
     /**
-     * Render heatmap visualization
+     * Render heatmap with proper color mapping
      */
-    renderHeatmap(container, heatmapData) {
-        const heatmapContainer = document.createElement('div');
-        heatmapContainer.className = 'flex flex-col gap-1 p-4';
+    renderHeatmap(data, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || !data || data.length === 0) {
+            if (container) {
+                container.innerHTML = '<div class="text-center py-8 text-base-content/70">Nicht genügend Daten für Heatmap</div>';
+            }
+            return;
+        }
+
+        // Calculate intensity values
+        const values = data.map(d => d.totalValue || 0);
+        const maxValue = Math.max(...values);
+        const minValue = Math.min(...values);
         
-        // Create weekday labels
-        const weekdayLabels = document.createElement('div');
-        weekdayLabels.className = 'flex gap-1 mb-2 text-xs text-base-content/60';
-        weekdayLabels.innerHTML = `
-            <div class="w-3"></div>
-            <div class="w-3">Mo</div>
-            <div class="w-3"></div>
-            <div class="w-3">Mi</div>
-            <div class="w-3"></div>
-            <div class="w-3">Fr</div>
-            <div class="w-3"></div>
-        `;
-        
-        heatmapContainer.appendChild(weekdayLabels);
-        
-        // Create heatmap grid
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-7 gap-1';
-        
-        heatmapData.forEach(cell => {
-            const cellEl = document.createElement('div');
-            cellEl.className = `w-3 h-3 rounded-sm cursor-pointer transition-all hover:scale-110`;
+        // **FIX: Verwende this.intensityColors anstatt undefined intensityColors**
+        const getColorForValue = (value) => {
+            if (maxValue === minValue) return this.intensityColors[0];
             
-            // Set intensity color
-            const intensityColors = [
-                'bg-base-200',
-                'bg-primary/20',
-                'bg-primary/40',
-                'bg-primary/60',
-                'bg-primary/80'
-            ];
+            const normalized = (value - minValue) / (maxValue - minValue);
+            const colorIndex = Math.floor(normalized * (this.intensityColors.length - 1));
+            return this.intensityColors[Math.min(colorIndex, this.intensityColors.length - 1)];
+        };
+
+        // Generate heatmap grid
+        const heatmapHTML = data.map(dayData => {
+            const intensity = dayData.totalValue || 0;
+            const color = getColorForValue(intensity);
+            const date = new Date(dayData.date);
+            const dateStr = date.toLocaleDateString('de-DE', { 
+                day: '2-digit', 
+                month: '2-digit' 
+            });
             
-            cellEl.className += ` ${intensityColors[cell.intensity]}`;
-            
-            // Add tooltip
-            cellEl.title = this.generateHeatmapTooltip(cell);
-            
-            grid.appendChild(cellEl);
-        });
-        
-        heatmapContainer.appendChild(grid);
-        
-        // Add legend
-        const legend = document.createElement('div');
-        legend.className = 'flex items-center gap-2 mt-4 text-xs text-base-content/60';
-        legend.innerHTML = `
-            <span>Weniger</span>
-            <div class="flex gap-1">
-                ${[0, 1, 2, 3, 4].map(i => `
-                    <div class="w-3 h-3 rounded-sm ${intensityColors[i]}"></div>
-                `).join('')}
+            return `
+                <div class="heatmap-cell tooltip" 
+                     style="background-color: ${color}; border: 1px solid #e5e7eb;"
+                     data-tip="${dateStr}: ${intensity.toFixed(1)} Punkte">
+                    <span class="sr-only">${dateStr}</span>
+                </div>
+            `;
+        }).join('');
+
+        // Render complete heatmap
+        container.innerHTML = `
+            <div class="card bg-base-100 border border-base-300">
+                <div class="card-body">
+                    <h4 class="card-title text-base flex items-center">
+                        <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+                        Aktivitäts-Heatmap
+                    </h4>
+                    
+                    <!-- Heatmap Grid -->
+                    <div class="heatmap-grid grid grid-cols-7 gap-1 mb-4">
+                        ${heatmapHTML}
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="flex items-center justify-between text-xs text-base-content/70">
+                        <span>Weniger</span>
+                        <div class="flex gap-1">
+                            ${this.intensityColors.map(color => `
+                                <div class="w-3 h-3 border border-base-300" style="background-color: ${color}"></div>
+                            `).join('')}
+                        </div>
+                        <span>Mehr</span>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="stats stats-horizontal shadow mt-4">
+                        <div class="stat">
+                            <div class="stat-title">Min</div>
+                            <div class="stat-value text-sm">${minValue.toFixed(1)}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Max</div>
+                            <div class="stat-value text-sm">${maxValue.toFixed(1)}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Ø</div>
+                            <div class="stat-value text-sm">${(values.reduce((a,b) => a+b, 0) / values.length).toFixed(1)}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <span>Mehr</span>
         `;
-        
-        heatmapContainer.appendChild(legend);
-        container.appendChild(heatmapContainer);
+
+        // Re-initialize lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
     
     /**
@@ -3656,16 +3726,18 @@ class AnalyticsEngine {
     }
     
     /**
-     * Get metric color
+     * Get color for metric type
      */
-    getMetricColor(metric, opacity = 1) {
-        const colors = {
-            steps: `rgba(34, 197, 94, ${opacity})`,
-            water: `rgba(59, 130, 246, ${opacity})`,
-            sleep: `rgba(245, 158, 11, ${opacity})`,
-            weight: `rgba(168, 85, 247, ${opacity})`
-        };
-        return colors[metric] || `rgba(156, 163, 175, ${opacity})`;
+    getMetricColor(metricType, value, maxValue) {
+        const schema = this.colorSchemas[metricType];
+        if (!schema) return '#6b7280'; // Default gray
+        
+        const ratio = maxValue > 0 ? value / maxValue : 0;
+        
+        if (ratio < 0.25) return schema.low;
+        if (ratio < 0.5) return schema.medium;
+        if (ratio < 0.75) return schema.high;
+        return schema.max;
     }
     
     /**

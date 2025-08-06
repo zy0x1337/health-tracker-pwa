@@ -2309,26 +2309,40 @@ updateGoalProgressIndicators(data) {
 destroyAllCharts() {
     console.log('🔥 Destroying all Chart.js instances...');
     
-    // Destroy our tracked charts
+    // 1. Destroy tracked charts
     if (this.charts) {
         Object.keys(this.charts).forEach(key => {
-            if (this.charts[key] && typeof this.charts[key].destroy === 'function') {
-                this.charts[key].destroy();
-                this.charts[key] = null;
+            if (this.charts[key]) {
+                try {
+                    if (typeof this.charts[key].destroy === 'function') {
+                        this.charts[key].destroy();
+                    }
+                    delete this.charts[key];
+                } catch (error) {
+                    console.warn(`Chart ${key} destroy error:`, error);
+                }
             }
         });
         this.charts = {};
     }
-    
-    // Destroy any orphaned Chart.js instances globally
-    Chart.helpers.each(Chart.instances, (instance) => {
-        instance.destroy();
+
+    // 2. Clear canvas contexts to prevent memory leaks
+    document.querySelectorAll('canvas').forEach(canvas => {
+        if (canvas.chartInstance) {
+            try {
+                canvas.chartInstance.destroy();
+                delete canvas.chartInstance;
+            } catch (error) {
+                console.warn('Canvas cleanup error:', error);
+            }
+        }
+        // Clear canvas
+        const ctx = canvas.getContext('2d');
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
     });
-    
-    // Clear the global Chart registry
-    if (Chart.registry) {
-        Chart.registry.removeAll();
-    }
+
+    // 3. Force garbage collection hint
+    if (window.gc) window.gc();
 }
 
 // Verhindere doppelte Event Listener
@@ -2340,6 +2354,83 @@ addEventListenerOnce(element, event, handler, options = {}) {
     
     // Füge neuen Listener hinzu
     element.addEventListener(event, handler, options);
+}
+
+createChartSafely(canvasId, config, chartKey) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+        console.warn(`Canvas ${canvasId} not found`);
+        return null;
+    }
+
+    // Destroy existing chart if exists
+    if (this.charts[chartKey]) {
+        try {
+            this.charts[chartKey].destroy();
+        } catch (error) {
+            console.warn(`Error destroying ${chartKey}:`, error);
+        }
+    }
+
+    try {
+        const ctx = canvas.getContext('2d');
+        
+        // Enhanced config with memory optimizations
+        const optimizedConfig = {
+            ...config,
+            options: {
+                ...config.options,
+                animation: {
+                    duration: 0 // Disable animations for better performance
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    ...config.options?.plugins,
+                    legend: {
+                        ...config.options?.plugins?.legend,
+                        labels: {
+                            ...config.options?.plugins?.legend?.labels,
+                            usePointStyle: true, // Reduce legend size
+                            boxWidth: 12
+                        }
+                    }
+                },
+                scales: config.options?.scales ? {
+                    ...config.options.scales,
+                    // Prevent infinite resize loops
+                    x: {
+                        ...config.options.scales.x,
+                        display: true,
+                        grid: {
+                            display: false // Reduce rendering load
+                        }
+                    },
+                    y: {
+                        ...config.options.scales.y,
+                        display: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                } : undefined,
+                // KRITISCH: Resize-Protection
+                onResize: () => {
+                    // Prevent infinite resize loops
+                    return;
+                }
+            }
+        };
+
+        this.charts[chartKey] = new Chart(ctx, optimizedConfig);
+        canvas.chartInstance = this.charts[chartKey]; // Reference for cleanup
+        
+        return this.charts[chartKey];
+    } catch (error) {
+        console.error(`Error creating chart ${chartKey}:`, error);
+        return null;
+    }
 }
 }
 

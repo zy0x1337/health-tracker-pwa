@@ -445,43 +445,11 @@ class SmartNotificationManager {
     }
 }
 
+// ERSETZEN in HealthTrackerPro Klasse: Neue Chart-Integration
 class HealthTrackerPro {
-    initChartResizeObserver() {
-    if (!window.ResizeObserver) return;
-    
-    // Cleanup existing observer
-    if (this.chartResizeObserver) {
-        this.chartResizeObserver.disconnect();
-    }
-    
-    this.chartResizeObserver = new ResizeObserver(entries => {
-        const resizeTimeout = setTimeout(() => {
-            entries.forEach(entry => {
-                const canvas = entry.target;
-                const chartKey = canvas.dataset.chartKey;
-                
-                if (chartKey && this.charts[chartKey] && !this.charts[chartKey]._resizing) {
-                    try {
-                        this.charts[chartKey].resize();
-                    } catch (error) {
-                        console.warn(`Chart resize error for ${chartKey}:`, error);
-                    }
-                }
-            });
-            clearTimeout(resizeTimeout);
-        }, 100);
-    });
-    
-    // Observe all chart canvases
-    document.querySelectorAll('canvas').forEach(canvas => {
-        this.chartResizeObserver.observe(canvas);
-    });
-}
     constructor() {
         this.userId = this.getUserId();
         this.theme = localStorage.getItem('theme') || 'light';
-        this.charts = {};
-        this.chartInitialized = false;
         this.isLoading = false;
         this.goals = {
             stepsGoal: 10000,
@@ -490,51 +458,11 @@ class HealthTrackerPro {
             weightGoal: null
         };
         
-        this.initTheme();
-        this.initEventListeners();
-        this.loadGoals();
-        this.loadTodaysData();
-        this.initAnimations();
-        this.notificationManager = new SmartNotificationManager(this);
-        this.analytics = new AdvancedAnalytics(this);
-        this.progressHub = new ProgressHub(this);
-        setTimeout(() => {
-    this.progressHub.loadViewData();
-}, 1000);
-        this.activityFeed = new ActivityFeed(this);
-
-        // Initialize chart resize observer
-    this.initChartResizeObserver();
-    
-    // Chart cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        this.destroyAllCharts();
-        if (this.chartResizeObserver) {
-            this.chartResizeObserver.disconnect();
-        }
-    });
-        
-        // Initialize charts safely after DOM is ready
-        setTimeout(() => this.initializeAllCharts(), 800);
-
-        setTimeout(() => {
-        if (this.analytics) {
-            this.analytics.showView('heatmap'); // Startet mit Heatmap-View
-        }
-    }, 2000); // Warte bis alle anderen Initialisierungen fertig sind
-    }
-
-    triggerAchievementNotification(message) {
-    this.notificationManager.showInAppNotification(message, 'success', 6000);
-
-    this.initApp();
-}
-
-initApp() {
-        console.log('🚀 Health Tracker Pro wird initialisiert...');
+        // NEUE CHART-MANAGER INSTANZ
+        this.chartManager = new ChartManager(this);
         
         this.initTheme();
-        this.setupEventListeners(); // ✅ Verwendet jetzt addEventListenerOnce
+        this.setupEventListeners();
         this.loadGoals();
         this.updateGoalsDisplay();
         this.loadTodaysData();
@@ -553,8 +481,8 @@ initApp() {
             }
         }, 1000);
         
-        // Initialize charts safely after DOM is ready
-        setTimeout(() => this.initializeAllCharts(), 800);
+        // NEUE CHART-INITIALISIERUNG
+        setTimeout(() => this.initializeChartsNew(), 1500);
 
         // Start analytics
         setTimeout(() => {
@@ -563,1863 +491,686 @@ initApp() {
             }
         }, 2000);
         
-        console.log('✅ Health Tracker Pro erfolgreich initialisiert!');
+        console.log('✅ Health Tracker Pro with NEW ChartManager initialized!');
     }
 
-    setupEventListeners() {
-        console.log('🔗 Setting up event listeners...');
-
-        // Form submission
-        const healthForm = document.getElementById('health-form');
-        if (healthForm) {
-            this.addEventListenerOnce(healthForm, 'submit', (e) => this.handleSubmit(e));
-        }
-
-        // Theme toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            this.addEventListenerOnce(themeToggle, 'click', () => this.toggleTheme());
-        }
-
-        // Goals edit button
-        const editGoalsBtn = document.getElementById('edit-goals-btn');
-        if (editGoalsBtn) {
-            this.addEventListenerOnce(editGoalsBtn, 'click', () => this.openGoalsModal());
-        }
-
-        // Goals form submission
-        const goalsForm = document.getElementById('goals-form');
-        if (goalsForm) {
-            this.addEventListenerOnce(goalsForm, 'submit', (e) => this.handleGoalsSubmit(e));
-        }
-
-        // Install button (PWA)
-        const installBtn = document.getElementById('install-btn');
-        if (installBtn) {
-            this.addEventListenerOnce(installBtn, 'click', () => this.installPWA());
-        }
-
-        // Input event listeners for real-time progress updates
-        const stepsInput = document.getElementById('steps');
-        if (stepsInput) {
-            this.addEventListenerOnce(stepsInput, 'input', (e) => {
-                this.updateStepsProgress(e.target.value || 0);
-            });
-        }
-
-        const waterInput = document.getElementById('water');
-        if (waterInput) {
-            this.addEventListenerOnce(waterInput, 'input', (e) => {
-                this.updateWaterProgress(e.target.value || 0);
-            });
-        }
-
-        const sleepInput = document.getElementById('sleep');
-        if (sleepInput) {
-            this.addEventListenerOnce(sleepInput, 'input', (e) => {
-                this.updateSleepProgress(e.target.value || 0);
-            });
-        }
-
-        // Window event listeners
-        this.addEventListenerOnce(window, 'resize', () => this.handleResize());
-        this.addEventListenerOnce(window, 'online', () => this.updateConnectionStatus(true));
-        this.addEventListenerOnce(window, 'offline', () => this.updateConnectionStatus(false));
-
-        // PWA install prompt
-        this.addEventListenerOnce(window, 'beforeinstallprompt', (e) => {
-            e.preventDefault();
-            this.deferredPrompt = e;
-            const installBtn = document.getElementById('install-btn');
-            if (installBtn) {
-                installBtn.classList.remove('hidden');
-            }
-        });
-
-        console.log('✅ Event listeners setup complete');
-    }
-
-    installPWA() {
-        if (this.deferredPrompt) {
-            this.deferredPrompt.prompt();
-            this.deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    this.showToast('App wird installiert...', 'success');
-                } else {
-                    this.showToast('Installation abgebrochen', 'info');
-                }
-                this.deferredPrompt = null;
-            });
-        }
-    }
-
-    updateConnectionStatus(isOnline) {
-        const statusEl = document.getElementById('connection-status');
-        if (statusEl) {
-            statusEl.textContent = isOnline ? '🌐 Online' : '📵 Offline';
-            statusEl.className = `text-xs ${isOnline ? 'text-green-600' : 'text-yellow-600'}`;
-        }
-        
-        if (isOnline) {
-            this.showToast('🌐 Verbindung wiederhergestellt', 'success');
-        } else {
-            this.showToast('📵 Offline-Modus aktiv', 'warning');
-        }
-    }
-
-    async initializeAllCharts() {
-    // Verhindere mehrfache gleichzeitige Initialisierung
-    if (this.chartInitializing) {
-        console.log('🔄 Charts already initializing, skipping...');
-        return;
-    }
-    
-    this.chartInitializing = true;
-    
-    try {
-        if (typeof Chart === 'undefined') {
-            console.warn('⚠️ Chart.js not available');
-            this.chartInitializing = false;
-            return;
-        }
-        
-        console.log('🎯 Initializing all charts...');
-        
-        // Warte auf DOM-Bereitschaft
-        if (document.readyState !== 'complete') {
-            await new Promise(resolve => {
-                if (document.readyState === 'complete') {
-                    resolve();
-                } else {
+    // NEUE METHODE: Chart-Initialisierung
+    async initializeChartsNew() {
+        try {
+            console.log('🚀 Initializing charts with new ChartManager...');
+            
+            // Warte auf DOM-Bereitschaft
+            if (document.readyState !== 'complete') {
+                await new Promise(resolve => {
                     window.addEventListener('load', resolve, { once: true });
-                }
-            });
-        }
-        
-        // Destroy ALL Chart.js instances globally first (verhindert Orphaned Charts)
-        Chart.helpers.each(Chart.instances, (instance) => {
-            console.log(`🔥 Destroying global Chart instance: ${instance.id}`);
-            try {
-                instance.destroy();
-            } catch (error) {
-                console.error('Error destroying global chart:', error);
+                });
             }
-        });
-        
-        // Destroy tracked charts
-        if (this.charts) {
-            Object.keys(this.charts).forEach(key => {
-                if (this.charts[key] && typeof this.charts[key].destroy === 'function') {
-                    console.log(`🔥 Destroying tracked chart: ${key}`);
-                    try {
-                        this.charts[key].destroy();
-                    } catch (error) {
-                        console.error(`Error destroying ${key}:`, error);
-                    }
-                    this.charts[key] = null;
-                    delete this.charts[key];
-                }
-            });
+            
+            // Initialisiere alle Charts
+            const success = await this.chartManager.initializeAllCharts();
+            
+            if (success) {
+                // Lade Daten nach erfolgreicher Initialisierung
+                setTimeout(() => {
+                    this.chartManager.loadAndUpdateAllCharts();
+                }, 500);
+            }
+            
+        } catch (error) {
+            console.error('❌ Chart initialization failed:', error);
         }
-        
-        // Reset charts object completely
-        this.charts = {};
-        
-        // Warte auf Stabilität nach Zerstörung
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Set global Chart.js defaults
-        Chart.defaults.responsive = true;
-        Chart.defaults.maintainAspectRatio = false;
-        Chart.defaults.animation = false;
-        Chart.defaults.plugins.legend.display = false;
-        
-        // Initialize charts sequentially with delays (verhindert Race Conditions)
-        console.log('🎯 Initializing weight chart...');
-        await this.initWeightChart();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        console.log('🎯 Initializing activity chart...');
-        await this.initActivityChart();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        console.log('🎯 Initializing sleep chart...');
-        await this.initSleepChart();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        console.log('🎯 Initializing mood chart...');
-        await this.initMoodChart();
-        
-        this.chartInitialized = true;
-        this.chartInitializing = false;
-        
-        console.log('✅ All charts initialized successfully');
-        
-        // Load data after all charts are ready
+    }
+
+    // ERSETZEN: handleSubmit Methode für bessere Chart-Integration
+    async handleSubmit(e) {
+        e.preventDefault();
+        this.showLoading(true);
+
+        const formData = {
+            userId: this.userId,
+            date: new Date().toISOString().split('T')[0],
+            weight: parseFloat(document.getElementById('weight').value) || null,
+            steps: parseInt(document.getElementById('steps').value) || null,
+            waterIntake: parseFloat(document.getElementById('water').value) || null,
+            sleepHours: parseFloat(document.getElementById('sleep').value) || null,
+            mood: document.getElementById('mood').value || null,
+            notes: document.getElementById('notes').value || null
+        };
+
+        console.log('💾 Saving data:', formData);
+
+        try {
+            if (navigator.onLine) {
+                await this.saveToServer(formData);
+                this.showToast('Daten erfolgreich gespeichert!', 'success');
+            } else {
+                this.saveToLocal(formData);
+                this.showToast('Daten offline gespeichert!', 'success');
+            }
+
+            // Dashboard mit neuen Daten aktualisieren
+            this.updateDashboard(formData);
+            
+            // Goal-Achievements prüfen
+            this.checkGoalAchievements(formData);
+            
+            // Activity Feed aktualisieren
+            if (this.activityFeed) {
+                this.activityFeed.load();
+            }
+            
+            // Progress Hub aktualisieren
+            if (this.progressHub) {
+                this.progressHub.loadViewData();
+            }
+            
+            // NEUE CHART-AKTUALISIERUNG - Verhindert Duplikate
+            setTimeout(() => {
+                console.log('🔄 Reloading charts with ChartManager...');
+                this.chartManager.loadAndUpdateAllCharts();
+                
+                // Analytics nach Chart-Update aktualisieren
+                setTimeout(() => {
+                    if (this.analytics) {
+                        this.analytics.loadViewData();
+                    }
+                }, 800);
+            }, 300);
+            
+            // Formular zurücksetzen
+            this.resetForm();
+
+        } catch (error) {
+            console.error('❌ Fehler beim Speichern:', error);
+            this.showToast('Fehler beim Speichern der Daten', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // LEGACY-METHODEN entfernen/ersetzen
+    destroyAllCharts() {
+        // Delegiere an ChartManager
+        return this.chartManager.destroyAllCharts();
+    }
+
+    // CLEANUP bei Theme-Wechsel
+    updateChartsTheme() {
+        // Bei Theme-Wechsel Charts neu initialisieren
         setTimeout(() => {
-            console.log('📊 Loading chart data after initialization...');
-            this.loadAndUpdateCharts();
-        }, 500);
-        
-    } catch (error) {
-        console.error('❌ Chart initialization failed:', error);
-        this.chartInitialized = false;
-        this.chartInitializing = false;
-        
-        // Retry initialization after delay
-        setTimeout(() => {
-            console.log('🔄 Retrying chart initialization...');
-            this.initializeAllCharts();
-        }, 2000);
+            this.chartManager.initializeAllCharts().then(() => {
+                this.chartManager.loadAndUpdateAllCharts();
+            });
+        }, 300);
+    }
+
+    // CLEANUP bei Window Resize
+    handleResize() {
+        // Charts sind jetzt responsive - kein manuelles Resize nötig
+        console.log('📐 Window resized - charts auto-adjust');
     }
 }
 
-    async initWeightChart() {
-    console.log('🎯 Initializing weight chart with createChartSafely...');
-    
-    const config = {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Gewicht',
+// KOMPLETT ERSETZEN: Neue Chart-Manager-Klasse in app.js
+class ChartManager {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.charts = new Map(); // Verwende Map für bessere Kontrolle
+        this.canvasObserver = null;
+        this.isInitializing = false;
+        this.initializationPromise = null;
+        
+        this.initCanvasObserver();
+        console.log('🎯 ChartManager initialized with Map-based storage');
+    }
+
+    initCanvasObserver() {
+        // Observer für Canvas-Verfügbarkeit
+        if (typeof MutationObserver !== 'undefined') {
+            this.canvasObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'CANVAS') {
+                                console.log('🔍 Canvas added to DOM:', node.id);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            this.canvasObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+    }
+
+    // NEUE METHODE: Vollständiger Chart-Reset
+    async destroyAllCharts() {
+        console.log('🔥 ChartManager: Destroying all charts...');
+        
+        // 1. Destroy alle Map-Einträge
+        for (let [key, chart] of this.charts.entries()) {
+            try {
+                if (chart && typeof chart.destroy === 'function') {
+                    console.log(`🔥 Destroying chart: ${key}`);
+                    chart.destroy();
+                }
+            } catch (error) {
+                console.warn(`⚠️ Error destroying chart ${key}:`, error);
+            }
+        }
+        
+        // 2. Map komplett leeren
+        this.charts.clear();
+        
+        // 3. Canvas-Cleanup
+        document.querySelectorAll('canvas').forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = canvas.width; // Force canvas reset
+            }
+            
+            // Entferne Chart.js-Referenzen
+            delete canvas.chartInstance;
+            canvas.removeAttribute('data-chart-key');
+        });
+        
+        // 4. Chart.js Global Registry cleanup
+        if (window.Chart) {
+            Chart.helpers.each(Chart.instances, (instance) => {
+                try {
+                    if (instance && typeof instance.destroy === 'function') {
+                        instance.destroy();
+                    }
+                } catch (e) {
+                    console.warn('Global chart cleanup error:', e);
+                }
+            });
+            
+            // Reset Chart.js instances array
+            Chart.instances = [];
+        }
+        
+        console.log('✅ All charts destroyed, Map cleared');
+        return true;
+    }
+
+    // NEUE METHODE: Sichere Chart-Erstellung
+    async createChart(canvasId, config, chartKey) {
+        console.log(`🎯 Creating chart: ${chartKey} on canvas: ${canvasId}`);
+        
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.error(`❌ Canvas not found: ${canvasId}`);
+            return null;
+        }
+
+        // KRITISCH: Prüfe ob Chart bereits existiert
+        if (this.charts.has(chartKey)) {
+            console.log(`🔄 Chart ${chartKey} already exists, destroying first...`);
+            await this.destroyChart(chartKey);
+        }
+
+        // Warte auf stabilisierung
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        try {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // OPTIMIERTE KONFIGURATION
+            const optimizedConfig = {
+                ...config,
+                options: {
+                    ...config.options,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false, // Deaktiviere Animationen
+                    plugins: {
+                        ...config.options?.plugins,
+                        legend: {
+                            display: config.options?.plugins?.legend?.display !== false,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 12
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            };
+
+            // Chart erstellen
+            const chart = new Chart(ctx, optimizedConfig);
+            
+            // In Map speichern
+            this.charts.set(chartKey, chart);
+            
+            // Canvas-Attribute setzen
+            canvas.setAttribute('data-chart-key', chartKey);
+            canvas.chartInstance = chart;
+            
+            console.log(`✅ Chart ${chartKey} created successfully`);
+            return chart;
+            
+        } catch (error) {
+            console.error(`❌ Error creating chart ${chartKey}:`, error);
+            return null;
+        }
+    }
+
+    // NEUE METHODE: Einzelnen Chart zerstören
+    async destroyChart(chartKey) {
+        if (!this.charts.has(chartKey)) {
+            return false;
+        }
+        
+        const chart = this.charts.get(chartKey);
+        try {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+                console.log(`🔥 Chart ${chartKey} destroyed`);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Error destroying chart ${chartKey}:`, error);
+        }
+        
+        // Aus Map entfernen
+        this.charts.delete(chartKey);
+        
+        // Canvas cleanup
+        const canvas = document.querySelector(`[data-chart-key="${chartKey}"]`);
+        if (canvas) {
+            delete canvas.chartInstance;
+            canvas.removeAttribute('data-chart-key');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+        
+        return true;
+    }
+
+    // NEUE METHODE: Chart-Update mit Duplikat-Schutz
+    updateChart(chartKey, newData) {
+        const chart = this.charts.get(chartKey);
+        if (!chart) {
+            console.warn(`⚠️ Chart ${chartKey} not found for update`);
+            return false;
+        }
+
+        try {
+            // KRITISCH: Daten komplett ersetzen statt hinzufügen
+            if (newData.labels) {
+                chart.data.labels = [...newData.labels]; // Neue Array-Instanz
+            }
+            
+            if (newData.datasets) {
+                newData.datasets.forEach((newDataset, index) => {
+                    if (chart.data.datasets[index]) {
+                        // Bestehenden Dataset komplett ersetzen
+                        chart.data.datasets[index].data = [...newDataset.data];
+                        if (newDataset.backgroundColor) {
+                            chart.data.datasets[index].backgroundColor = [...newDataset.backgroundColor];
+                        }
+                        if (newDataset.borderColor) {
+                            chart.data.datasets[index].borderColor = [...newDataset.borderColor];
+                        }
+                    }
+                });
+            }
+            
+            chart.update('none'); // Update ohne Animation
+            console.log(`✅ Chart ${chartKey} updated successfully`);
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ Error updating chart ${chartKey}:`, error);
+            return false;
+        }
+    }
+
+    // NEUE METHODE: Alle Charts initialisieren
+    async initializeAllCharts() {
+        if (this.isInitializing) {
+            console.log('⏳ Chart initialization already in progress...');
+            return this.initializationPromise;
+        }
+
+        this.isInitializing = true;
+        
+        this.initializationPromise = (async () => {
+            try {
+                console.log('🚀 Starting complete chart initialization...');
+                
+                // 1. Destroy existing charts
+                await this.destroyAllCharts();
+                
+                // 2. Warte auf DOM-Stabilität
+                await this.waitForCanvases(['weightChart', 'activityChart', 'sleepChart', 'moodChart']);
+                
+                // 3. Charts sequenziell erstellen
+                await this.createWeightChart();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                await this.createActivityChart();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                await this.createSleepChart();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                await this.createMoodChart();
+                
+                console.log('✅ All charts initialized successfully');
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Chart initialization failed:', error);
+                return false;
+            } finally {
+                this.isInitializing = false;
+            }
+        })();
+        
+        return this.initializationPromise;
+    }
+
+    // HILFSMETHODE: Warte auf Canvas-Verfügbarkeit
+    async waitForCanvases(canvasIds, timeout = 5000) {
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < timeout) {
+            const allAvailable = canvasIds.every(id => {
+                const canvas = document.getElementById(id);
+                return canvas && document.contains(canvas);
+            });
+            
+            if (allAvailable) {
+                console.log('✅ All required canvases are available');
+                return true;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.warn('⚠️ Timeout waiting for canvases');
+        return false;
+    }
+
+    // NEUE CHART-ERSTELLER: Weight Chart
+    async createWeightChart() {
+        const config = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Gewicht (kg)',
                     data: [],
                     borderColor: 'rgba(59, 130, 246, 1)',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
+                    borderWidth: 2,
                     tension: 0.4,
                     fill: true,
-                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                },
-                {
-                    label: 'Zielgewicht',
-                    data: [],
-                    borderColor: 'rgba(239, 68, 68, 0.8)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0,
-                    fill: false,
-                    pointRadius: 0
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    callbacks: {
-                        label: function(context) {
-                            if (context.datasetIndex === 0) {
-                                return `Gewicht: ${context.parsed.y} kg`;
-                            } else {
-                                return `Zielgewicht: ${context.parsed.y} kg`;
-                            }
-                        }
-                    }
-                }
+                    pointRadius: 4
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    grid: {
-                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                        callback: function(value) {
-                            return value + ' kg';
+            options: {
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.y} kg`
                         }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: { display: true, text: 'Gewicht (kg)' }
                     },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                    x: {
+                        title: { display: true, text: 'Datum' }
                     }
                 }
             }
-        }
-    };
-
-    const chart = this.createChartSafely('weightChart', config, 'weight');
-    if (chart) {
-        console.log('✅ Weight chart initialized successfully with createChartSafely');
-    }
-}
-
-    async initActivityChart() {
-    console.log('🎯 Initializing activity chart with createChartSafely...');
-    
-    const config = {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Schritte',
-                    data: [],
-                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                    borderColor: 'rgba(34, 197, 94, 1)',
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Wasser (L)',
-                    data: [],
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        color: this.theme === 'dark' ? '#E5E7EB' : '#374151'
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            if (context.datasetIndex === 0) {
-                                return `Schritte: ${context.parsed.y.toLocaleString()}`;
-                            } else {
-                                return `Wasser: ${context.parsed.y}L`;
-                            }
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Schritte',
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                    },
-                    grid: {
-                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                        callback: function(value) {
-                            return value.toLocaleString();
-                        }
-                    }
-                },
-                y1: {
-                    beginAtZero: true,
-                    position: 'right',
-                    max: Math.max(4, (this.goals?.waterGoal || 2.0) + 1),
-                    title: {
-                        display: true,
-                        text: 'Wasser (L)',
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                        callback: function(value) {
-                            return value + 'L';
-                        }
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                    }
-                }
-            },
-            interaction: {
-                mode: 'index',
-                intersect: false
-            }
-        }
-    };
-
-    const chart = this.createChartSafely('activityChart', config, 'activity');
-    if (chart) {
-        console.log('✅ Activity chart initialized successfully with createChartSafely');
-    }
-}
-
-    async initSleepChart() {
-    console.log('🎯 Initializing sleep chart with createChartSafely...');
-    
-    const config = {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Schlafstunden',
-                data: [],
-                backgroundColor: [],
-                borderColor: [],
-                borderWidth: 2,
-                borderRadius: 8,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            const hours = context.parsed.y;
-                            const goal = this.goals?.sleepGoal || 8;
-                            let quality = 'Schlecht';
-                            let qualityColor = '🔴';
-                            
-                            if (hours >= goal) {
-                                quality = 'Ausgezeichnet';
-                                qualityColor = '🟢';
-                            } else if (hours >= goal * 0.875) {
-                                quality = 'Gut';
-                                qualityColor = '🟡';
-                            } else if (hours >= goal * 0.75) {
-                                quality = 'Durchschnitt';
-                                qualityColor = '🟠';
-                            }
-                            
-                            const percentage = Math.round((hours / goal) * 100);
-                            
-                            return [
-                                `Schlaf: ${hours}h`,
-                                `Ziel: ${goal}h (${percentage}%)`,
-                                `Qualität: ${qualityColor} ${quality}`
-                            ];
-                        }.bind(this)
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: Math.max(10, (this.goals?.sleepGoal || 8) + 2),
-                    title: {
-                        display: true,
-                        text: 'Stunden',
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                    },
-                    grid: {
-                        color: this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280',
-                        callback: function(value) {
-                            return value + 'h';
-                        }
-                    }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        color: this.theme === 'dark' ? '#9CA3AF' : '#6B7280'
-                    }
-                }
-            }
-        }
-    };
-
-    const chart = this.createChartSafely('sleepChart', config, 'sleep');
-    if (chart) {
-        console.log('✅ Sleep chart initialized successfully with createChartSafely');
-    }
-}
-
-    async initMoodChart() {
-    console.log('🎯 Initializing mood chart with createChartSafely...');
-    
-    const config = {
-        type: 'doughnut',
-        data: {
-            labels: ['Schrecklich', 'Schlecht', 'Neutral', 'Gut', 'Ausgezeichnet'],
-            datasets: [{
-                label: 'Stimmungsverteilung',
-                data: [0, 0, 0, 0, 0],
-                backgroundColor: [
-                    'rgba(239, 68, 68, 0.8)',
-                    'rgba(245, 101, 101, 0.8)',
-                    'rgba(156, 163, 175, 0.8)',
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(16, 185, 129, 0.8)'
-                ],
-                borderColor: [
-                    'rgba(239, 68, 68, 1)',
-                    'rgba(245, 101, 101, 1)',
-                    'rgba(156, 163, 175, 1)',
-                    'rgba(34, 197, 94, 1)',
-                    'rgba(16, 185, 129, 1)'
-                ],
-                borderWidth: 2,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '60%',
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        color: this.theme === 'dark' ? '#E5E7EB' : '#374151',
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            const labels = data.labels || [];
-                            const dataset = data.datasets[0];
-                            const emojis = ['😞', '😕', '😐', '😊', '😁'];
-                            
-                            return labels.map((label, index) => ({
-                                text: `${emojis[index]} ${label}`,
-                                fillStyle: dataset.backgroundColor[index],
-                                strokeStyle: dataset.borderColor[index],
-                                lineWidth: dataset.borderWidth,
-                                hidden: false,
-                                index: index
-                            }));
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: this.theme === 'dark' ? '#4B5563' : '#D1D5DB',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed;
-                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                            const emojis = ['😞', '😕', '😐', '😊', '😁'];
-                            const emoji = emojis[context.dataIndex] || '';
-                            
-                            if (value === 0) {
-                                return `${emoji} ${label}: Keine Einträge`;
-                            }
-                            
-                            const dayText = value === 1 ? 'Tag' : 'Tage';
-                            return [
-                                `${emoji} ${label}`,
-                                `${value} ${dayText} (${percentage}%)`,
-                                total > 0 ? `Von insgesamt ${total} Einträgen` : ''
-                            ];
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    const chart = this.createChartSafely('moodChart', config, 'mood');
-    if (chart) {
-        console.log('✅ Mood chart initialized successfully with createChartSafely');
-    }
-}
-
-    async loadAndUpdateCharts() {
-        if (!this.chartInitialized) return;
+        };
         
-        console.log('🔄 Loading chart data...');
+        return await this.createChart('weightChart', config, 'weight');
+    }
+
+    // NEUE CHART-ERSTELLER: Activity Chart
+    async createActivityChart() {
+        const config = {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Schritte',
+                        data: [],
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Wasser (L)',
+                        data: [],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: { display: true, text: 'Schritte' }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        title: { display: true, text: 'Wasser (L)' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        };
+        
+        return await this.createChart('activityChart', config, 'activity');
+    }
+
+    // NEUE CHART-ERSTELLER: Sleep Chart
+    async createSleepChart() {
+        const config = {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Schlafstunden',
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 12,
+                        title: { display: true, text: 'Stunden' }
+                    }
+                }
+            }
+        };
+        
+        return await this.createChart('sleepChart', config, 'sleep');
+    }
+
+    // NEUE CHART-ERSTELLER: Mood Chart
+    async createMoodChart() {
+        const config = {
+            type: 'doughnut',
+            data: {
+                labels: ['Schrecklich', 'Schlecht', 'Neutral', 'Gut', 'Ausgezeichnet'],
+                datasets: [{
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(251, 146, 60, 0.8)',
+                        'rgba(156, 163, 175, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(16, 185, 129, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                cutout: '60%',
+                plugins: {
+                    legend: { 
+                        display: true,
+                        position: 'bottom'
+                    }
+                }
+            }
+        };
+        
+        return await this.createChart('moodChart', config, 'mood');
+    }
+
+    // NEUE METHODE: Daten laden und Charts aktualisieren
+    async loadAndUpdateAllCharts() {
         try {
+            console.log('📊 Loading data for chart updates...');
+            
             let allData = [];
             
+            // Server-Daten versuchen
             if (navigator.onLine) {
                 try {
-                    const url = `/api/health-data/${this.userId}`;
-                    console.log('🌐 Fetching from URL:', url);
-                    const response = await fetch(url);
-                    console.log('📡 Response status:', response.status);
-                    
+                    const response = await fetch(`/api/health-data/${this.healthTracker.userId}`);
                     if (response.ok) {
-                        const serverData = await response.json();
-                        console.log('📦 Raw server response:', serverData);
-                        
-                        if (Array.isArray(serverData)) {
-                            allData = serverData;
-                            console.log('📊 Server data loaded:', allData.length, 'entries');
-                        } else {
-                            console.warn('⚠️ Server returned non-array data:', typeof serverData, serverData);
-                            allData = [];
-                        }
-                    } else {
-                        console.warn('⚠️ Server response not ok:', response.status);
+                        allData = await response.json();
+                        console.log('🌐 Server data loaded:', allData.length);
                     }
                 } catch (error) {
-                    console.log('⚠️ Server error:', error.message);
+                    console.log('Server unavailable, using local data');
                 }
             }
             
             // Fallback zu lokalen Daten
             if (allData.length === 0) {
-                const localDataString = localStorage.getItem('healthData') || '[]';
-                try {
-                    const localData = JSON.parse(localDataString);
-                    if (Array.isArray(localData)) {
-                        allData = localData;
-                        console.log('💾 Local data loaded:', allData.length, 'entries');
-                    } else {
-                        console.warn('⚠️ Local data is not an array, resetting');
-                        localStorage.setItem('healthData', '[]');
-                        allData = [];
-                    }
-                } catch (parseError) {
-                    console.error('❌ Error parsing local data:', parseError);
-                    localStorage.setItem('healthData', '[]');
-                    allData = [];
-                }
+                const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
+                allData = Array.isArray(localData) ? localData : [];
+                console.log('💾 Local data loaded:', allData.length);
             }
             
-            // Charts aktualisieren
-            this.updateChartsWithData(allData);
-            setTimeout(() => {
-            if (this.analytics) {
-                this.analytics.loadViewData();
+            // Charts mit Daten aktualisieren
+            if (allData.length > 0) {
+                await this.updateChartsWithData(allData);
             }
-        }, 500);
+            
         } catch (error) {
             console.error('❌ Error loading chart data:', error);
         }
     }
 
-    updateChartsWithData(allData) {
-    if (!this.chartInitialized) {
-        console.log('⚠️ Charts not initialized yet');
-        return;
-    }
-    
-    if (!allData || !Array.isArray(allData) || allData.length === 0) {
-        console.log('⚠️ No valid data provided for charts');
-        return;
-    }
-    
-    console.log('📈 Updating charts with', allData.length, 'data points');
-    
-    const last7Days = allData.slice(-7);
-    const labels = last7Days.map(d => {
-        if (!d.date) return 'N/A';
-        try {
-            return new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short' });
-        } catch (error) {
-            return 'N/A';
-        }
-    });
-    
-    try {
-        // 1. Weight Chart
-        this.safeUpdateChart('weight', () => {
-            if (this.charts.weight) {
-                const weightData = last7Days
-                    .map(d => d.weight || null)
-                    .filter(w => w !== null && !isNaN(w));
-                
-                if (weightData.length > 0) {
-                    // KOMPLETT leeren
-                    this.charts.weight.data.labels.splice(0, this.charts.weight.data.labels.length);
-                    this.charts.weight.data.datasets[0].data.splice(0, this.charts.weight.data.datasets[0].data.length);
-                    this.charts.weight.data.datasets[1].data.splice(0, this.charts.weight.data.datasets[1].data.length);
-                    
-                    // Neue Daten hinzufügen
-                    this.charts.weight.data.labels.push(...labels.slice(0, weightData.length));
-                    this.charts.weight.data.datasets[0].data.push(...weightData);
-                    
-                    if (this.goals.weightGoal && !isNaN(this.goals.weightGoal)) {
-                        this.charts.weight.data.datasets[1].data.push(...new Array(weightData.length).fill(this.goals.weightGoal));
-                    }
-                    
-                    this.charts.weight.update('none');
-                    console.log('✅ Weight chart updated');
-                }
-            }
-        });
-
-        // 2. Activity Chart - KRITISCH FÜR DUPLIKATE
-        this.safeUpdateChart('activity', () => {
-            if (this.charts.activity) {
-                const stepsData = last7Days.map(d => d.steps || 0);
-                const waterData = last7Days.map(d => d.waterIntake || 0);
-                
-                // VOLLSTÄNDIG leeren mit splice
-                this.charts.activity.data.labels.splice(0, this.charts.activity.data.labels.length);
-                this.charts.activity.data.datasets[0].data.splice(0, this.charts.activity.data.datasets[0].data.length);
-                this.charts.activity.data.datasets[1].data.splice(0, this.charts.activity.data.datasets[1].data.length);
-                
-                // Neue Daten hinzufügen
-                this.charts.activity.data.labels.push(...labels);
-                this.charts.activity.data.datasets[0].data.push(...stepsData);
-                this.charts.activity.data.datasets[1].data.push(...waterData);
-                
-                this.charts.activity.update('none');
-                console.log('✅ Activity chart updated - duplicates prevented');
-            }
-        });
-
-        // 3. Sleep Chart - KRITISCH FÜR DUPLIKATE
-        this.safeUpdateChart('sleep', () => {
-            if (this.charts.sleep) {
-                const sleepData = last7Days.map(d => d.sleepHours || 0);
-                const sleepColors = sleepData.map(hours => {
-                    const goal = this.goals.sleepGoal || 8;
-                    if (hours >= goal) return 'rgba(34, 197, 94, 0.8)';
-                    if (hours >= goal * 0.875) return 'rgba(251, 191, 36, 0.8)';
-                    if (hours >= goal * 0.75) return 'rgba(251, 146, 60, 0.8)';
-                    return 'rgba(239, 68, 68, 0.8)';
-                });
-                
-                // VOLLSTÄNDIG leeren - alle Arrays
-                this.charts.sleep.data.labels.splice(0, this.charts.sleep.data.labels.length);
-                this.charts.sleep.data.datasets[0].data.splice(0, this.charts.sleep.data.datasets[0].data.length);
-                this.charts.sleep.data.datasets[0].backgroundColor.splice(0, this.charts.sleep.data.datasets[0].backgroundColor.length);
-                this.charts.sleep.data.datasets[0].borderColor.splice(0, this.charts.sleep.data.datasets[0].borderColor.length);
-                
-                // Neue Daten hinzufügen
-                this.charts.sleep.data.labels.push(...labels);
-                this.charts.sleep.data.datasets[0].data.push(...sleepData);
-                this.charts.sleep.data.datasets[0].backgroundColor.push(...sleepColors);
-                this.charts.sleep.data.datasets[0].borderColor.push(...sleepColors.map(c => c.replace('0.8', '1')));
-                
-                this.charts.sleep.update('none');
-                console.log('✅ Sleep chart updated - duplicates prevented');
-            }
-        });
-
-        // 4. Mood Chart
-        this.safeUpdateChart('mood', () => {
-            if (this.charts.mood) {
-                const moodCounts = [0, 0, 0, 0, 0];
-                const moodMapping = ['terrible', 'bad', 'neutral', 'good', 'excellent'];
-                
-                last7Days.forEach(d => {
-                    if (d.mood && typeof d.mood === 'string') {
-                        const moodIndex = moodMapping.indexOf(d.mood.toLowerCase());
-                        if (moodIndex !== -1) {
-                            moodCounts[moodIndex]++;
-                        }
-                    }
-                });
-                
-                // Direkter Ersatz für Mood Chart
-                this.charts.mood.data.datasets[0].data = [...moodCounts];
-                this.charts.mood.update('none');
-                console.log('✅ Mood chart updated');
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Error updating charts:', error);
-        setTimeout(() => {
-            console.log('🔄 Attempting to reinitialize charts...');
-            this.initializeAllCharts();
-        }, 1000);
-    }
-}
-
-safeUpdateChart(chartName, updateFunction) {
-    try {
-        const chart = this.charts[chartName];
-        const canvas = document.getElementById(chartName + 'Chart');
-        
-        // Enhanced canvas availability check
-        if (!chart || !canvas || !document.contains(canvas)) {
-            console.warn(`⚠️ ${chartName} chart or canvas not available - reinitializing`);
-            
-            // Attempt to reinitialize the specific chart
-            setTimeout(() => {
-                switch(chartName) {
-                    case 'weight': this.initWeightChart(); break;
-                    case 'activity': this.initActivityChart(); break;
-                    case 'sleep': this.initSleepChart(); break;
-                    case 'mood': this.initMoodChart(); break;
-                }
-            }, 500);
-            return;
-        }
-        
-        updateFunction();
-        
-    } catch (error) {
-        console.error(`❌ Error updating ${chartName} chart:`, error);
-    }
-}
-
-    getUserId() {
-        let userId = localStorage.getItem('userId');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('userId', userId);
-        }
-        return userId;
-    }
-
-    initTheme() {
-        const userTheme = localStorage.getItem('theme');
-        let theme = userTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
-        this.theme = theme;
-    }
-
-    initEventListeners() {
-        const form = document.getElementById('health-form');
-        if (form) {
-            form.addEventListener('submit', (e) => this.handleSubmit(e));
-        }
-
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => this.toggleTheme());
-        }
-
-        // Goals-related event listeners
-const editGoalsBtn = document.getElementById('edit-goals-btn');
-if (editGoalsBtn) {
-    editGoalsBtn.addEventListener('click', () => this.openGoalsModal());
-}
-
-        const goalsForm = document.getElementById('goals-form');
-        if (goalsForm) {
-            goalsForm.addEventListener('submit', (e) => this.handleGoalsSubmit(e));
-        }
-
-        // Input event listeners
-        const stepsInput = document.getElementById('steps');
-        if (stepsInput) {
-            stepsInput.addEventListener('input', (e) => {
-                this.updateStepsProgress(e.target.value || 0);
-            });
-        }
-
-        const waterInput = document.getElementById('water');
-        if (waterInput) {
-            waterInput.addEventListener('input', (e) => {
-                this.updateWaterProgress(e.target.value || 0);
-            });
-        }
-
-        const sleepInput = document.getElementById('sleep');
-        if (sleepInput) {
-            sleepInput.addEventListener('input', (e) => {
-                this.updateSleepProgress(e.target.value || 0);
-            });
-        }
-
-        window.addEventListener('resize', () => this.handleResize());
-        window.addEventListener('online', () => this.updateConnectionStatus(true));
-        window.addEventListener('offline', () => this.updateConnectionStatus(false));
-    }
-
-    // NEW: Goals Management Methods
-    async loadGoals() {
-        try {
-            let goals = null;
-            
-            if (navigator.onLine) {
-                try {
-                    const response = await fetch(`/api/goals/${this.userId}`);
-                    if (response.ok) {
-                        goals = await response.json();
-                        console.log('🎯 Server goals loaded:', goals);
-                    }
-                } catch (error) {
-                    console.log('⚠️ Server goals error:', error.message);
-                }
-            }
-            
-            // Fallback to local goals
-            if (!goals) {
-                const localGoals = localStorage.getItem('userGoals');
-                if (localGoals) {
-                    try {
-                        goals = JSON.parse(localGoals);
-                        console.log('💾 Local goals loaded:', goals);
-                    } catch (error) {
-                        console.error('❌ Error parsing local goals:', error);
-                    }
-                }
-            }
-            
-            if (goals) {
-                this.goals = {
-                    stepsGoal: goals.stepsGoal || 10000,
-                    waterGoal: goals.waterGoal || 2.0,
-                    sleepGoal: goals.sleepGoal || 8,
-                    weightGoal: goals.weightGoal || null
-                };
-            }
-            
-            this.updateGoalsDisplay();
-            console.log('✅ Goals loaded:', this.goals);
-            
-        } catch (error) {
-            console.error('❌ Error loading goals:', error);
-        }
-    }
-
-    updateGoalsDisplay() {
-        // Update goals display section
-        const weightGoalEl = document.getElementById('weight-goal-display');
-        const stepsGoalEl = document.getElementById('steps-goal-display');
-        const waterGoalEl = document.getElementById('water-goal-display');
-        const sleepGoalEl = document.getElementById('sleep-goal-display');
-        
-        if (weightGoalEl) {
-            weightGoalEl.textContent = this.goals.weightGoal ? `${this.goals.weightGoal} kg` : '-- kg';
-        }
-        if (stepsGoalEl) {
-            stepsGoalEl.textContent = this.goals.stepsGoal.toLocaleString();
-        }
-        if (waterGoalEl) {
-            waterGoalEl.textContent = `${this.goals.waterGoal} L`;
-        }
-        if (sleepGoalEl) {
-            sleepGoalEl.textContent = `${this.goals.sleepGoal} h`;
-        }
-        
-        // Update stats section goal displays
-        const weightGoalStatEl = document.getElementById('weight-goal-stat');
-        const stepsGoalStatEl = document.getElementById('steps-goal-stat');
-        const waterGoalStatEl = document.getElementById('water-goal-stat');
-        const sleepGoalStatEl = document.getElementById('sleep-goal-stat');
-        
-        if (weightGoalStatEl) {
-            weightGoalStatEl.textContent = this.goals.weightGoal ? `${this.goals.weightGoal} kg` : '--';
-        }
-        if (stepsGoalStatEl) {
-            stepsGoalStatEl.textContent = this.goals.stepsGoal.toLocaleString();
-        }
-        if (waterGoalStatEl) {
-            waterGoalStatEl.textContent = `${this.goals.waterGoal} L`;
-        }
-        if (sleepGoalStatEl) {
-            sleepGoalStatEl.textContent = `${this.goals.sleepGoal} h`;
-        }
-    }
-
-    openGoalsModal() {
-    const modal = document.getElementById('goals-modal');
-    if (!modal) return;
-    
-    // Pre-fill form with current goals
-    const weightInput = document.getElementById('weight-goal-input');
-    const stepsInput = document.getElementById('steps-goal-input');
-    const waterInput = document.getElementById('water-goal-input');
-    const sleepInput = document.getElementById('sleep-goal-input');
-    
-    if (weightInput) weightInput.value = this.goals.weightGoal || '';
-    if (stepsInput) stepsInput.value = this.goals.stepsGoal;
-    if (waterInput) waterInput.value = this.goals.waterGoal;
-    if (sleepInput) sleepInput.value = this.goals.sleepGoal;
-    
-    modal.showModal();
-}
-
-    closeGoalsModal() {
-    const modal = document.getElementById('goals-modal');
-    if (modal) {
-        modal.close();
-    }
-}
-
-    async handleGoalsSubmit(e) {
-        e.preventDefault();
-        
-        const weightGoal = parseFloat(document.getElementById('weight-goal-input').value) || null;
-        const stepsGoal = parseInt(document.getElementById('steps-goal-input').value) || 10000;
-        const waterGoal = parseFloat(document.getElementById('water-goal-input').value) || 2.0;
-        const sleepGoal = parseFloat(document.getElementById('sleep-goal-input').value) || 8;
-        
-        const goalsData = {
-            userId: this.userId,
-            weightGoal,
-            stepsGoal,
-            waterGoal,
-            sleepGoal
-        };
-        
-        console.log('🎯 Saving goals:', goalsData);
-        
-        try {
-            if (navigator.onLine) {
-                await this.saveGoalsToServer(goalsData);
-                this.showToast('🎯 Ziele erfolgreich gespeichert!', 'success');
-            } else {
-                this.saveGoalsToLocal(goalsData);
-                this.showToast('🎯 Ziele offline gespeichert!', 'success');
-            }
-            
-            this.goals = {
-                stepsGoal,
-                waterGoal,
-                sleepGoal,
-                weightGoal
-            };
-            
-            this.updateGoalsDisplay();
-            this.closeGoalsModal();
-            
-            // Reload charts to show new goal lines
-            setTimeout(() => {
-                this.loadAndUpdateCharts();
-            }, 300);
-            
-        } catch (error) {
-            console.error('❌ Error saving goals:', error);
-            this.showToast('❌ Fehler beim Speichern der Ziele', 'error');
-        }
-    }
-
-    async saveGoalsToServer(goalsData) {
-        const response = await fetch('/api/goals', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(goalsData)
-        });
-        
-        if (!response.ok) {
-            let errorMessage = `Server error: ${response.status}`;
+    // NEUE METHODE: Charts mit Daten aktualisieren
+    async updateChartsWithData(allData) {
+        const last7Days = allData.slice(0, 7).reverse(); // Neueste zuerst, dann umkehren für chronologische Reihenfolge
+        const labels = last7Days.map(d => {
             try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorMessage;
-            } catch (parseError) {
-                // Falls JSON-Parsing fehlschlägt, verwende Standard-Fehlermeldung
+                return new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric' });
+            } catch {
+                return 'N/A';
             }
-            throw new Error(errorMessage);
-        }
-        
-        return response.json();
-    }
-
-    saveGoalsToLocal(goalsData) {
-        try {
-            localStorage.setItem('userGoals', JSON.stringify(goalsData));
-            console.log('💾 Goals saved locally:', goalsData);
-        } catch (error) {
-            console.error('❌ Error saving goals to local storage:', error);
-        }
-    }
-
-    toggleTheme() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('theme', this.theme);
-    document.documentElement.setAttribute('data-theme', this.theme);
-    const themeToggle = document.getElementById('theme-toggle');
-    const icon = this.theme === 'dark' ? 'sun' : 'moon';
-    if (themeToggle) {
-        themeToggle.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-    this.updateChartsTheme();
-    this.updateModalTheme();
-}
-
-    // Update modal theme when theme changes
-updateModalTheme() {
-    const modal = document.getElementById('goals-modal');
-    if (!modal) return;
-    
-    // Force re-render of icons in modal after theme change
-    setTimeout(() => {
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }, 100);
-}
-
-    async handleSubmit(e) {
-    e.preventDefault();
-    this.showLoading(true);
-
-    const formData = {
-        userId: this.userId,
-        date: new Date().toISOString().split('T')[0],
-        weight: parseFloat(document.getElementById('weight').value) || null,
-        steps: parseInt(document.getElementById('steps').value) || null,
-        waterIntake: parseFloat(document.getElementById('water').value) || null,
-        sleepHours: parseFloat(document.getElementById('sleep').value) || null,
-        mood: document.getElementById('mood').value || null,
-        notes: document.getElementById('notes').value || null
-    };
-
-    console.log('💾 Saving data:', formData);
-
-    try {
-        if (navigator.onLine) {
-            await this.saveToServer(formData);
-            this.showToast('Daten erfolgreich gespeichert!', 'success');
-        } else {
-            this.saveToLocal(formData);
-            this.showToast('Daten offline gespeichert!', 'success');
-        }
-
-        // Dashboard mit neuen Daten aktualisieren
-        this.updateDashboard(formData);
-        
-        // Goal-Achievements prüfen
-        this.checkGoalAchievements(formData);
-        
-        // Activity Feed aktualisieren
-        if (this.activityFeed) {
-            this.activityFeed.load();
-        }
-        
-        // Progress Hub aktualisieren (falls vorhanden)
-        if (this.progressHub) {
-            this.progressHub.loadViewData();
-        }
-        
-        // Charts nach kurzer Verzögerung aktualisieren
-        setTimeout(() => {
-            console.log('🔄 Reloading charts after data save...');
-            this.loadAndUpdateCharts();
-            
-            // Analytics nach Chart-Update aktualisieren
-            setTimeout(() => {
-                if (this.analytics) {
-                    this.analytics.loadViewData();
-                }
-            }, 800);
-        }, 500);
-        
-        // Formular zurücksetzen
-        this.resetForm();
-
-    } catch (error) {
-        console.error('❌ Fehler beim Speichern:', error);
-        this.showToast('Fehler beim Speichern der Daten', 'error');
-    } finally {
-        this.showLoading(false);
-    }
-}
-
-    // Goal Achievement Check
-    checkGoalAchievements(data) {
-        const achievements = [];
-        
-        if (data.steps && data.steps >= this.goals.stepsGoal) {
-            achievements.push(`🚶‍♂️ Schrittziel erreicht: ${data.steps.toLocaleString()} Schritte!`);
-        }
-        
-        if (data.waterIntake && data.waterIntake >= this.goals.waterGoal) {
-            achievements.push(`💧 Wasserziel erreicht: ${data.waterIntake} L!`);
-        }
-        
-        if (data.sleepHours && data.sleepHours >= this.goals.sleepGoal) {
-            achievements.push(`😴 Schlafziel erreicht: ${data.sleepHours} Stunden!`);
-        }
-        
-        if (this.goals.weightGoal && data.weight) {
-            // Check if approaching weight goal (within 1kg)
-            const diff = Math.abs(data.weight - this.goals.weightGoal);
-            if (diff <= 1) {
-                achievements.push(`⚖️ Gewichtsziel fast erreicht: Nur noch ${diff.toFixed(1)}kg!`);
-            }
-        }
-
-        achievements.forEach((achievement, index) => {
-    setTimeout(() => {
-        this.showToast(achievement, 'success');
-        this.notificationManager.sendNotification('Ziel erreicht! 🎯', achievement, 'achievement');
-    }, index * 1500);
-});
-        
-        // Show achievement notifications
-        achievements.forEach((achievement, index) => {
-            setTimeout(() => {
-                this.showToast(achievement, 'success');
-            }, index * 1500); // Stagger notifications
-        });
-    }
-
-    async saveToServer(data) {
-        const response = await fetch('/api/health-data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-            let errorMessage = `Server error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || errorMessage;
-            } catch (parseError) {
-                // Falls JSON-Parsing fehlschlägt, verwende Standard-Fehlermeldung
-            }
-            throw new Error(errorMessage);
-        }
+        console.log('📊 Updating charts with', last7Days.length, 'data points');
 
-        return response.json();
-    }
-
-    saveToLocal(data) {
-        try {
-            let localData = [];
-            const existingData = localStorage.getItem('healthData');
-            
-            if (existingData) {
-                try {
-                    const parsed = JSON.parse(existingData);
-                    if (Array.isArray(parsed)) {
-                        localData = parsed;
-                    } else {
-                        console.warn('⚠️ Existing local data is not an array, resetting');
-                        localData = [];
-                    }
-                } catch (parseError) {
-                    console.error('❌ Error parsing existing local data:', parseError);
-                    localData = [];
-                }
-            }
-
-            localData.push({
-                ...data,
-                _id: 'local_' + Date.now()
+        // 1. Weight Chart Update
+        const weightData = last7Days.map(d => d.weight || null).filter(w => w !== null);
+        if (weightData.length > 0) {
+            this.updateChart('weight', {
+                labels: labels.slice(0, weightData.length),
+                datasets: [{ data: weightData }]
             });
-
-            localStorage.setItem('healthData', JSON.stringify(localData));
-            console.log('💾 Data saved locally, total entries:', localData.length);
-
-        } catch (error) {
-            console.error('❌ Error saving to local storage:', error);
         }
-    }
 
-    updateDashboard(data) {
-    if (data.weight) {
-        const weightEl = document.getElementById('today-weight');
-        if (weightEl) weightEl.textContent = data.weight + ' kg';
-        this.updateWeightProgress(data.weight);
-    }
-    if (data.steps) {
-        const stepsEl = document.getElementById('today-steps');
-        if (stepsEl) stepsEl.textContent = data.steps.toLocaleString();
-        this.updateStepsProgress(data.steps);
-    }
-    if (data.waterIntake) {
-        const waterEl = document.getElementById('today-water');
-        if (waterEl) waterEl.textContent = data.waterIntake + ' L';
-        this.updateWaterProgress(data.waterIntake);
-    }
-    if (data.sleepHours) {
-        const sleepEl = document.getElementById('today-sleep');
-        if (sleepEl) sleepEl.textContent = data.sleepHours + ' h';
-        this.updateSleepProgress(data.sleepHours);
-    }
-    
-    // Update goal progress indicators
-    this.updateGoalProgressIndicators(data);
-}
+        // 2. Activity Chart Update - KRITISCH FÜR DUPLIKATE
+        this.updateChart('activity', {
+            labels: labels,
+            datasets: [
+                { data: last7Days.map(d => d.steps || 0) },
+                { data: last7Days.map(d => d.waterIntake || 0) }
+            ]
+        });
 
-    updateStepsProgress(steps) {
-        const goal = this.goals.stepsGoal;
-        const percentage = Math.min((steps / goal) * 100, 100);
+        // 3. Sleep Chart Update - KRITISCH FÜR DUPLIKATE
+        const sleepData = last7Days.map(d => d.sleepHours || 0);
+        const sleepColors = sleepData.map(hours => {
+            if (hours >= 8) return 'rgba(34, 197, 94, 0.8)';
+            if (hours >= 6) return 'rgba(251, 191, 36, 0.8)';
+            return 'rgba(239, 68, 68, 0.8)';
+        });
+
+        this.updateChart('sleep', {
+            labels: labels,
+            datasets: [{
+                data: sleepData,
+                backgroundColor: sleepColors,
+                borderColor: sleepColors
+            }]
+        });
+
+        // 4. Mood Chart Update
+        const moodCounts = [0, 0, 0, 0, 0];
+        const moodMapping = ['terrible', 'bad', 'neutral', 'good', 'excellent'];
         
-        const stepsProgressElement = document.getElementById('steps-progress');
-        const stepsPercentageElement = document.getElementById('steps-percentage');
-        
-        if (stepsProgressElement && stepsPercentageElement) {
-            stepsProgressElement.setAttribute('stroke-dasharray', `${percentage}, 100`);
-            stepsPercentageElement.textContent = Math.round(percentage) + '%';
-        }
-    }
-
-    updateWaterProgress(waterIntake) {
-    const goal = this.goals.waterGoal;
-    const percentage = Math.min((waterIntake / goal) * 100, 100);
-    
-    // Update glasses visualization
-    const glasses = Math.min(Math.ceil(waterIntake / 0.25), 8);
-    const container = document.getElementById('water-glasses');
-    if (container) {
-        container.innerHTML = '';
-        for (let i = 0; i < 8; i++) {
-            const glass = document.createElement('div');
-            glass.className = `w-4 h-6 rounded-sm transition-colors duration-300 ${i < glasses ? 'bg-info' : 'bg-base-300'}`;
-            container.appendChild(glass);
-        }
-    }
-    
-    // Update DaisyUI progress bar
-    const progressEl = document.getElementById('water-progress');
-    const progressTextEl = document.getElementById('water-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
-        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
-    }
-}
-
-    updateSleepProgress(sleepHours) {
-    const goal = this.goals.sleepGoal;
-    const percentage = Math.min((sleepHours / goal) * 100, 100);
-    
-    // Update star quality visualization
-    const quality = Math.min(Math.ceil(sleepHours / 2), 5);
-    const container = document.getElementById('sleep-quality');
-    if (container) {
-        container.innerHTML = '';
-        for (let i = 0; i < 5; i++) {
-            const star = document.createElement('i');
-            star.setAttribute('data-lucide', 'star');
-            star.className = `w-3 h-3 transition-colors duration-300 ${i < quality ? 'text-warning fill-current' : 'text-base-300'}`;
-            container.appendChild(star);
-        }
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-    
-    // Update DaisyUI progress bar
-    const progressEl = document.getElementById('sleep-progress');
-    const progressTextEl = document.getElementById('sleep-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
-        progressTextEl.textContent = `${Math.round(percentage)}% des Tagesziels`;
-    }
-}
-
-    updateWeightProgress(currentWeight) {
-    if (!this.goals.weightGoal || !currentWeight) return;
-    
-    const goal = this.goals.weightGoal;
-    const diff = Math.abs(currentWeight - goal);
-    const maxDiff = goal * 0.2; // 20% of goal weight as max difference for progress calculation
-    
-    let percentage;
-    if (diff <= 1) {
-        percentage = 100; // Very close to goal
-    } else {
-        percentage = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
-    }
-    
-    const progressEl = document.getElementById('weight-progress');
-    const progressTextEl = document.getElementById('weight-progress-text');
-    
-    if (progressEl) {
-        progressEl.value = percentage;
-    }
-    if (progressTextEl) {
-        if (diff <= 1) {
-            progressTextEl.textContent = 'Ziel erreicht! 🎉';
-        } else {
-            progressTextEl.textContent = `${diff.toFixed(1)}kg zum Ziel`;
-        }
-    }
-}
-
-    updateChartsTheme() {
-        if (!this.chartInitialized) return;
-
-        const gridColor = this.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-        const tickColor = this.theme === 'dark' ? '#9CA3AF' : '#6B7280';
-
-        Object.values(this.charts).forEach(chart => {
-            if (chart && chart.options && chart.options.scales) {
-                Object.values(chart.options.scales).forEach(scale => {
-                    if (scale.grid) scale.grid.color = gridColor;
-                    if (scale.ticks) scale.ticks.color = tickColor;
-                });
-                chart.update('none');
-            }
-            if (chart.options && chart.options.plugins && chart.options.plugins.legend) {
-                chart.options.plugins.legend.labels.color = tickColor;
+        last7Days.forEach(d => {
+            if (d.mood) {
+                const index = moodMapping.indexOf(d.mood);
+                if (index !== -1) moodCounts[index]++;
             }
         });
-    }
 
-    handleResize() {
-        if (!this.chartInitialized) return;
-        
-        Object.values(this.charts).forEach(chart => {
-            if (chart && chart.resize) {
-                chart.resize();
-            }
+        this.updateChart('mood', {
+            datasets: [{ data: moodCounts }]
         });
+
+        console.log('✅ All charts updated with fresh data');
     }
 
-    async loadTodaysData() {
-        try {
-            if (navigator.onLine) {
-                const response = await fetch(`/api/health-data/${this.userId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        const today = data.find(entry => {
-                            const entryDate = new Date(entry.date).toISOString().split('T')[0];
-                            const todayDate = new Date().toISOString().split('T')[0];
-                            return entryDate === todayDate;
-                        });
-                        
-                        if (today) {
-                            this.updateDashboard(today);
-                        }
-                    }
-                }
-            } else {
-                this.loadLocalTodaysData();
-            }
-        } catch (error) {
-            console.error('Fehler beim Laden der heutigen Daten:', error);
-            this.loadLocalTodaysData();
-        }
-    }
-
-    loadLocalTodaysData() {
-        try {
-            const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
-            if (Array.isArray(localData)) {
-                const today = new Date().toISOString().split('T')[0];
-                const todayData = localData.find(entry => entry.date === today);
-                
-                if (todayData) {
-                    this.updateDashboard(todayData);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading local today data:', error);
-        }
-    }
-
-    displayRecentActivities(activities) {
-        const container = document.getElementById('recent-activities');
-        if (!container) {
-            console.warn('⚠️ Recent activities container not found');
-            return;
+    // CLEANUP-METHODE
+    destroy() {
+        console.log('🧹 ChartManager cleanup...');
+        
+        this.destroyAllCharts();
+        
+        if (this.canvasObserver) {
+            this.canvasObserver.disconnect();
         }
         
-        if (!Array.isArray(activities)) {
-            console.warn('⚠️ Activities is not an array:', typeof activities);
-            return;
-        }
-        
-        if (activities.length === 0) {
-            console.log('ℹ️ No activities to display');
-            return;
-        }
-
-        try {
-            container.innerHTML = activities.map(activity => {
-                if (!activity || typeof activity !== 'object') {
-                    return '';
-                }
-                
-                const date = activity.date ? new Date(activity.date).toLocaleDateString('de-DE', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short'
-                }) : 'N/A';
-                
-                const mood = this.getMoodEmoji(activity.mood);
-                
-                return `
-                    <div class="activity-item bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">${date}</span>
-                            <span class="text-lg">${mood}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            ${activity.weight ? `<div>⚖️ ${activity.weight}kg</div>` : ''}
-                            ${activity.steps ? `<div>👣 ${activity.steps.toLocaleString()}</div>` : ''}
-                            ${activity.waterIntake ? `<div>💧 ${activity.waterIntake}L</div>` : ''}
-                            ${activity.sleepHours ? `<div>😴 ${activity.sleepHours}h</div>` : ''}
-                        </div>
-                        ${activity.notes ? `<div class="mt-2 text-xs text-gray-600 dark:text-gray-300 italic">"${activity.notes}"</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-            
-            console.log('✅ Recent activities displayed:', activities.length, 'items');
-            
-        } catch (error) {
-            console.error('❌ Error displaying activities:', error);
-            container.innerHTML = '<p class="text-center text-gray-500 py-4">Fehler beim Anzeigen der Aktivitäten</p>';
-        }
+        console.log('✅ ChartManager destroyed');
     }
-
-    getMoodEmoji(mood) {
-        const moodEmojis = {
-            'excellent': '😄',
-            'good': '😊',
-            'neutral': '😐',
-            'bad': '😔',
-            'terrible': '😞'
-        };
-        return moodEmojis[mood] || '😐';
-    }
-
-    showLoading(show) {
-        this.isLoading = show;
-        const submitBtn = document.querySelector('#health-form button[type="submit"]');
-        if (submitBtn) {
-            if (show) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> Speichern...';
-            } else {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i> Speichern';
-            }
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-    }
-
-    showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        const bgClass = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            warning: 'bg-yellow-500',
-            info: 'bg-blue-500'
-        }[type] || 'bg-gray-500';
-
-        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 transform ${bgClass}`;
-        toast.textContent = message;
-
-        document.body.appendChild(toast);
-
-        // Auto remove after 4 seconds
-        setTimeout(() => {
-            toast.style.transform = 'translateY(-100%)';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
-
-    resetForm() {
-        const form = document.getElementById('health-form');
-        if (form) {
-            form.reset();
-        }
-    }
-
-    initAnimations() {
-        // Add subtle animations to stat cards
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.stat-card, .activity-item').forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(card);
-        });
-    }
-
-    updateConnectionStatus(isOnline) {
-        const statusEl = document.getElementById('connection-status');
-        if (statusEl) {
-            statusEl.textContent = isOnline ? '🌐 Online' : '📵 Offline';
-            statusEl.className = `text-xs ${isOnline ? 'text-green-600' : 'text-yellow-600'}`;
-        }
-        
-        if (isOnline) {
-            this.showToast('🌐 Verbindung wiederhergestellt', 'success');
-        } else {
-            this.showToast('📵 Offline-Modus aktiv', 'warning');
-        }
-    }
-
-    // Update goal progress indicators
-updateGoalProgressIndicators(data) {
-    if (data.weight && this.goals.weightGoal) {
-        const diff = Math.abs(data.weight - this.goals.weightGoal);
-        const maxDiff = this.goals.weightGoal * 0.1; // 10% tolerance
-        const progress = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
-        const progressEl = document.getElementById('weight-goal-progress');
-        if (progressEl) {
-            progressEl.style.setProperty('--value', Math.round(progress));
-            progressEl.textContent = Math.round(progress) + '%';
-        }
-    }
-
-    if (data.steps) {
-        const progress = Math.min((data.steps / this.goals.stepsGoal) * 100, 100);
-        const progressEl = document.getElementById('steps-goal-progress');
-        if (progressEl) {
-            progressEl.style.setProperty('--value', Math.round(progress));
-            progressEl.textContent = Math.round(progress) + '%';
-        }
-    }
-
-    if (data.waterIntake) {
-        const progress = Math.min((data.waterIntake / this.goals.waterGoal) * 100, 100);
-        const progressEl = document.getElementById('water-goal-progress');
-        if (progressEl) {
-            progressEl.style.setProperty('--value', Math.round(progress));
-            progressEl.textContent = Math.round(progress) + '%';
-        }
-    }
-
-    if (data.sleepHours) {
-        const progress = Math.min((data.sleepHours / this.goals.sleepGoal) * 100, 100);
-        const progressEl = document.getElementById('sleep-goal-progress');
-        if (progressEl) {
-            progressEl.style.setProperty('--value', Math.round(progress));
-            progressEl.textContent = Math.round(progress) + '%';
-        }
-    }
-}
-
-destroyAllCharts() {
-    console.log('🔥 Destroying all Chart.js instances...');
-    
-    // 1. Destroy tracked charts with improved error handling
-    if (this.charts) {
-        Object.keys(this.charts).forEach(key => {
-            if (this.charts[key]) {
-                try {
-                    if (typeof this.charts[key].destroy === 'function') {
-                        this.charts[key].destroy();
-                        console.log(`✅ Chart ${key} destroyed`);
-                    }
-                    delete this.charts[key];
-                } catch (error) {
-                    console.warn(`❌ Chart ${key} destroy error:`, error);
-                    delete this.charts[key]; // Force cleanup even on error
-                }
-            }
-        });
-        this.charts = {};
-    }
-    
-    // 2. Enhanced canvas cleanup with context clearing
-    document.querySelectorAll('canvas').forEach(canvas => {
-        // Clear Chart.js instance reference
-        if (canvas.chartInstance) {
-            try {
-                canvas.chartInstance.destroy();
-                delete canvas.chartInstance;
-            } catch (error) {
-                console.warn('Canvas cleanup error:', error);
-            }
-        }
-        
-        // Clear canvas context completely
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Reset canvas size to prevent memory leaks
-            canvas.width = canvas.width;
-            canvas.height = canvas.height;
-        }
-    });
-    
-    // 3. Clear Chart.js global registry (prevents ghost instances)
-    if (window.Chart && Chart.registry) {
-        // Force cleanup of Chart.js internal state
-        Chart.helpers.each(Chart.instances, (instance) => {
-            if (instance && typeof instance.destroy === 'function') {
-                try {
-                    instance.destroy();
-                } catch (e) {
-                    console.warn('Global Chart instance cleanup error:', e);
-                }
-            }
-        });
-    }
-    
-    // 4. Force garbage collection hint
-    if (window.gc) window.gc();
-}
-
-// Verhindere doppelte Event Listener
-addEventListenerOnce(element, event, handler, options = {}) {
-    if (!element) return;
-    
-    // Entferne existierende Listener vom gleichen Typ
-    element.removeEventListener(event, handler);
-    
-    // Füge neuen Listener hinzu
-    element.addEventListener(event, handler, options);
-}
-
-createChartSafely(canvasId, config, chartKey) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-        console.warn(`❌ Canvas ${canvasId} not found`);
-        return null;
-    }
-
-    // Set chart identification attributes
-    canvas.dataset.chartKey = chartKey;
-    canvas.dataset.canvasId = canvasId;
-    canvas.dataset.created = Date.now();
-    
-    // Prüfe und zerstöre existierende Charts
-    if (this.charts[chartKey]) {
-        console.log(`🔄 Destroying existing chart: ${chartKey}`);
-        try {
-            this.charts[chartKey].destroy();
-        } catch (error) {
-            console.warn(`Error destroying ${chartKey}:`, error);
-        }
-        delete this.charts[chartKey];
-    }
-    
-    // Prüfe Canvas-spezifische Instanz
-    if (canvas.chartInstance) {
-        console.log(`🔄 Destroying canvas-bound chart for: ${canvasId}`);
-        try {
-            canvas.chartInstance.destroy();
-        } catch (error) {
-            console.warn(`Canvas instance cleanup error:`, error);
-        }
-        delete canvas.chartInstance;
-    }
-    
-    try {
-        const ctx = canvas.getContext('2d');
-        
-        // Clear canvas before creating new chart
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Enhanced config with strict memory optimizations
-        const optimizedConfig = {
-            ...config,
-            options: {
-                ...config.options,
-                responsive: true,
-                maintainAspectRatio: false,
-                // Deaktiviere Animationen für Performance
-                animation: false,
-                animations: {
-                    colors: false,
-                    x: false,
-                    y: false
-                },
-                transitions: {
-                    active: {
-                        animation: {
-                            duration: 0
-                        }
-                    }
-                },
-                // Resize-Protection
-                onResize: (chart, size) => {
-                    // Prevent infinite resize loops
-                    if (chart._resizing) return;
-                    chart._resizing = true;
-                    requestAnimationFrame(() => {
-                        chart._resizing = false;
-                    });
-                },
-                plugins: {
-                    ...config.options?.plugins,
-                    legend: {
-                        ...config.options?.plugins?.legend,
-                        labels: {
-                            ...config.options?.plugins?.legend?.labels,
-                            usePointStyle: true,
-                            boxWidth: 12,
-                            padding: 10
-                        }
-                    }
-                },
-                scales: config.options?.scales ? {
-                    ...config.options.scales,
-                    x: {
-                        ...config.options.scales.x,
-                        display: true,
-                        grid: { display: false }
-                    },
-                    y: {
-                        ...config.options.scales.y,
-                        display: true,
-                        grid: { 
-                            display: true, 
-                            color: 'rgba(0,0,0,0.05)' 
-                        }
-                    }
-                } : undefined
-            }
-        };
-        
-        // Create new chart instance
-        const chartInstance = new Chart(ctx, optimizedConfig);
-        
-        // Store references for cleanup
-        this.charts[chartKey] = chartInstance;
-        canvas.chartInstance = chartInstance;
-        
-        console.log(`✅ Chart ${chartKey} created successfully`);
-        return chartInstance;
-        
-    } catch (error) {
-        console.error(`❌ Error creating chart ${chartKey}:`, error);
-        return null;
-    }
-}
 }
 
 class ProgressHub {
@@ -2454,9 +1205,11 @@ class ProgressHub {
         return;
     }
     
-    // KRITISCH: Cleanup Charts vor View-Wechsel
-    console.log('🧹 Cleaning up charts before view change');
-    this.healthTracker.destroyAllCharts();
+    // KRITISCH: Verwende ChartManager für cleanup
+    console.log('🧹 Cleaning up charts before view change via ChartManager');
+    if (this.healthTracker.chartManager) {
+        this.healthTracker.chartManager.destroyAllCharts();
+    }
     
     // Hide all views
     document.querySelectorAll('.progress-view').forEach(view => {
@@ -2480,9 +1233,18 @@ class ProgressHub {
     
     this.currentView = viewName;
     
-    // Verzögere Chart-Laden um DOM-Updates abzuwarten
+    // Verzögere Data-Loading
     setTimeout(() => {
         this.loadViewData();
+        
+        // Charts nach View-Wechsel wieder initialisieren
+        setTimeout(() => {
+            if (this.healthTracker.chartManager) {
+                this.healthTracker.chartManager.initializeAllCharts().then(() => {
+                    this.healthTracker.chartManager.loadAndUpdateAllCharts();
+                });
+            }
+        }, 200);
     }, 100);
 }
 

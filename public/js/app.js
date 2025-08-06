@@ -446,6 +446,37 @@ class SmartNotificationManager {
 }
 
 class HealthTrackerPro {
+    initChartResizeObserver() {
+    if (!window.ResizeObserver) return;
+    
+    // Cleanup existing observer
+    if (this.chartResizeObserver) {
+        this.chartResizeObserver.disconnect();
+    }
+    
+    this.chartResizeObserver = new ResizeObserver(entries => {
+        const resizeTimeout = setTimeout(() => {
+            entries.forEach(entry => {
+                const canvas = entry.target;
+                const chartKey = canvas.dataset.chartKey;
+                
+                if (chartKey && this.charts[chartKey] && !this.charts[chartKey]._resizing) {
+                    try {
+                        this.charts[chartKey].resize();
+                    } catch (error) {
+                        console.warn(`Chart resize error for ${chartKey}:`, error);
+                    }
+                }
+            });
+            clearTimeout(resizeTimeout);
+        }, 100);
+    });
+    
+    // Observe all chart canvases
+    document.querySelectorAll('canvas').forEach(canvas => {
+        this.chartResizeObserver.observe(canvas);
+    });
+}
     constructor() {
         this.userId = this.getUserId();
         this.theme = localStorage.getItem('theme') || 'light';
@@ -471,6 +502,17 @@ class HealthTrackerPro {
     this.progressHub.loadViewData();
 }, 1000);
         this.activityFeed = new ActivityFeed(this);
+
+        // Initialize chart resize observer
+    this.initChartResizeObserver();
+    
+    // Chart cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        this.destroyAllCharts();
+        if (this.chartResizeObserver) {
+            this.chartResizeObserver.disconnect();
+        }
+    });
         
         // Initialize charts safely after DOM is ready
         setTimeout(() => this.initializeAllCharts(), 800);
@@ -1118,8 +1160,7 @@ initApp() {
             }
         }
     };
-    
-    // ✅ JETZT mit createChartSafely:
+
     const chart = this.createChartSafely('moodChart', config, 'mood');
     if (chart) {
         console.log('✅ Mood chart initialized successfully with createChartSafely');
@@ -2193,25 +2234,28 @@ updateGoalProgressIndicators(data) {
 destroyAllCharts() {
     console.log('🔥 Destroying all Chart.js instances...');
     
-    // 1. Destroy tracked charts
+    // 1. Destroy tracked charts with improved error handling
     if (this.charts) {
         Object.keys(this.charts).forEach(key => {
             if (this.charts[key]) {
                 try {
                     if (typeof this.charts[key].destroy === 'function') {
                         this.charts[key].destroy();
+                        console.log(`✅ Chart ${key} destroyed`);
                     }
                     delete this.charts[key];
                 } catch (error) {
-                    console.warn(`Chart ${key} destroy error:`, error);
+                    console.warn(`❌ Chart ${key} destroy error:`, error);
+                    delete this.charts[key]; // Force cleanup even on error
                 }
             }
         });
         this.charts = {};
     }
-
-    // 2. Clear canvas contexts to prevent memory leaks
+    
+    // 2. Enhanced canvas cleanup with context clearing
     document.querySelectorAll('canvas').forEach(canvas => {
+        // Clear Chart.js instance reference
         if (canvas.chartInstance) {
             try {
                 canvas.chartInstance.destroy();
@@ -2220,12 +2264,32 @@ destroyAllCharts() {
                 console.warn('Canvas cleanup error:', error);
             }
         }
-        // Clear canvas
+        
+        // Clear canvas context completely
         const ctx = canvas.getContext('2d');
-        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+        if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Reset canvas size to prevent memory leaks
+            canvas.width = canvas.width;
+            canvas.height = canvas.height;
+        }
     });
-
-    // 3. Force garbage collection hint
+    
+    // 3. Clear Chart.js global registry (prevents ghost instances)
+    if (window.Chart && Chart.registry) {
+        // Force cleanup of Chart.js internal state
+        Chart.helpers.each(Chart.instances, (instance) => {
+            if (instance && typeof instance.destroy === 'function') {
+                try {
+                    instance.destroy();
+                } catch (e) {
+                    console.warn('Global Chart instance cleanup error:', e);
+                }
+            }
+        });
+    }
+    
+    // 4. Force garbage collection hint
     if (window.gc) window.gc();
 }
 
@@ -2243,76 +2307,116 @@ addEventListenerOnce(element, event, handler, options = {}) {
 createChartSafely(canvasId, config, chartKey) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
-        console.warn(`Canvas ${canvasId} not found`);
+        console.warn(`❌ Canvas ${canvasId} not found`);
         return null;
     }
 
-    // Destroy existing chart if exists
+    // Set chart identification attributes
+    canvas.dataset.chartKey = chartKey;
+    canvas.dataset.canvasId = canvasId;
+    canvas.dataset.created = Date.now();
+    
+    // Prüfe und zerstöre existierende Charts
     if (this.charts[chartKey]) {
+        console.log(`🔄 Destroying existing chart: ${chartKey}`);
         try {
             this.charts[chartKey].destroy();
         } catch (error) {
             console.warn(`Error destroying ${chartKey}:`, error);
         }
+        delete this.charts[chartKey];
     }
-
+    
+    // Prüfe Canvas-spezifische Instanz
+    if (canvas.chartInstance) {
+        console.log(`🔄 Destroying canvas-bound chart for: ${canvasId}`);
+        try {
+            canvas.chartInstance.destroy();
+        } catch (error) {
+            console.warn(`Canvas instance cleanup error:`, error);
+        }
+        delete canvas.chartInstance;
+    }
+    
     try {
         const ctx = canvas.getContext('2d');
         
-        // Enhanced config with memory optimizations
+        // Clear canvas before creating new chart
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Enhanced config with strict memory optimizations
         const optimizedConfig = {
             ...config,
             options: {
                 ...config.options,
-                animation: {
-                    duration: 0 // Disable animations for better performance
-                },
                 responsive: true,
                 maintainAspectRatio: false,
+                // Deaktiviere Animationen für Performance
+                animation: false,
+                animations: {
+                    colors: false,
+                    x: false,
+                    y: false
+                },
+                transitions: {
+                    active: {
+                        animation: {
+                            duration: 0
+                        }
+                    }
+                },
+                // Resize-Protection
+                onResize: (chart, size) => {
+                    // Prevent infinite resize loops
+                    if (chart._resizing) return;
+                    chart._resizing = true;
+                    requestAnimationFrame(() => {
+                        chart._resizing = false;
+                    });
+                },
                 plugins: {
                     ...config.options?.plugins,
                     legend: {
                         ...config.options?.plugins?.legend,
                         labels: {
                             ...config.options?.plugins?.legend?.labels,
-                            usePointStyle: true, // Reduce legend size
-                            boxWidth: 12
+                            usePointStyle: true,
+                            boxWidth: 12,
+                            padding: 10
                         }
                     }
                 },
                 scales: config.options?.scales ? {
                     ...config.options.scales,
-                    // Prevent infinite resize loops
                     x: {
                         ...config.options.scales.x,
                         display: true,
-                        grid: {
-                            display: false // Reduce rendering load
-                        }
+                        grid: { display: false }
                     },
                     y: {
                         ...config.options.scales.y,
                         display: true,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0,0,0,0.1)'
+                        grid: { 
+                            display: true, 
+                            color: 'rgba(0,0,0,0.05)' 
                         }
                     }
-                } : undefined,
-                // KRITISCH: Resize-Protection
-                onResize: () => {
-                    // Prevent infinite resize loops
-                    return;
-                }
+                } : undefined
             }
         };
-
-        this.charts[chartKey] = new Chart(ctx, optimizedConfig);
-        canvas.chartInstance = this.charts[chartKey]; // Reference for cleanup
         
-        return this.charts[chartKey];
+        // Create new chart instance
+        const chartInstance = new Chart(ctx, optimizedConfig);
+        
+        // Store references for cleanup
+        this.charts[chartKey] = chartInstance;
+        canvas.chartInstance = chartInstance;
+        
+        console.log(`✅ Chart ${chartKey} created successfully`);
+        return chartInstance;
+        
     } catch (error) {
-        console.error(`Error creating chart ${chartKey}:`, error);
+        console.error(`❌ Error creating chart ${chartKey}:`, error);
         return null;
     }
 }
@@ -2345,34 +2449,42 @@ class ProgressHub {
     }
 
     showView(viewName) {
-        if (!document.getElementById(`view-${viewName}`)) {
-            console.warn(`Progress Hub View "${viewName}" nicht gefunden`);
-            return;
-        }
-
-        // Hide all views
-        document.querySelectorAll('.progress-view').forEach(view => {
-            view.classList.add('hidden');
-        });
-        
-        // Show selected view
-        const targetView = document.getElementById(`view-${viewName}`);
-        if (targetView) {
-            targetView.classList.remove('hidden');
-        }
-        
-        // Update tab styles
-        document.querySelectorAll('.tabs .tab').forEach(tab => {
-            tab.classList.remove('tab-active');
-        });
-        const tabElement = document.getElementById(`tab-${viewName}`);
-        if (tabElement) {
-            tabElement.classList.add('tab-active');
-        }
-        
-        this.currentView = viewName;
-        this.loadViewData();
+    if (!document.getElementById(`view-${viewName}`)) {
+        console.warn(`Progress Hub View "${viewName}" nicht gefunden`);
+        return;
     }
+    
+    // KRITISCH: Cleanup Charts vor View-Wechsel
+    console.log('🧹 Cleaning up charts before view change');
+    this.healthTracker.destroyAllCharts();
+    
+    // Hide all views
+    document.querySelectorAll('.progress-view').forEach(view => {
+        view.classList.add('hidden');
+    });
+    
+    // Show selected view
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) {
+        targetView.classList.remove('hidden');
+    }
+    
+    // Update tab styles
+    document.querySelectorAll('.tabs .tab').forEach(tab => {
+        tab.classList.remove('tab-active');
+    });
+    const tabElement = document.getElementById(`tab-${viewName}`);
+    if (tabElement) {
+        tabElement.classList.add('tab-active');
+    }
+    
+    this.currentView = viewName;
+    
+    // Verzögere Chart-Laden um DOM-Updates abzuwarten
+    setTimeout(() => {
+        this.loadViewData();
+    }, 100);
+}
 
     async loadViewData() {
         try {

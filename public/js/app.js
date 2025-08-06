@@ -2667,27 +2667,27 @@ class AnalyticsEngine {
      * Update all analytics charts and insights
      */
     async updateAllAnalytics() {
-        try {
-            const data = await this.healthTracker.getAllHealthData();
-            const periodData = this.getDataForPeriod(data, this.currentPeriod);
-            
-            // Update all charts
-            await Promise.all([
-                this.updateTrendChart(periodData),
-                this.updateHeatmapChart(periodData),
-                this.updateCorrelationChart(periodData),
-                this.updateWeeklySummaryChart(data),
-                this.updateGoalProgressChart(periodData)
-            ]);
-            
-            // Update insights
-            this.updateInsights(periodData);
-            this.updateCorrelationInsights(periodData);
-            
-        } catch (error) {
-            console.error('❌ Analytics update error:', error);
-        }
+    try {
+        const data = await this.healthTracker.getAllHealthData();
+        const periodData = this.getDataForPeriod(data, this.currentPeriod);
+        
+        // Update all charts
+        await Promise.all([
+            this.updateTrendChart(periodData),
+            this.updateHeatmapChart(periodData),
+            this.updateCorrelationChart(periodData),
+            this.updateWeeklySummaryChart(data),
+            this.updateGoalProgressChart(periodData)
+        ]);
+        
+        // Update insights
+        this.updateInsights(periodData);
+        this.updateCorrelationInsights(periodData);
+        
+    } catch (error) {
+        console.error('❌ Analytics update error:', error);
     }
+}
     
     /**
      * Get data for specific time period
@@ -2706,75 +2706,75 @@ class AnalyticsEngine {
      * Update trend chart
      */
     async updateTrendChart(data = null) {
-        if (!data) {
-            const allData = await this.healthTracker.getAllHealthData();
-            data = this.getDataForPeriod(allData, this.currentPeriod);
-        }
-        
-        const canvas = document.getElementById('trends-chart');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        
-        // Destroy existing chart
-        if (this.charts.has('trends')) {
-            this.charts.get('trends').destroy();
-        }
-        
-        const chartData = this.prepareTrendData(data);
-        
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: this.currentPeriod > 30 ? 'week' : 'day',
-                            displayFormats: {
-                                day: 'MMM dd',
-                                week: 'MMM dd'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Datum'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: this.getMetricLabel(this.currentMetric)
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                const value = context.parsed.y;
-                                const unit = this.getMetricUnit(this.currentMetric);
-                                return `${value.toLocaleString()}${unit}`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    duration: 750,
-                    easing: 'easeInOutQuart'
-                }
-            }
-        });
-        
-        this.charts.set('trends', chart);
+    if (!data) {
+        const allData = await this.healthTracker.getAllHealthData();
+        data = this.getDataForPeriod(allData, this.currentPeriod);
     }
+    
+    const canvas = document.getElementById('trends-chart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Destroy existing chart
+    if (this.charts.has('trends')) {
+        this.charts.get('trends').destroy();
+    }
+    
+    const chartData = this.prepareTrendData(data);
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: this.currentPeriod > 30 ? 'week' : 'day',
+                        displayFormats: {
+                            day: 'MMM dd',
+                            week: 'MMM dd'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Datum'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: this.getMetricLabel(this.currentMetric)
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const value = context.parsed.y;
+                            const unit = this.getMetricUnit(this.currentMetric);
+                            return `${value.toLocaleString()}${unit}`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+    
+    this.charts.set('trends', chart);
+}
     
     /**
      * Prepare data for trend chart

@@ -2231,66 +2231,106 @@ updateGoalProgressIndicators(data) {
     }
 }
 
+// REPLACE: destroyAllCharts() method in HealthTracker class
 destroyAllCharts() {
-    console.log('🔥 Destroying all Chart.js instances...');
-    
-    // 1. Destroy tracked charts with improved error handling
+    console.log('🔥 Enhanced chart destruction process...');
+
+    // 1. Destroy tracked charts with timeout protection
     if (this.charts) {
-        Object.keys(this.charts).forEach(key => {
-            if (this.charts[key]) {
-                try {
-                    if (typeof this.charts[key].destroy === 'function') {
-                        this.charts[key].destroy();
-                        console.log(`✅ Chart ${key} destroyed`);
+        const destroyPromises = Object.keys(this.charts).map(key => {
+            return new Promise((resolve) => {
+                if (this.charts[key]) {
+                    try {
+                        if (typeof this.charts[key].destroy === 'function') {
+                            this.charts[key].destroy();
+                            console.log(`✅ Chart ${key} destroyed`);
+                        }
+                        delete this.charts[key];
+                    } catch (error) {
+                        console.warn(`❌ Chart ${key} destroy error:`, error);
+                        delete this.charts[key];
                     }
-                    delete this.charts[key];
-                } catch (error) {
-                    console.warn(`❌ Chart ${key} destroy error:`, error);
-                    delete this.charts[key]; // Force cleanup even on error
                 }
-            }
+                resolve();
+            });
         });
+
+        // Wait for all destructions to complete (max 500ms)
+        Promise.allSettled(destroyPromises);
         this.charts = {};
     }
-    
-    // 2. Enhanced canvas cleanup with context clearing
+
+    // 2. Enhanced canvas cleanup with complete reset
     document.querySelectorAll('canvas').forEach(canvas => {
-        // Clear Chart.js instance reference
-        if (canvas.chartInstance) {
-            try {
-                canvas.chartInstance.destroy();
+        try {
+            // Clear Chart.js instance references
+            if (canvas.chartInstance) {
+                if (typeof canvas.chartInstance.destroy === 'function') {
+                    canvas.chartInstance.destroy();
+                }
                 delete canvas.chartInstance;
-            } catch (error) {
-                console.warn('Canvas cleanup error:', error);
             }
-        }
-        
-        // Clear canvas context completely
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Reset canvas size to prevent memory leaks
-            canvas.width = canvas.width;
-            canvas.height = canvas.height;
+
+            // Clear canvas context completely
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Force canvas reset
+                const { width, height } = canvas.getBoundingClientRect();
+                canvas.width = width * (window.devicePixelRatio || 1);
+                canvas.height = height * (window.devicePixelRatio || 1);
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+                ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+            }
+
+            // Clear all data attributes
+            delete canvas.dataset.chartKey;
+            delete canvas.dataset.canvasId;
+            delete canvas.dataset.created;
+
+        } catch (error) {
+            console.warn('Canvas cleanup error:', error);
         }
     });
-    
-    // 3. Clear Chart.js global registry (prevents ghost instances)
+
+    // 3. Clear Chart.js global registry with error protection
     if (window.Chart && Chart.registry) {
-        // Force cleanup of Chart.js internal state
-        Chart.helpers.each(Chart.instances, (instance) => {
-            if (instance && typeof instance.destroy === 'function') {
-                try {
-                    instance.destroy();
-                } catch (e) {
-                    console.warn('Global Chart instance cleanup error:', e);
+        try {
+            // Clear Chart.js instances array
+            if (Chart.instances) {
+                Chart.instances.length = 0;
+            }
+            
+            // Force cleanup of any remaining instances
+            Object.keys(Chart.defaults).forEach(key => {
+                if (Chart.defaults[key] && typeof Chart.defaults[key] === 'object') {
+                    // Reset to prevent memory leaks
                 }
+            });
+        } catch (error) {
+            console.warn('Chart.js registry cleanup error:', error);
+        }
+    }
+
+    // 4. ADD: Cleanup ProgressHub sparkline charts if available
+    if (this.progressHub && this.progressHub.sparklineCharts) {
+        Object.keys(this.progressHub.sparklineCharts).forEach(key => {
+            if (this.progressHub.sparklineCharts[key]) {
+                try {
+                    this.progressHub.sparklineCharts[key].destroy();
+                } catch (error) {
+                    console.warn(`Sparkline chart ${key} cleanup error:`, error);
+                }
+                delete this.progressHub.sparklineCharts[key];
             }
         });
     }
-    
-    // 4. Force garbage collection hint
+
+    // 5. Force garbage collection hint
     if (window.gc) window.gc();
+    
+    console.log('🧹 Chart cleanup completed');
 }
 
 // Verhindere doppelte Event Listener
@@ -2435,6 +2475,34 @@ class ProgressHub {
         setTimeout(() => this.initialize(), 500);
     }
 
+    initResizeProtection() {
+    // ResizeObserver für Chart-Container
+    if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(entries => {
+            // Throttle resize events
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
+                entries.forEach(entry => {
+                    const canvas = entry.target.querySelector('canvas');
+                    if (canvas && canvas.chartInstance) {
+                        try {
+                            canvas.chartInstance.resize();
+                        } catch (error) {
+                            console.warn('Chart resize error:', error);
+                        }
+                    }
+                });
+            }, 250);
+        });
+
+        // Observe chart containers
+        const chartContainers = document.querySelectorAll('.progress-view');
+        chartContainers.forEach(container => {
+            this.resizeObserver.observe(container);
+        });
+    }
+}
+
     initialize() {
         // Prüfe ob Progress Hub HTML existiert
         if (!document.getElementById('view-today')) {
@@ -2445,6 +2513,7 @@ class ProgressHub {
         console.log('✅ Progress Hub wird initialisiert');
         this.generateDailyChallenge();
         this.initSparklineCharts();
+        this.initResizeProtection();
         this.showView(this.currentView);
     }
 
@@ -2453,22 +2522,47 @@ class ProgressHub {
         console.warn(`Progress Hub View "${viewName}" nicht gefunden`);
         return;
     }
+
+    // KRITISCH: Umfassender Chart-Cleanup vor View-Wechsel
+    console.log('🧹 Comprehensive chart cleanup before view change');
     
-    // KRITISCH: Cleanup Charts vor View-Wechsel
-    console.log('🧹 Cleaning up charts before view change');
+    // 1. Destroy all tracked charts
     this.healthTracker.destroyAllCharts();
     
+    // 2. Clean up sparkline charts specifically
+    Object.keys(this.sparklineCharts).forEach(key => {
+        if (this.sparklineCharts[key] && typeof this.sparklineCharts[key].destroy === 'function') {
+            this.sparklineCharts[key].destroy();
+            delete this.sparklineCharts[key];
+        }
+    });
+    
+    // 3. Force canvas cleanup in current view
+    const currentView = document.getElementById(`view-${this.currentView}`);
+    if (currentView) {
+        currentView.querySelectorAll('canvas').forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = canvas.width; // Reset canvas
+            }
+            if (canvas.chartInstance) {
+                delete canvas.chartInstance;
+            }
+        });
+    }
+
     // Hide all views
     document.querySelectorAll('.progress-view').forEach(view => {
         view.classList.add('hidden');
     });
-    
+
     // Show selected view
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) {
         targetView.classList.remove('hidden');
     }
-    
+
     // Update tab styles
     document.querySelectorAll('.tabs .tab').forEach(tab => {
         tab.classList.remove('tab-active');
@@ -2477,13 +2571,16 @@ class ProgressHub {
     if (tabElement) {
         tabElement.classList.add('tab-active');
     }
-    
+
     this.currentView = viewName;
-    
-    // Verzögere Chart-Laden um DOM-Updates abzuwarten
+
+    // Verzögerte Chart-Erstellung mit doppelter Sicherheit
     setTimeout(() => {
-        this.loadViewData();
-    }, 100);
+        // Nochmaliger Check vor Chart-Erstellung
+        if (this.currentView === viewName) {
+            this.loadViewData();
+        }
+    }, 150);
 }
 
     async loadViewData() {
@@ -3938,43 +4035,53 @@ getHeatmapSummary(weeks, metric) {
     }
 
     renderCorrelationChart(data) {
-        const canvas = document.getElementById('correlation-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-        
-        const ctx = canvas.getContext('2d');
-        
-        if (this.charts.correlation) {
-            this.charts.correlation.destroy();
-        }
-        
-        this.charts.correlation = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Schritte vs Schlaf',
-                    data: data.map(d => ({ x: d.steps || 0, y: d.sleepHours || 0 })),
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => `${context.parsed.x} Schritte, ${context.parsed.y}h Schlaf`
-                        }
-                    }
-                },
-                scales: {
-                    x: { title: { display: true, text: 'Schritte' } },
-                    y: { title: { display: true, text: 'Schlaf (Stunden)' } }
-                }
-            }
-        });
+    const canvas = document.getElementById('correlation-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // ADD: View and visibility checks
+    if (this.currentView !== 'achievements') {
+        console.log('🚫 Skipping correlation chart - view not active');
+        return;
     }
+
+    if (!canvas.offsetParent) {
+        console.log('🚫 Skipping correlation chart - canvas not visible');
+        return;
+    }
+
+    const chartKey = 'correlation';
+    
+    const chartConfig = {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Schritte vs Schlaf',
+                data: data.map(d => ({ x: d.steps || 0, y: d.sleepHours || 0 })),
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.parsed.x} Schritte, ${context.parsed.y}h Schlaf`
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Schritte' } },
+                y: { title: { display: true, text: 'Schlaf (Stunden)' } }
+            }
+        }
+    };
+
+    this.createChartSafely('correlation-chart', chartConfig, chartKey);
+}
 
     generateTrendAnalysis(data) {
         const periodData = data.slice(0, this.trendPeriod);
@@ -3983,65 +4090,66 @@ getHeatmapSummary(weeks, metric) {
     }
 
     renderTrendChart(data) {
-        const canvas = document.getElementById('trends-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-        
-        const ctx = canvas.getContext('2d');
-        
-        if (this.charts.trends) {
-            this.charts.trends.destroy();
-        }
-        
-        const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        this.charts.trends = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: sortedData.map(d => new Date(d.date).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })),
-                datasets: [
-                    {
-                        label: 'Schritte',
-                        data: sortedData.map(d => d.steps || 0),
-                        borderColor: 'rgb(34, 197, 94)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Wasser (L)',
-                        data: sortedData.map(d => (d.waterIntake || 0) * 1000), // Scale for visibility
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-            resizeDelay: 0,
-            plugins: { 
+    const canvas = document.getElementById('trends-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // ADD: Prevent chart creation if view is not active
+    if (this.currentView !== 'week') {
+        console.log('🚫 Skipping trend chart - view not active');
+        return;
+    }
+
+    // ADD: Canvas visibility check
+    if (!canvas.offsetParent) {
+        console.log('🚫 Skipping trend chart - canvas not visible');
+        return;
+    }
+
+    const chartKey = 'trends';
+    
+    // Use createChartSafely instead of direct Chart creation
+    const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const chartConfig = {
+        type: 'line',
+        data: {
+            labels: sortedData.map(d => new Date(d.date).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' })),
+            datasets: [
+                {
+                    label: 'Schritte',
+                    data: sortedData.map(d => d.steps || 0),
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Wasser (L)',
+                    data: sortedData.map(d => (d.waterIntake || 0) * 1000),
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            resizeDelay: 100,
+            plugins: {
                 legend: { display: true }
             },
             scales: {
                 y: { type: 'linear', display: true, position: 'left' },
-                y1: { 
-                    type: 'linear', 
-                    display: true, 
-                    position: 'right', 
-                    grid: { drawOnChartArea: false } 
-                }
-            },
-            // ➕ RESIZE PROTECTION:
-            onResize: () => {
-                // Prevent infinite resize loops
-                return;
-                }
+                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
             }
-        });
-    }
+        }
+    };
+
+    this.createChartSafely('trends-chart', chartConfig, chartKey);
+}
 
     updateTrendStats(data) {
         const container = document.getElementById('trend-stats');

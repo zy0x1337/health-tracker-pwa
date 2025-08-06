@@ -273,33 +273,37 @@ async handleFormSubmission(event) {
     }
     
     /**
- * Extract and sanitize form data with correct date handling
+ * Extract and sanitize form data
  */
 extractFormData(form) {
     const formData = new FormData(form);
     
-    // Get date from form or use today
+    // KRITISCHER FIX: Datum korrekt verarbeiten
     let dateValue = formData.get('date');
     if (!dateValue) {
+        // Verwende lokales Datum (nicht UTC)
         const today = new Date();
         dateValue = today.getFullYear() + '-' + 
                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
                    String(today.getDate()).padStart(2, '0');
     }
     
-    console.log('📅 Form date value:', dateValue);
-    
-    return {
+    console.log('📅 EXTRACT FORM - Date value:', dateValue);
+
+    const result = {
         userId: this.userId,
-        date: dateValue, // Store as string in YYYY-MM-DD format
+        date: dateValue, // Als String speichern, NICHT als Date-Objekt
         weight: this.parseNumber(formData.get('weight')),
         steps: this.parseInt(formData.get('steps')),
         waterIntake: this.parseNumber(formData.get('waterIntake')),
         sleepHours: this.parseNumber(formData.get('sleepHours')),
         mood: formData.get('mood') || null,
         notes: this.sanitizeString(formData.get('notes')),
-        createdAt: new Date().toISOString() // Full timestamp for ordering
+        createdAt: new Date().toISOString() // Nur für Reihenfolge
     };
+    
+    console.log('📊 EXTRACTED DATA:', result);
+    return result;
 }
     
     /**
@@ -464,33 +468,141 @@ extractFormData(form) {
     }
     
     /**
-     * Update dashboard statistics
-     */
-    async updateDashboardStats() {
-        try {
-            const data = await this.getAllHealthData();
-            const todayData = this.getTodayData(data);
-            const weekData = this.getWeekData(data);
-            
-            // Update today's stats
-            this.updateStatCard('today-weight', todayData.weight, 'kg', '⚖️');
-            this.updateStatCard('today-steps', todayData.steps, '', '🚶‍♂️');
-            this.updateStatCard('today-water', todayData.waterIntake, 'L', '💧');
-            this.updateStatCard('today-sleep', todayData.sleepHours, 'h', '😴');
-            
-            // Update weekly averages
-            const weeklyAvg = this.calculateWeeklyAverages(weekData);
-            this.updateStatCard('week-steps', weeklyAvg.steps, '', '📊');
-            this.updateStatCard('week-water', weeklyAvg.water, 'L', '📈');
-            this.updateStatCard('week-sleep', weeklyAvg.sleep, 'h', '🌙');
-            
-            // Update goal progress
-            this.updateGoalProgress(todayData);
-            
-        } catch (error) {
-            console.error('❌ Fehler beim Aktualisieren der Statistiken:', error);
-        }
+ * Enhanced today data aggregation
+ */
+getTodayData(allData) {
+    // Lokales Datum verwenden
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(today.getDate()).padStart(2, '0');
+    
+    console.log('🗓️ GET TODAY DATA - Suche für Datum:', todayStr);
+    console.log('📊 Alle verfügbaren Daten:', allData);
+    
+    if (!allData || !Array.isArray(allData)) {
+        console.log('❌ Keine oder ungültige Daten verfügbar');
+        return { date: todayStr };
     }
+
+    // Filter entries für heute mit flexiblem Parsing
+    const todayEntries = allData.filter(entry => {
+        if (!entry || !entry.date) {
+            console.log('⚠️ Eintrag ohne Datum:', entry);
+            return false;
+        }
+        
+        let entryDateStr;
+        if (typeof entry.date === 'string') {
+            // Extrahiere nur YYYY-MM-DD Teil
+            entryDateStr = entry.date.includes('T') ? entry.date.split('T')[0] : entry.date;
+        } else if (entry.date instanceof Date) {
+            entryDateStr = entry.date.toISOString().split('T')[0];
+        } else {
+            console.log('⚠️ Unbekanntes Datumsformat:', entry.date, typeof entry.date);
+            return false;
+        }
+        
+        const isToday = entryDateStr === todayStr;
+        console.log(`📅 Vergleiche: "${entryDateStr}" === "${todayStr}" = ${isToday}`);
+        
+        return isToday;
+    });
+    
+    console.log(`✅ Gefunden ${todayEntries.length} Einträge für heute:`, todayEntries);
+    
+    if (todayEntries.length === 0) {
+        console.log('📊 Keine Einträge für heute gefunden');
+        return { date: todayStr };
+    }
+    
+    // Sortiere nach Erstellungszeit (neueste zuerst)
+    todayEntries.sort((a, b) => {
+        const timeA = new Date(a._createdAt || a.createdAt || a.date).getTime();
+        const timeB = new Date(b._createdAt || b.createdAt || b.date).getTime();
+        return timeB - timeA;
+    });
+    
+    // Aggregiere Daten
+    const aggregatedData = {
+        date: todayStr,
+        weight: null,
+        steps: 0,
+        waterIntake: 0,
+        sleepHours: 0,
+        mood: null,
+        notes: [],
+        entryCount: todayEntries.length,
+        lastUpdated: null
+    };
+    
+    todayEntries.forEach(entry => {
+        console.log('🔄 Verarbeite Eintrag:', entry);
+        
+        // Gewicht: Neuesten Wert nehmen
+        if (entry.weight !== null && entry.weight !== undefined && !aggregatedData.weight) {
+            aggregatedData.weight = entry.weight;
+            console.log('⚖️ Gewicht gesetzt:', aggregatedData.weight);
+        }
+        
+        // Schritte: Summieren
+        if (entry.steps) {
+            aggregatedData.steps += entry.steps;
+            console.log('🚶♂️ Schritte Total:', aggregatedData.steps);
+        }
+        
+        // Wasser: Summieren
+        if (entry.waterIntake) {
+            aggregatedData.waterIntake += entry.waterIntake;
+            console.log('💧 Wasser Total:', aggregatedData.waterIntake);
+        }
+        
+        // Schlaf: Summieren
+        if (entry.sleepHours) {
+            aggregatedData.sleepHours += entry.sleepHours;
+            console.log('😴 Schlaf Total:', aggregatedData.sleepHours);
+        }
+        
+        // Stimmung: Neueste nehmen
+        if (entry.mood && !aggregatedData.mood) {
+            aggregatedData.mood = entry.mood;
+            console.log('😊 Stimmung gesetzt:', aggregatedData.mood);
+        }
+        
+        // Notizen sammeln
+        if (entry.notes && entry.notes.trim()) {
+            const timestamp = new Date(entry._createdAt || entry.createdAt || entry.date).toLocaleTimeString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            aggregatedData.notes.push(`${timestamp}: ${entry.notes.trim()}`);
+        }
+        
+        // Letzte Aktualisierung verfolgen
+        const entryTime = new Date(entry._createdAt || entry.createdAt || entry.date).getTime();
+        if (!aggregatedData.lastUpdated || entryTime > aggregatedData.lastUpdated) {
+            aggregatedData.lastUpdated = entryTime;
+        }
+    });
+    
+    // Notizen verarbeiten
+    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join('\n') : null;
+    
+    // Dezimalwerte runden
+    aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
+    aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
+    
+    // Formatierte Zeit für Anzeige
+    if (aggregatedData.lastUpdated) {
+        aggregatedData.lastUpdatedFormatted = new Date(aggregatedData.lastUpdated).toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
+    console.log('📊 FINALE AGGREGIERTE DATEN:', aggregatedData);
+    return aggregatedData;
+}
     
     /**
      * Update individual stat card
@@ -1115,32 +1227,36 @@ async refreshAllComponents() {
     // ====================================================================
     
     /**
-     * Save data to localStorage
-     */
-    async saveToLocalStorage(data) {
-        try {
-            const existingData = JSON.parse(localStorage.getItem('healthData') || '[]');
-            
-            // Add sync metadata
-            const dataWithMetadata = {
-                ...data,
-                _localId: 'local_' + Date.now(),
-                _synced: false,
-                _createdAt: new Date().toISOString()
-            };
-            
-            existingData.push(dataWithMetadata);
-            
-            // Keep only last 100 entries to prevent storage bloat
-            const trimmedData = existingData.slice(-100);
-            
-            localStorage.setItem('healthData', JSON.stringify(trimmedData));
-            
-        } catch (error) {
-            console.error('❌ localStorage Fehler:', error);
-            throw error;
-        }
+ * Save data to localStorage
+ */
+async saveToLocalStorage(data) {
+    try {
+        const existingData = JSON.parse(localStorage.getItem('healthData') || '[]');
+        
+        // KRITISCHER FIX: Sicherstellen dass date als String gespeichert wird
+        const dataWithMetadata = {
+            ...data,
+            date: typeof data.date === 'string' ? data.date : data.date.toISOString().split('T')[0],
+            _localId: 'local_' + Date.now(),
+            _synced: false,
+            _createdAt: new Date().toISOString()
+        };
+        
+        console.log('💾 SAVING TO LOCALSTORAGE:', dataWithMetadata);
+        
+        existingData.push(dataWithMetadata);
+        
+        // Keep only last 100 entries
+        const trimmedData = existingData.slice(-100);
+        localStorage.setItem('healthData', JSON.stringify(trimmedData));
+        
+        console.log('✅ SAVED TO LOCALSTORAGE. Total entries:', trimmedData.length);
+        
+    } catch (error) {
+        console.error('❌ localStorage Fehler:', error);
+        throw error;
     }
+}
     
     /**
      * Mark data as synced
@@ -1187,14 +1303,14 @@ async refreshAllComponents() {
  */
 initializeFormDefaults() {
     const dateInput = document.getElementById('date');
-    if (dateInput && !dateInput.value) {
+    if (dateInput) {
         const today = new Date();
         const todayStr = today.getFullYear() + '-' + 
                         String(today.getMonth() + 1).padStart(2, '0') + '-' + 
                         String(today.getDate()).padStart(2, '0');
         
         dateInput.value = todayStr;
-        console.log('📅 Form date initialized to:', todayStr);
+        console.log('📅 Formular-Datum initialisiert:', todayStr);
     }
 }
 
@@ -2750,28 +2866,80 @@ class ActivityFeed {
         // Sort by date (newest first)
         return activities.sort((a, b) => b.date - a.date);
     }
-    
-    /**
-     * Format timestamp for display
-     */
-    formatTime(date) {
+
+/**
+ * Format time ago - VOLLSTÄNDIGE IMPLEMENTATION
+ */
+formatTimeAgo(dateInput) {
+    try {
+        let date;
+        
+        // Handle verschiedene Eingabeformate
+        if (typeof dateInput === 'string') {
+            date = new Date(dateInput);
+        } else if (dateInput instanceof Date) {
+            date = dateInput;
+        } else {
+            console.log('❌ Ungültiges Datums-Input:', dateInput);
+            return 'Unbekannt';
+        }
+        
+        // Validiere Datum
+        if (isNaN(date.getTime())) {
+            console.error('❌ Ungültiges Datum:', dateInput);
+            return 'Ungültiges Datum';
+        }
+        
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now.getTime() - date.getTime();
+        
+        console.log('⏰ Zeitberechnung:', {
+            now: now.toLocaleString('de-DE'),
+            date: date.toLocaleString('de-DE'),
+            diffMs: diffMs,
+            diffHours: Math.floor(diffMs / (1000 * 60 * 60))
+        });
+        
+        // Negative Zeiten abfangen (Zukunft)
+        if (diffMs < 0) {
+            return 'In der Zukunft';
+        }
+        
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         
-        if (diffDays === 0) {
-            return `Heute • ${date.toLocaleTimeString('de-DE', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            })}`;
-        } else if (diffDays === 1) {
-            return 'Gestern';
-        } else if (diffDays < 7) {
-            return `${diffDays} Tage her`;
-        } else {
-            return date.toLocaleDateString('de-DE');
+        // Gleicher Tag check (bessere Methode)
+        const nowDate = now.toDateString();
+        const entryDate = date.toDateString();
+        
+        if (nowDate === entryDate) {
+            // Heute
+            if (diffSeconds < 30) return 'Gerade eben';
+            if (diffMinutes < 1) return 'vor wenigen Sekunden';
+            if (diffMinutes < 60) return `vor ${diffMinutes} Min.`;
+            return `vor ${diffHours}h`;
         }
+        
+        // Gestern
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (yesterday.toDateString() === entryDate) {
+            return 'Gestern';
+        }
+        
+        // Weitere Zeiträume
+        if (diffDays < 7) return `vor ${diffDays} Tagen`;
+        if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
+        if (diffDays < 365) return `vor ${Math.floor(diffDays / 30)} Monaten`;
+        return `vor ${Math.floor(diffDays / 365)} Jahren`;
+        
+    } catch (error) {
+        console.error('❌ formatTimeAgo Fehler:', error);
+        return 'Zeitfehler';
     }
+}
     
     /**
      * Render activities in the UI

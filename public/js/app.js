@@ -1203,7 +1203,6 @@ async initApp() {
     }
 }
 
-    // ➕ NEU: loadAndUpdateCharts mit Queue
 async loadAndUpdateCharts() {
     console.log('📊 Queueing loadAndUpdateCharts...');
     
@@ -1211,10 +1210,47 @@ async loadAndUpdateCharts() {
         try {
             console.log('🔄 Loading and updating all charts...');
             
-            // Deine bestehende loadAndUpdateCharts Logik hier
-            const data = await this.getAllData(); // oder wie auch immer du Daten lädst
+            // ➕ VARIANTE 1: Falls du eine andere Methode zum Daten laden hast
+            // Ersetze eine dieser Zeilen mit deiner tatsächlichen Datenlade-Methode:
             
-            if (data.length === 0) {
+            // Option A: Falls du loadData() hast
+            // const data = await this.loadData();
+            
+            // Option B: Falls du API direkt aufrufst  
+            // const data = await this.apiService.getHealthData(this.userId);
+            
+            // Option C: Falls du Local Storage verwendest
+            // const data = this.getLocalData();
+            
+            // Option D: Falls du eine andere Methode hast
+            // const data = await this.deine_datenlade_methode();
+            
+            // ➕ VARIANTE 2: Direkte API/Local Storage Abfrage (EMPFOHLEN)
+            let data = [];
+            
+            try {
+                if (navigator.onLine) {
+                    // Online: Von Server laden
+                    const response = await fetch(`/api/health-data?userId=${this.userId}`);
+                    if (response.ok) {
+                        data = await response.json();
+                    } else {
+                        throw new Error('Server request failed');
+                    }
+                } else {
+                    // Offline: Aus Local Storage laden
+                    const localData = localStorage.getItem(`healthData_${this.userId}`);
+                    data = localData ? JSON.parse(localData) : [];
+                }
+            } catch (error) {
+                console.warn('⚠️ Loading from server failed, trying local storage:', error);
+                const localData = localStorage.getItem(`healthData_${this.userId}`);
+                data = localData ? JSON.parse(localData) : [];
+            }
+            
+            console.log(`📊 Loaded ${data.length} data points for charts`);
+            
+            if (!data || data.length === 0) {
                 this.showEmptyState();
                 return;
             }

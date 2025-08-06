@@ -2234,8 +2234,12 @@ async loadViewData() {
     try {
         const allData = await this.healthTracker.getAllHealthData();
         
-        // KORREKTUR: Verwende die funktionierende HealthTracker Methode direkt
+        // Verwende die funktionierende HealthTracker Methode
         this.todayData = this.healthTracker.getTodayData(allData);
+        
+        // Debug-Ausgabe zur Überprüfung
+        console.log('🔍 Rohdaten vom HealthTracker:', allData);
+        console.log('🔍 Aggregierte Today-Daten:', this.todayData);
         
         // Get week data
         this.weekData = this.healthTracker.getWeekData(allData);
@@ -2320,95 +2324,241 @@ showView(viewName) {
 }
 
     /**
-     * Enhanced today view with DaisyUI styling
-     */
-    showTodayView() {
-        const container = document.getElementById('progress-content');
-        if (!container) return;
+ * Enhanced today view with complete DaisyUI styling and robust data handling
+ */
+showTodayView() {
+    const container = document.getElementById('progress-content');
+    if (!container) return;
 
-        const hasData = Object.keys(this.todayData).length > 1; // More than just date
+    // Verbesserte Datenprüfung - prüft auf echte Gesundheitsdaten
+    const hasHealthData = this.todayData && (
+        (this.todayData.weight !== null && this.todayData.weight !== undefined) ||
+        (this.todayData.steps && this.todayData.steps > 0) ||
+        (this.todayData.waterIntake && this.todayData.waterIntake > 0) ||
+        (this.todayData.sleepHours && this.todayData.sleepHours > 0) ||
+        this.todayData.mood ||
+        this.todayData.notes
+    );
 
-        if (!hasData) {
-            container.innerHTML = this.getEmptyStateHTML();
-            return;
-        }
+    console.log('🔍 Today View Datenprüfung:', {
+        todayData: this.todayData,
+        hasHealthData: hasHealthData,
+        dataKeys: Object.keys(this.todayData || {})
+    });
 
-        const goalProgress = this.calculateGoalProgress();
+    if (!hasHealthData) {
+        container.innerHTML = this.getEmptyStateHTML();
+        return;
+    }
 
-        container.innerHTML = `
-            <div class="space-y-6">
-                <!-- Header Section -->
-                <div class="text-center mb-6">
-                    <h3 class="text-2xl font-bold text-base-content mb-2">Heute's Fortschritt</h3>
-                    <p class="text-base-content/70 mb-2">${new Date().toLocaleDateString('de-DE', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    })}</p>
-                    ${this.todayData.entryCount > 1 ? `
-                        <div class="badge badge-primary badge-outline">
-                            📊 ${this.todayData.entryCount} Einträge heute
-                            ${this.todayData.lastUpdatedFormatted ? ` • Zuletzt: ${this.todayData.lastUpdatedFormatted}` : ''}
+    // Berechne Zielfortschritt
+    const goalProgress = this.calculateGoalProgress();
+
+    // Stimmungs-Mapping
+    const moodEmojis = {
+        'excellent': '😄',
+        'good': '😊', 
+        'neutral': '😐',
+        'bad': '😞',
+        'terrible': '😢'
+    };
+
+    const moodColors = {
+        'excellent': 'badge-success',
+        'good': 'badge-primary',
+        'neutral': 'badge-ghost', 
+        'bad': 'badge-warning',
+        'terrible': 'badge-error'
+    };
+
+    container.innerHTML = `
+        <div class="space-y-8">
+            <!-- Enhanced Header Section -->
+            <div class="text-center">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="avatar placeholder">
+                        <div class="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-full w-16 h-16">
+                            <i data-lucide="calendar-check" class="w-8 h-8"></i>
                         </div>
-                    ` : this.todayData.lastUpdatedFormatted ? `
-                        <div class="badge badge-ghost">
-                            ⏰ Zuletzt aktualisiert: ${this.todayData.lastUpdatedFormatted}
-                        </div>
-                    ` : ''}
-                </div>
-
-                <!-- Overall Progress Ring -->
-                ${goalProgress.hasGoals ? this.renderOverallProgressRing(goalProgress) : ''}
-
-                <!-- Metrics Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    ${this.renderMetricCard('⚖️', 'Gewicht', this.todayData.weight, 'kg', this.healthTracker.goals.weightGoal, 'weight')}
-                    ${this.renderMetricCard('🚶♂️', 'Schritte', this.todayData.steps, '', this.healthTracker.goals.stepsGoal, 'steps')}
-                    ${this.renderMetricCard('💧', 'Wasser', this.todayData.waterIntake, 'L', this.healthTracker.goals.waterGoal, 'water')}
-                    ${this.renderMetricCard('😴', 'Schlaf', this.todayData.sleepHours, 'h', this.healthTracker.goals.sleepGoal, 'sleep')}
-                </div>
-
-                <!-- Mood and Notes -->
-                ${this.renderMoodAndNotes()}
-
-                <!-- Quick Actions -->
-                <div class="card bg-base-200 border border-base-300">
-                    <div class="card-body p-4">
-                        <h4 class="card-title text-base flex items-center">
-                            <i data-lucide="zap" class="w-4 h-4 text-primary"></i>
-                            Schnellaktionen
-                        </h4>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="document.getElementById('health-form').scrollIntoView({ behavior: 'smooth' })" 
-                                    class="btn btn-primary btn-sm">
-                                <i data-lucide="plus" class="w-4 h-4"></i>
-                                Weitere Daten hinzufügen
-                            </button>
-                            <button onclick="healthTracker.progressHub.showView('week')" 
-                                    class="btn btn-success btn-sm">
-                                <i data-lucide="trending-up" class="w-4 h-4"></i>
-                                Wochenübersicht
-                            </button>
-                            <button onclick="healthTracker.progressHub.showView('analytics')" 
-                                    class="btn btn-secondary btn-sm">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                                Analytics
-                            </button>
-                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Heute's Fortschritt
+                        </h3>
+                        <p class="text-lg text-base-content/70 mt-2">
+                            ${new Date(this.todayData.date).toLocaleDateString('de-DE', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            })}
+                        </p>
                     </div>
                 </div>
 
-                <!-- Data Summary -->
-                ${this.renderDataSummary()}
+                <!-- Status Badges -->
+                <div class="flex flex-wrap justify-center gap-2 mt-4">
+                    ${this.todayData.entryCount > 1 ? `
+                        <div class="badge badge-primary gap-2">
+                            <i data-lucide="database" class="w-3 h-3"></i>
+                            ${this.todayData.entryCount} Einträge heute
+                        </div>
+                    ` : ''}
+                    ${this.todayData.lastUpdatedFormatted ? `
+                        <div class="badge badge-ghost gap-2">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            Zuletzt: ${this.todayData.lastUpdatedFormatted}
+                        </div>
+                    ` : ''}
+                    ${goalProgress.hasGoals ? `
+                        <div class="badge badge-success gap-2">
+                            <i data-lucide="target" class="w-3 h-3"></i>
+                            ${goalProgress.completedGoals}/${goalProgress.totalGoals} Ziele erreicht
+                        </div>
+                    ` : ''}
+                </div>
             </div>
-        `;
 
-        // Re-initialize lucide icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+            <!-- Overall Progress Ring -->
+            ${goalProgress.hasGoals ? `
+                <div class="flex justify-center">
+                    <div class="relative">
+                        <div class="radial-progress text-primary border-4 border-primary/20" 
+                             style="--value:${Math.round(goalProgress.overallProgress)}; --size:10rem; --thickness: 8px;" 
+                             role="progressbar">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-primary">${Math.round(goalProgress.overallProgress)}%</div>
+                                <div class="text-xs text-base-content/70">Tagesziele</div>
+                            </div>
+                        </div>
+                        ${goalProgress.overallProgress >= 100 ? `
+                            <div class="absolute -top-2 -right-2">
+                                <div class="badge badge-success gap-1">
+                                    <i data-lucide="trophy" class="w-3 h-3"></i>
+                                    Perfekt!
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Enhanced Metrics Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                ${this.renderMetricCard('⚖️', 'Gewicht', this.todayData.weight, 'kg', this.healthTracker.goals.weightGoal, 'weight')}
+                ${this.renderMetricCard('🚶♂️', 'Schritte', this.todayData.steps, '', this.healthTracker.goals.stepsGoal, 'steps')}
+                ${this.renderMetricCard('💧', 'Wasser', this.todayData.waterIntake, 'L', this.healthTracker.goals.waterGoal, 'water')}
+                ${this.renderMetricCard('😴', 'Schlaf', this.todayData.sleepHours, 'h', this.healthTracker.goals.sleepGoal, 'sleep')}
+            </div>
+
+            <!-- Enhanced Mood and Notes Section -->
+            ${(this.todayData.mood || this.todayData.notes) ? `
+                <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-xl">
+                    <div class="card-body">
+                        <h4 class="card-title text-xl flex items-center gap-3">
+                            <i data-lucide="heart" class="w-5 h-5 text-accent"></i>
+                            Stimmung & Notizen
+                        </h4>
+                        
+                        ${this.todayData.mood ? `
+                            <div class="mb-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span class="text-3xl">${moodEmojis[this.todayData.mood] || '😐'}</span>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Heutige Stimmung:</div>
+                                        <div class="badge ${moodColors[this.todayData.mood] || 'badge-ghost'} badge-lg">
+                                            ${this.todayData.mood.charAt(0).toUpperCase() + this.todayData.mood.slice(1)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${this.todayData.notes ? `
+                            <div>
+                                <div class="text-sm text-base-content/70 mb-2 flex items-center gap-2">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    Notizen:
+                                </div>
+                                <div class="bg-base-200/50 rounded-lg p-4 border border-base-300/30">
+                                    <pre class="whitespace-pre-wrap font-sans text-base-content/90 text-sm leading-relaxed">${this.todayData.notes}</pre>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Quick Actions Section -->
+            <div class="card bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 border border-primary/20 shadow-lg">
+                <div class="card-body p-6">
+                    <h4 class="card-title text-lg flex items-center gap-2 mb-4">
+                        <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+                        Schnellaktionen
+                    </h4>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button onclick="document.getElementById('health-form').scrollIntoView({ behavior: 'smooth' })" 
+                                class="btn btn-primary btn-lg gap-3 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                            <i data-lucide="plus-circle" class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"></i>
+                            Weitere Daten hinzufügen
+                        </button>
+                        
+                        <button onclick="healthTracker.progressHub.showView('week')" 
+                                class="btn btn-success btn-lg gap-3 shadow-lg hover:shadow-xl transition-all duration-300">
+                            <i data-lucide="trending-up" class="w-5 h-5"></i>
+                            Wochenübersicht
+                        </button>
+                        
+                        <button onclick="healthTracker.progressHub.showView('analytics')" 
+                                class="btn btn-accent btn-lg gap-3 shadow-lg hover:shadow-xl transition-all duration-300">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                            Analytics
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievement Celebration -->
+            ${goalProgress.overallProgress >= 100 ? `
+                <div class="alert alert-success shadow-lg">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="trophy" class="w-8 h-8"></i>
+                        <div>
+                            <h3 class="font-bold text-lg">🎉 Fantastisch!</h3>
+                            <div class="text-sm">Du hast alle deine Tagesziele erreicht! Weiter so!</div>
+                        </div>
+                    </div>
+                </div>
+            ` : goalProgress.overallProgress >= 75 ? `
+                <div class="alert alert-info shadow-lg">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="star" class="w-8 h-8"></i>
+                        <div>
+                            <h3 class="font-bold">💪 Großartig!</h3>
+                            <div class="text-sm">Du bist auf einem sehr guten Weg - nur noch ein kleiner Schritt zu 100%!</div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Data Summary Chips -->
+            <div class="flex flex-wrap justify-center gap-2">
+                ${this.todayData.weight ? `<div class="badge badge-outline badge-lg">⚖️ ${this.todayData.weight}kg</div>` : ''}
+                ${this.todayData.steps ? `<div class="badge badge-outline badge-lg">🚶♂️ ${this.todayData.steps.toLocaleString()}</div>` : ''}
+                ${this.todayData.waterIntake ? `<div class="badge badge-outline badge-lg">💧 ${this.todayData.waterIntake}L</div>` : ''}
+                ${this.todayData.sleepHours ? `<div class="badge badge-outline badge-lg">😴 ${this.todayData.sleepHours}h</div>` : ''}
+            </div>
+        </div>
+    `;
+
+    // Re-initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
+
+    console.log('✅ Today View erfolgreich gerendert');
+}
 
     /**
      * Calculate overall goal progress

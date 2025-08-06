@@ -2541,15 +2541,6 @@ showTodayView() {
                     </div>
                 </div>
             ` : ''}
-
-            <!-- Data Summary Chips -->
-            <div class="flex flex-wrap justify-center gap-2">
-                ${this.todayData.weight ? `<div class="badge badge-outline badge-lg">⚖️ ${this.todayData.weight}kg</div>` : ''}
-                ${this.todayData.steps ? `<div class="badge badge-outline badge-lg">🚶♂️ ${this.todayData.steps.toLocaleString()}</div>` : ''}
-                ${this.todayData.waterIntake ? `<div class="badge badge-outline badge-lg">💧 ${this.todayData.waterIntake}L</div>` : ''}
-                ${this.todayData.sleepHours ? `<div class="badge badge-outline badge-lg">😴 ${this.todayData.sleepHours}h</div>` : ''}
-            </div>
-        </div>
     `;
 
     // Re-initialize Lucide icons

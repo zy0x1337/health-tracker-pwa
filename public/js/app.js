@@ -73,9 +73,10 @@ class HealthTracker {
     }
     
     /**
-     * Initialize all component classes
-     */
-    initializeComponents() {
+ * Initialize all component classes
+ */
+initializeComponents() {
+    try {
         // Initialize notification manager first (needed by other components)
         this.notificationManager = new SmartNotificationManager(this);
         
@@ -85,7 +86,16 @@ class HealthTracker {
         this.analyticsEngine = new AnalyticsEngine(this);
         
         console.log('📦 Alle Komponenten initialisiert');
+        
+        // Setup progress hub tabs AFTER initialization
+        setTimeout(() => {
+            this.setupProgressHubTabs();
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ Fehler bei Komponenteninitialisierung:', error);
     }
+}
     
     /**
      * Setup all event listeners for forms and UI interactions
@@ -132,17 +142,30 @@ class HealthTracker {
     }
     
     /**
-     * Setup Progress Hub tab navigation
-     */
-    setupProgressHubTabs() {
-        const tabs = document.querySelectorAll('[id^="tab-"]');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const viewName = tab.id.replace('tab-', '');
-                this.progressHub?.showView(viewName);
-            });
+ * Setup Progress Hub tab navigation
+ */
+setupProgressHubTabs() {
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    console.log('🔧 Setting up progress hub tabs:', tabs.length);
+    
+    tabs.forEach(tab => {
+        // Remove existing listeners to prevent duplicates
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+        
+        newTab.addEventListener('click', (e) => {
+            e.preventDefault();
+            const viewName = newTab.id.replace('tab-', '');
+            console.log('📊 Tab clicked:', viewName);
+            
+            if (this.progressHub && typeof this.progressHub.showView === 'function') {
+                this.progressHub.showView(viewName);
+            } else {
+                console.error('❌ ProgressHub nicht verfügbar oder showView Methode fehlt');
+            }
         });
-    }
+    });
+}
     
     /**
      * Load initial application data
@@ -564,16 +587,23 @@ async handleFormSubmission(event) {
         }
     }
 
-    /**
- * Get today's health data with proper aggregation for multiple entries
+/**
+ * Enhanced today data aggregation with multiple entries support
  */
 getTodayData(allData) {
     const today = new Date().toISOString().split('T')[0];
     const todayEntries = allData.filter(entry => entry.date === today);
     
     if (todayEntries.length === 0) {
-        return {};
+        return { date: today };
     }
+    
+    // Sort entries by creation time (newest first)
+    todayEntries.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.date).getTime();
+        const timeB = new Date(b.createdAt || b.date).getTime();
+        return timeB - timeA;
+    });
     
     // Aggregate multiple entries for the same day
     const aggregatedData = {
@@ -583,12 +613,14 @@ getTodayData(allData) {
         waterIntake: 0,
         sleepHours: 0,
         mood: null,
-        notes: []
+        notes: [],
+        entryCount: todayEntries.length,
+        lastUpdated: null
     };
     
     todayEntries.forEach(entry => {
-        // For weight, take the latest entry (most recent weight measurement)
-        if (entry.weight !== null && entry.weight !== undefined) {
+        // For weight, take the most recent entry
+        if (entry.weight !== null && entry.weight !== undefined && !aggregatedData.weight) {
             aggregatedData.weight = entry.weight;
         }
         
@@ -602,28 +634,46 @@ getTodayData(allData) {
             aggregatedData.waterIntake += entry.waterIntake;
         }
         
-        // For sleep, sum all entries (in case of naps)
+        // For sleep, sum all entries (supports naps and main sleep)
         if (entry.sleepHours) {
             aggregatedData.sleepHours += entry.sleepHours;
         }
         
-        // For mood, take the latest entry
-        if (entry.mood) {
+        // For mood, take the most recent entry
+        if (entry.mood && !aggregatedData.mood) {
             aggregatedData.mood = entry.mood;
         }
         
-        // Collect all notes
+        // Collect all notes with timestamps
         if (entry.notes && entry.notes.trim()) {
-            aggregatedData.notes.push(entry.notes.trim());
+            const timestamp = new Date(entry.createdAt || entry.date).toLocaleTimeString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            aggregatedData.notes.push(`${timestamp}: ${entry.notes.trim()}`);
+        }
+        
+        // Track last update time
+        const entryTime = new Date(entry.createdAt || entry.date).getTime();
+        if (!aggregatedData.lastUpdated || entryTime > aggregatedData.lastUpdated) {
+            aggregatedData.lastUpdated = entryTime;
         }
     });
     
-    // Convert notes array to string
-    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join(' | ') : null;
+    // Process notes
+    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join('\n') : null;
     
     // Round decimal values
     aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
     aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
+    
+    // Convert lastUpdated to readable format
+    if (aggregatedData.lastUpdated) {
+        aggregatedData.lastUpdatedFormatted = new Date(aggregatedData.lastUpdated).toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
     
     return aggregatedData;
 }
@@ -1081,6 +1131,28 @@ async refreshAllComponents() {
             return [];
         }
     }
+
+    /**
+ * Debug ProgressHub status
+ */
+debugProgressHub() {
+    console.log('🔍 ProgressHub Debug Info:');
+    console.log('- ProgressHub instance:', this.progressHub);
+    console.log('- Current view:', this.progressHub?.currentView);
+    console.log('- Today data:', this.progressHub?.todayData);
+    console.log('- Progress content element:', document.getElementById('progress-content'));
+    console.log('- Tab elements:', document.querySelectorAll('[id^="tab-"]'));
+    
+    // Test data loading
+    if (this.progressHub) {
+        this.progressHub.loadViewData().then(() => {
+            console.log('✅ Data loaded successfully');
+            this.progressHub.showView('today');
+        }).catch(error => {
+            console.error('❌ Data loading failed:', error);
+        });
+    }
+}
 }
 
 // ====================================================================
@@ -1819,36 +1891,55 @@ class ProgressHub {
     }
 
     /**
-     * Show specific view in progress hub
-     */
-    showView(viewName) {
-        this.currentView = viewName;
-        
-        // Update tab states (DaisyUI tabs)
-        document.querySelectorAll('[id^="tab-"]').forEach(tab => {
-            tab.classList.remove('tab-active');
-        });
-        
-        const activeTab = document.getElementById(`tab-${viewName}`);
-        if (activeTab) {
-            activeTab.classList.add('tab-active');
-        }
-
-        // Show appropriate content
-        switch (viewName) {
-            case 'today':
-                this.showTodayView();
-                break;
-            case 'week':
-                this.showWeekView();
-                break;
-            case 'analytics':
-                this.showAnalyticsView();
-                break;
-            default:
-                this.showTodayView();
-        }
+ * Show specific view in progress hub
+ */
+showView(viewName) {
+    console.log('🔄 ProgressHub showView called:', viewName);
+    
+    this.currentView = viewName;
+    
+    // Update tab states (DaisyUI tabs)
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    console.log('📊 Found tabs:', tabs.length);
+    
+    tabs.forEach(tab => {
+        tab.classList.remove('tab-active');
+    });
+    
+    const activeTab = document.getElementById(`tab-${viewName}`);
+    console.log('🎯 Active tab element:', activeTab);
+    
+    if (activeTab) {
+        activeTab.classList.add('tab-active');
     }
+
+    // Show appropriate content
+    const container = document.getElementById('progress-content');
+    console.log('📦 Progress content container:', container);
+    
+    if (!container) {
+        console.error('❌ progress-content Container nicht gefunden!');
+        return;
+    }
+
+    switch (viewName) {
+        case 'today':
+            console.log('📅 Showing today view');
+            this.showTodayView();
+            break;
+        case 'week':
+            console.log('📊 Showing week view');
+            this.showWeekView();
+            break;
+        case 'analytics':
+            console.log('📈 Showing analytics view');
+            this.showAnalyticsView();
+            break;
+        default:
+            console.log('📅 Default to today view');
+            this.showTodayView();
+    }
+}
 
     /**
      * Enhanced today view with DaisyUI styling

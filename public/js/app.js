@@ -626,15 +626,35 @@ initApp() {
     }
 
     async initializeAllCharts() {
+    // Verhindere mehrfache gleichzeitige Initialisierung
+    if (this.chartInitializing) {
+        console.log('🔄 Charts already initializing, skipping...');
+        return;
+    }
+    
+    this.chartInitializing = true;
+    
     try {
         if (typeof Chart === 'undefined') {
-            console.warn('Chart.js not available');
+            console.warn('⚠️ Chart.js not available');
+            this.chartInitializing = false;
             return;
         }
         
         console.log('🎯 Initializing all charts...');
         
-        // Destroy ALL Chart.js instances globally first[35][40]
+        // Warte auf DOM-Bereitschaft
+        if (document.readyState !== 'complete') {
+            await new Promise(resolve => {
+                if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    window.addEventListener('load', resolve, { once: true });
+                }
+            });
+        }
+        
+        // Destroy ALL Chart.js instances globally first (verhindert Orphaned Charts)
         Chart.helpers.each(Chart.instances, (instance) => {
             console.log(`🔥 Destroying global Chart instance: ${instance.id}`);
             try {
@@ -660,41 +680,51 @@ initApp() {
             });
         }
         
-        // Reset charts object
+        // Reset charts object completely
         this.charts = {};
         
-        // Wait for DOM stability
+        // Warte auf Stabilität nach Zerstörung
         await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Set global defaults
+        // Set global Chart.js defaults
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
         Chart.defaults.animation = false;
         Chart.defaults.plugins.legend.display = false;
         
-        // Initialize charts with delays
+        // Initialize charts sequentially with delays (verhindert Race Conditions)
+        console.log('🎯 Initializing weight chart...');
         await this.initWeightChart();
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        console.log('🎯 Initializing activity chart...');
         await this.initActivityChart();
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        console.log('🎯 Initializing sleep chart...');
         await this.initSleepChart();
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        console.log('🎯 Initializing mood chart...');
         await this.initMoodChart();
         
         this.chartInitialized = true;
+        this.chartInitializing = false;
+        
         console.log('✅ All charts initialized successfully');
         
-        // Load data after initialization
-        setTimeout(() => this.loadAndUpdateCharts(), 300);
+        // Load data after all charts are ready
+        setTimeout(() => {
+            console.log('📊 Loading chart data after initialization...');
+            this.loadAndUpdateCharts();
+        }, 500);
         
     } catch (error) {
         console.error('❌ Chart initialization failed:', error);
         this.chartInitialized = false;
+        this.chartInitializing = false;
         
-        // Retry initialization
+        // Retry initialization after delay
         setTimeout(() => {
             console.log('🔄 Retrying chart initialization...');
             this.initializeAllCharts();
@@ -1412,49 +1442,28 @@ initApp() {
 safeUpdateChart(chartName, updateFunction) {
     try {
         const chart = this.charts[chartName];
+        const canvas = document.getElementById(chartName + 'Chart');
         
-        // Prüfe Chart-Verfügbarkeit
-        if (!chart || !chart.canvas || !document.contains(chart.canvas)) {
-            console.warn(`⚠️ ${chartName} chart or canvas not available`);
-            if (this.charts[chartName]) {
-                delete this.charts[chartName];
-            }
+        // Enhanced canvas availability check
+        if (!chart || !canvas || !document.contains(canvas)) {
+            console.warn(`⚠️ ${chartName} chart or canvas not available - reinitializing`);
+            
+            // Attempt to reinitialize the specific chart
+            setTimeout(() => {
+                switch(chartName) {
+                    case 'weight': this.initWeightChart(); break;
+                    case 'activity': this.initActivityChart(); break;
+                    case 'sleep': this.initSleepChart(); break;
+                    case 'mood': this.initMoodChart(); break;
+                }
+            }, 500);
             return;
         }
         
-        // Prüfe ob Chart zerstört wurde
-        if (chart.destroyed === true) {
-            console.warn(`⚠️ ${chartName} chart was already destroyed`);
-            delete this.charts[chartName];
-            return;
-        }
-        
-        // Führe Update aus
         updateFunction();
         
     } catch (error) {
         console.error(`❌ Error updating ${chartName} chart:`, error);
-        
-        // Bereinige defekten Chart
-        if (this.charts[chartName]) {
-            try {
-                this.charts[chartName].destroy();
-            } catch (destroyError) {
-                console.error(`Error destroying corrupted ${chartName} chart:`, destroyError);
-            }
-            delete this.charts[chartName];
-        }
-        
-        // Versuche Neuinitialisierung nach Fehler
-        setTimeout(() => {
-            console.log(`🔄 Attempting to reinitialize ${chartName} chart...`);
-            switch(chartName) {
-                case 'activity': this.initActivityChart(); break;
-                case 'sleep': this.initSleepChart(); break;
-                case 'weight': this.initWeightChart(); break;
-                case 'mood': this.initMoodChart(); break;
-            }
-        }, 1000);
     }
 }
 

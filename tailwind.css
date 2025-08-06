@@ -1,3 +1,43 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* NEUE DATEI: tailwind.css (im Projekt-Root) */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom Styles für Health Tracker */
+.stat {
+  @apply bg-base-100 p-4 rounded-lg shadow-sm;
+}
+
+.progress {
+  @apply h-2 rounded-full;
+}
+
+.btn {
+  @apply transition-all duration-200;
+}
+
+.card {
+  @apply bg-base-100 rounded-2xl shadow-lg;
+}
+
+.navbar {
+  @apply backdrop-blur-sm;
+}
+
+.hero {
+  @apply relative overflow-hidden;
+}
+
+/* Theme Transition */
+html {
+  @apply transition-colors duration-300;
+}
+
+/* Custom Progress Bar Animation */
+.progress::-webkit-progress-bar {
+  @apply bg-base-300 rounded-full;
+}
+
+.progress::-webkit-progress-value {
+  @apply bg-primary rounded-full transition-all duration-500;
+}

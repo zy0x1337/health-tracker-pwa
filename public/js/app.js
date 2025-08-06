@@ -727,8 +727,6 @@ class HealthTrackerPro {
                 } catch (error) {
                     console.log('⚠️ Server error:', error.message);
                 }
-
-                this.updateWeeklySummary();
             }
             
             // Fallback zu lokalen Daten
@@ -1242,11 +1240,6 @@ updateModalTheme() {
         
         // Formular zurücksetzen
         this.resetForm();
-        
-        // Weekly Summary aktualisieren
-        if (this.updateWeeklySummary) {
-            setTimeout(() => this.updateWeeklySummary(), 1000);
-        }
 
     } catch (error) {
         console.error('❌ Fehler beim Speichern:', error);
@@ -1740,172 +1733,6 @@ updateGoalProgressIndicators(data) {
             progressEl.style.setProperty('--value', Math.round(progress));
             progressEl.textContent = Math.round(progress) + '%';
         }
-    }
-}
-
-// Weekly Summary Methods
-async updateWeeklySummary() {
-    try {
-        let allData = [];
-        if (navigator.onLine) {
-            const response = await fetch(`/api/health-data/${this.userId}`);
-            if (response.ok) {
-                allData = await response.json();
-            }
-        }
-        
-        if (allData.length === 0) {
-            const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
-            allData = Array.isArray(localData) ? localData : [];
-        }
-
-        this.calculateWeeklyStats(allData);
-    } catch (error) {
-        console.error('❌ Error updating weekly summary:', error);
-    }
-}
-
-calculateWeeklyStats(allData) {
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-    const twoWeeksAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
-
-    // Current week data
-    const currentWeek = allData.filter(entry => {
-        const entryDate = new Date(entry.date);
-        return entryDate >= oneWeekAgo && entryDate <= now;
-    });
-
-    // Previous week data for comparison
-    const previousWeek = allData.filter(entry => {
-        const entryDate = new Date(entry.date);
-        return entryDate >= twoWeeksAgo && entryDate < oneWeekAgo;
-    });
-
-    // Calculate averages
-    const currentStats = this.calculateAverages(currentWeek);
-    const previousStats = this.calculateAverages(previousWeek);
-
-    // Update UI
-    this.updateWeeklyStatsUI(currentStats, previousStats, currentWeek);
-    this.generateWeeklyInsights(currentStats, currentWeek);
-}
-
-calculateAverages(weekData) {
-    if (weekData.length === 0) return { steps: 0, water: 0, sleep: 0 };
-
-    const totals = weekData.reduce((acc, entry) => {
-        acc.steps += entry.steps || 0;
-        acc.water += entry.waterIntake || 0;
-        acc.sleep += entry.sleepHours || 0;
-        return acc;
-    }, { steps: 0, water: 0, sleep: 0 });
-
-    return {
-        steps: Math.round(totals.steps / weekData.length),
-        water: Math.round((totals.water / weekData.length) * 10) / 10,
-        sleep: Math.round((totals.sleep / weekData.length) * 10) / 10
-    };
-}
-
-updateWeeklyStatsUI(current, previous, currentWeekData) {
-    // Update averages
-    document.getElementById('avg-steps').textContent = current.steps.toLocaleString();
-    document.getElementById('avg-water').textContent = current.water + 'L';
-    document.getElementById('avg-sleep').textContent = current.sleep + 'h';
-
-    // Calculate and show trends
-    this.updateTrendIndicator('steps-trend', current.steps, previous.steps);
-    this.updateTrendIndicator('water-trend', current.water, previous.water);
-    this.updateTrendIndicator('sleep-trend', current.sleep, previous.sleep);
-
-    // Calculate goals hit
-    const goalsHit = this.calculateGoalsHit(currentWeekData);
-    document.getElementById('goals-hit').textContent = `${goalsHit}/${currentWeekData.length}`;
-    document.getElementById('goals-percentage').textContent = 
-        currentWeekData.length > 0 ? `${Math.round((goalsHit / currentWeekData.length) * 100)}% der Tage` : '0% der Tage';
-}
-
-updateTrendIndicator(elementId, current, previous) {
-    const element = document.getElementById(elementId);
-    if (!element || previous === 0) {
-        element.textContent = 'Erste Woche';
-        return;
-    }
-
-    const change = ((current - previous) / previous) * 100;
-    const isPositive = change > 0;
-    const icon = isPositive ? '↗️' : change < 0 ? '↘️' : '➡️';
-    
-    element.textContent = `${icon} ${Math.abs(change).toFixed(1)}% zu letzter Woche`;
-    element.className = `stat-desc ${isPositive ? 'text-success' : change < 0 ? 'text-error' : 'text-base-content/60'}`;
-}
-
-calculateGoalsHit(weekData) {
-    return weekData.reduce((count, entry) => {
-        let goalsHit = 0;
-        if (entry.steps >= this.goals.stepsGoal) goalsHit++;
-        if (entry.waterIntake >= this.goals.waterGoal) goalsHit++;
-        if (entry.sleepHours >= this.goals.sleepGoal) goalsHit++;
-        return count + (goalsHit >= 2 ? 1 : 0); // Mindestens 2 von 3 Zielen erreicht
-    }, 0);
-}
-
-generateWeeklyInsights(stats, weekData) {
-    const insights = [];
-    
-    // Steps insights
-    if (stats.steps >= this.goals.stepsGoal) {
-        insights.push('🚶‍♂️ Großartig! Du erreichst dein Schrittziel konstant.');
-    } else if (stats.steps >= this.goals.stepsGoal * 0.8) {
-        insights.push('👍 Du bist nah an deinem Schrittziel. Nur noch etwas mehr!');
-    } else {
-        insights.push('📈 Versuche täglich ein paar mehr Schritte zu gehen.');
-    }
-
-    // Water insights
-    if (stats.water >= this.goals.waterGoal) {
-        insights.push('💧 Perfekte Hydration! Du trinkst ausreichend Wasser.');
-    } else {
-        insights.push('🥤 Denke daran, regelmäßig zu trinken.');
-    }
-
-    // Sleep insights
-    if (stats.sleep >= this.goals.sleepGoal) {
-        insights.push('😴 Ausgezeichnet! Du bekommst genug Schlaf.');
-    } else {
-        insights.push('🌙 Früher ins Bett gehen könnte dir helfen.');
-    }
-
-    // Consistency insight
-    const consistentDays = weekData.length;
-    if (consistentDays >= 6) {
-        insights.push('🔥 Fantastische Konstanz beim Tracking!');
-    } else if (consistentDays >= 4) {
-        insights.push('📊 Gute Tracking-Gewohnheit entwickelt.');
-    } else {
-        insights.push('📝 Versuche täglich deine Daten zu erfassen.');
-    }
-
-    document.getElementById('weekly-insights').innerHTML = 
-        insights.map(insight => `<p>${insight}</p>`).join('');
-}
-
-exportWeeklyData() {
-    // Simple CSV export functionality
-    this.showToast('📊 Export-Funktion wird entwickelt...', 'info');
-}
-
-shareProgress() {
-    // Simple share functionality
-    if (navigator.share) {
-        navigator.share({
-            title: 'Mein Health Tracker Fortschritt',
-            text: 'Schau dir meine wöchentlichen Gesundheitsziele an!',
-            url: window.location.href
-        });
-    } else {
-        this.showToast('📱 Teilen-Funktion in diesem Browser nicht verfügbar', 'warning');
     }
 }
 }

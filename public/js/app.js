@@ -634,22 +634,21 @@ initApp() {
         
         console.log('🎯 Initializing all charts...');
         
-        // Wait for DOM to be ready
-        if (document.readyState !== 'complete') {
-            await new Promise(resolve => {
-                if (document.readyState === 'complete') {
-                    resolve();
-                } else {
-                    window.addEventListener('load', resolve, { once: true });
-                }
-            });
-        }
+        // Destroy ALL Chart.js instances globally first[35][40]
+        Chart.helpers.each(Chart.instances, (instance) => {
+            console.log(`🔥 Destroying global Chart instance: ${instance.id}`);
+            try {
+                instance.destroy();
+            } catch (error) {
+                console.error('Error destroying global chart:', error);
+            }
+        });
         
-        // Destroy ALL existing charts more thoroughly
+        // Destroy tracked charts
         if (this.charts) {
             Object.keys(this.charts).forEach(key => {
                 if (this.charts[key] && typeof this.charts[key].destroy === 'function') {
-                    console.log(`🔥 Destroying existing chart: ${key}`);
+                    console.log(`🔥 Destroying tracked chart: ${key}`);
                     try {
                         this.charts[key].destroy();
                     } catch (error) {
@@ -664,15 +663,8 @@ initApp() {
         // Reset charts object
         this.charts = {};
         
-        // Also destroy any orphaned Chart.js instances
-        Chart.helpers.each(Chart.instances, (instance, id) => {
-            console.log(`🔥 Destroying orphaned Chart instance: ${id}`);
-            try {
-                instance.destroy();
-            } catch (error) {
-                console.error('Error destroying orphaned chart:', error);
-            }
-        });
+        // Wait for DOM stability
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Set global defaults
         Chart.defaults.responsive = true;
@@ -680,7 +672,7 @@ initApp() {
         Chart.defaults.animation = false;
         Chart.defaults.plugins.legend.display = false;
         
-        // Initialize charts with delays to ensure DOM stability
+        // Initialize charts with delays
         await this.initWeightChart();
         await new Promise(resolve => setTimeout(resolve, 100));
         
@@ -695,14 +687,14 @@ initApp() {
         this.chartInitialized = true;
         console.log('✅ All charts initialized successfully');
         
-        // Load data after initialization with delay
-        setTimeout(() => this.loadAndUpdateCharts(), 500);
+        // Load data after initialization
+        setTimeout(() => this.loadAndUpdateCharts(), 300);
         
     } catch (error) {
         console.error('❌ Chart initialization failed:', error);
         this.chartInitialized = false;
         
-        // Retry initialization after delay
+        // Retry initialization
         setTimeout(() => {
             console.log('🔄 Retrying chart initialization...');
             this.initializeAllCharts();
@@ -1309,7 +1301,7 @@ initApp() {
     });
     
     try {
-        // 1. Weight Chart - mit kompletter Daten-Bereinigung
+        // 1. Weight Chart
         this.safeUpdateChart('weight', () => {
             if (this.charts.weight) {
                 const weightData = last7Days
@@ -1317,12 +1309,12 @@ initApp() {
                     .filter(w => w !== null && !isNaN(w));
                 
                 if (weightData.length > 0) {
-                    // WICHTIG: Komplett leeren vor neuen Daten
-                    this.charts.weight.data.labels.length = 0;
-                    this.charts.weight.data.datasets[0].data.length = 0;
-                    this.charts.weight.data.datasets[1].data.length = 0;
+                    // KOMPLETT leeren
+                    this.charts.weight.data.labels.splice(0, this.charts.weight.data.labels.length);
+                    this.charts.weight.data.datasets[0].data.splice(0, this.charts.weight.data.datasets[0].data.length);
+                    this.charts.weight.data.datasets[1].data.splice(0, this.charts.weight.data.datasets[1].data.length);
                     
-                    // Neue Daten setzen
+                    // Neue Daten hinzufügen
                     this.charts.weight.data.labels.push(...labels.slice(0, weightData.length));
                     this.charts.weight.data.datasets[0].data.push(...weightData);
                     
@@ -1336,33 +1328,28 @@ initApp() {
             }
         });
 
-        // 2. Activity Chart - mit Array-Bereinigung
+        // 2. Activity Chart - KRITISCH FÜR DUPLIKATE
         this.safeUpdateChart('activity', () => {
             if (this.charts.activity) {
                 const stepsData = last7Days.map(d => d.steps || 0);
                 const waterData = last7Days.map(d => d.waterIntake || 0);
                 
-                // KRITISCH: Arrays komplett leeren
-                this.charts.activity.data.labels.length = 0;
-                this.charts.activity.data.datasets[0].data.length = 0;
-                this.charts.activity.data.datasets[1].data.length = 0;
+                // VOLLSTÄNDIG leeren mit splice
+                this.charts.activity.data.labels.splice(0, this.charts.activity.data.labels.length);
+                this.charts.activity.data.datasets[0].data.splice(0, this.charts.activity.data.datasets[0].data.length);
+                this.charts.activity.data.datasets[1].data.splice(0, this.charts.activity.data.datasets[1].data.length);
                 
                 // Neue Daten hinzufügen
                 this.charts.activity.data.labels.push(...labels);
                 this.charts.activity.data.datasets[0].data.push(...stepsData);
                 this.charts.activity.data.datasets[1].data.push(...waterData);
                 
-                // Y-Axis anpassen
-                if (this.charts.activity.options.scales.y1) {
-                    this.charts.activity.options.scales.y1.max = Math.max(4, (this.goals.waterGoal || 2.0) + 1);
-                }
-                
                 this.charts.activity.update('none');
-                console.log('✅ Activity chart updated - no duplicates');
+                console.log('✅ Activity chart updated - duplicates prevented');
             }
         });
 
-        // 3. Sleep Chart - mit Array- und Color-Bereinigung
+        // 3. Sleep Chart - KRITISCH FÜR DUPLIKATE
         this.safeUpdateChart('sleep', () => {
             if (this.charts.sleep) {
                 const sleepData = last7Days.map(d => d.sleepHours || 0);
@@ -1374,25 +1361,20 @@ initApp() {
                     return 'rgba(239, 68, 68, 0.8)';
                 });
                 
-                // KRITISCH: Alle Arrays komplett leeren
-                this.charts.sleep.data.labels.length = 0;
-                this.charts.sleep.data.datasets[0].data.length = 0;
-                this.charts.sleep.data.datasets[0].backgroundColor.length = 0;
-                this.charts.sleep.data.datasets[0].borderColor.length = 0;
+                // VOLLSTÄNDIG leeren - alle Arrays
+                this.charts.sleep.data.labels.splice(0, this.charts.sleep.data.labels.length);
+                this.charts.sleep.data.datasets[0].data.splice(0, this.charts.sleep.data.datasets[0].data.length);
+                this.charts.sleep.data.datasets[0].backgroundColor.splice(0, this.charts.sleep.data.datasets[0].backgroundColor.length);
+                this.charts.sleep.data.datasets[0].borderColor.splice(0, this.charts.sleep.data.datasets[0].borderColor.length);
                 
-                // Neue Daten setzen
+                // Neue Daten hinzufügen
                 this.charts.sleep.data.labels.push(...labels);
                 this.charts.sleep.data.datasets[0].data.push(...sleepData);
                 this.charts.sleep.data.datasets[0].backgroundColor.push(...sleepColors);
                 this.charts.sleep.data.datasets[0].borderColor.push(...sleepColors.map(c => c.replace('0.8', '1')));
                 
-                // Y-Axis anpassen
-                if (this.charts.sleep.options.scales.y) {
-                    this.charts.sleep.options.scales.y.max = Math.max(10, (this.goals.sleepGoal || 8) + 2);
-                }
-                
                 this.charts.sleep.update('none');
-                console.log('✅ Sleep chart updated - no duplicates');
+                console.log('✅ Sleep chart updated - duplicates prevented');
             }
         });
 
@@ -1411,7 +1393,7 @@ initApp() {
                     }
                 });
                 
-                // Mood Chart hat nur ein Dataset, direkter Ersatz
+                // Direkter Ersatz für Mood Chart
                 this.charts.mood.data.datasets[0].data = [...moodCounts];
                 this.charts.mood.update('none');
                 console.log('✅ Mood chart updated');
@@ -1420,7 +1402,6 @@ initApp() {
         
     } catch (error) {
         console.error('❌ Error updating charts:', error);
-        // Reinitialize charts if they're corrupted
         setTimeout(() => {
             console.log('🔄 Attempting to reinitialize charts...');
             this.initializeAllCharts();

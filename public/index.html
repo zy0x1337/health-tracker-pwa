@@ -69,151 +69,6 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
-
-/* Hero Section Animations & Enhancements */
-.hero-section {
-    position: relative;
-    background-attachment: fixed;
-}
-
-/* Gradient Animation */
-@keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient 3s ease infinite;
-}
-
-/* Floating Animations */
-@keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(2deg); }
-}
-
-@keyframes float-delayed {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-15px) rotate(-1deg); }
-}
-
-.animate-float {
-    animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-    animation: float-delayed 8s ease-in-out infinite;
-    animation-delay: -2s;
-}
-
-/* Pulse Animation - Slow */
-@keyframes pulse-slow {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.05); }
-}
-
-.animate-pulse-slow {
-    animation: pulse-slow 4s ease-in-out infinite;
-}
-
-/* Staggered Fade-in Animations */
-@keyframes fade-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-up {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-    animation: fade-in 0.8s ease-out;
-}
-
-.animate-fade-up {
-    animation: fade-up 0.8s ease-out 0.2s both;
-}
-
-.animate-fade-up-delayed {
-    animation: fade-up 0.8s ease-out 0.4s both;
-}
-
-.animate-fade-up-more-delayed {
-    animation: fade-up 0.8s ease-out 0.6s both;
-}
-
-.animate-fade-up-final {
-    animation: fade-up 0.8s ease-out 0.8s both;
-}
-
-/* Grid Pattern Background */
-.bg-grid-pattern {
-    background-image: 
-        linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
-
-/* Responsive Improvements */
-@media (max-width: 768px) {
-    .hero-section {
-        min-height: 100vh;
-        padding: 2rem 0;
-    }
-    
-    .hero-section .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    /* Reduce animation complexity on mobile */
-    .animate-float,
-    .animate-float-delayed {
-        animation: none;
-    }
-}
-
-/* Dark Mode Adjustments */
-@media (prefers-color-scheme: dark) {
-    .bg-grid-pattern {
-        background-image: 
-            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-    }
-}
-
-/* Interactive Elements */
-.hero-section button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-.hero-section .phone-frame:hover {
-    transform: scale(1.05) rotate(0deg);
-}
-
-/* Performance Optimizations */
-.hero-section * {
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-    .animate-float,
-    .animate-float-delayed,
-    .animate-pulse-slow,
-    .animate-gradient {
-        animation: none;
-    }
-    
-    .hero-section button:hover {
-        transform: none;
-    }
-}
 </style>
 </head>
 
@@ -264,227 +119,59 @@
         </div>
     </div>
 
-    <!-- ===============================
-     ENHANCED HERO SECTION 2.0
-     =============================== -->
-<section class="hero-section bg-gradient-to-br from-slate-50 via-cyan-50 to-emerald-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen flex items-center relative overflow-hidden">
-    <!-- Background Decorative Elements -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <!-- Animated Background Circles -->
-        <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-emerald-200/30 to-cyan-200/30 rounded-full blur-3xl animate-float"></div>
-        <div class="absolute top-3/4 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full blur-3xl animate-float-delayed"></div>
-        <div class="absolute bottom-1/4 left-1/2 w-48 h-48 bg-gradient-to-r from-teal-200/25 to-green-200/25 rounded-full blur-2xl animate-pulse-slow"></div>
-        
-        <!-- Grid Pattern -->
-        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <!-- ==================================
+     HERO SECTION – HEALTH TRACKER PRO
+     ================================== -->
+<section
+    class="relative isolate min-h-[70vh] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-indigo-600 to-emerald-500 text-base-100"
+>
+    <!-- dezent animierte Hintergrund-Shapes -->
+    <div class="absolute -z-10 inset-0 overflow-hidden">
+        <svg class="absolute top-[-20%] left-1/2 w-[120%] -translate-x-1/2 opacity-20 blur-[60px]"
+             viewBox="0 0 800 600" fill="none">
+            <path d="M0 300C0 134.3 134.3 0 300 0H500C665.7 0 800 134.3 800 300V600H0V300Z"
+                  fill="url(#grad1)"/>
+            <defs>
+                <linearGradient id="grad1" x1="0" x2="800" y1="0" y2="600" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#4F46E5"/>
+                    <stop offset=".5" stop-color="#22D3EE"/>
+                    <stop offset="1" stop-color="#4ADE80"/>
+                </linearGradient>
+            </defs>
+        </svg>
     </div>
-    
-    <div class="container mx-auto px-4 py-16 relative z-10">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            
-            <!-- Content Side -->
-            <div class="space-y-8 text-center lg:text-left">
-                <!-- Status Badge -->
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full border border-emerald-200 dark:border-emerald-800 shadow-lg animate-fade-in">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Offline-fähig & PWA-optimiert</span>
-                </div>
-                
-                <!-- Main Headline -->
-                <div class="space-y-4">
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
-                        <span class="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent animate-gradient">
-                            Deine Gesundheit
-                        </span>
-                        <br>
-                        <span class="text-gray-800 dark:text-gray-200 animate-fade-up">
-                            im Blick behalten
-                        </span>
-                    </h1>
-                    
-                    <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl animate-fade-up-delayed">
-                        Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank 
-                        <span class="font-semibold text-emerald-600 dark:text-emerald-400">übersichtlicher Dashboards</span> 
-                        – offline-fähig, schnell & motivierend.
-                    </p>
-                </div>
-                
-                <!-- Key Features Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 animate-fade-up-more-delayed">
-                    <div class="text-center space-y-2">
-                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="activity" class="w-6 h-6 text-white"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Live Tracking</div>
-                    </div>
-                    
-                    <div class="text-center space-y-2">
-                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="wifi-off" class="w-6 h-6 text-white"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Offline-fähig</div>
-                    </div>
-                    
-                    <div class="text-center space-y-2">
-                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Analytics</div>
-                    </div>
-                    
-                    <div class="text-center space-y-2">
-                        <div class="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Sicher</div>
-                    </div>
-                </div>
-                
-                <!-- CTA Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-up-final">
-                    <button onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})" 
-                            class="group relative px-8 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-                        <span class="flex items-center justify-center gap-2">
-                            <i data-lucide="play" class="w-5 h-5"></i>
-                            Jetzt starten
-                        </span>
-                        <div class="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </button>
-                    
-                    <button onclick="window.healthTracker.progressHub?.showView('today')" 
-                            class="group px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-gray-800 dark:text-gray-200 font-semibold rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-                        <span class="flex items-center justify-center gap-2">
-                            <i data-lucide="bar-chart" class="w-5 h-5"></i>
-                            Demo ansehen
-                        </span>
-                    </button>
-                </div>
-                
-                <!-- Social Proof / Stats -->
-                <div class="flex flex-wrap justify-center lg:justify-start gap-8 pt-8 animate-fade-up-final">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400" id="hero-stats-users">1.2k+</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Aktive Nutzer</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="hero-stats-goals">98%</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Ziele erreicht</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="hero-stats-offline">100%</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Offline nutzbar</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Visual Side -->
-            <div class="relative">
-                <!-- Main Dashboard Preview -->
-                <div class="relative mx-auto max-w-md lg:max-w-lg">
-                    <!-- Phone Frame -->
-                    <div class="relative bg-gradient-to-b from-slate-800 to-slate-900 rounded-[2.5rem] p-2 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                        <div class="bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
-                            <!-- Status Bar -->
-                            <div class="bg-slate-50 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-xs">
-                                <span class="font-medium text-slate-600 dark:text-slate-400">9:41</span>
-                                <div class="flex gap-1">
-                                    <div class="w-4 h-2 bg-green-500 rounded-sm"></div>
-                                    <div class="w-6 h-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- App Interface Preview -->
-                            <div class="p-4 space-y-4 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 min-h-[600px]">
-                                <!-- Header -->
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Hallo! 👋</h3>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Heute, 6. August</p>
-                                    </div>
-                                    <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center">
-                                        <i data-lucide="user" class="w-5 h-5 text-white"></i>
-                                    </div>
-                                </div>
-                                
-                                <!-- Progress Ring -->
-                                <div class="text-center py-6">
-                                    <div class="relative inline-flex">
-                                        <svg class="w-24 h-24 transform -rotate-90">
-                                            <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="4" fill="transparent" class="text-gray-200 dark:text-gray-700"/>
-                                            <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="4" fill="transparent" 
-                                                    class="text-emerald-500" stroke-dasharray="251" stroke-dashoffset="125" 
-                                                    stroke-linecap="round" />
-                                        </svg>
-                                        <div class="absolute inset-0 flex items-center justify-center">
-                                            <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400">72%</span>
-                                        </div>
-                                    </div>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tagesziel erreicht</p>
-                                </div>
-                                
-                                <!-- Quick Stats -->
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800">
-                                        <div class="flex items-center gap-2 mb-2">
-                                            <i data-lucide="footprints" class="w-4 h-4 text-emerald-600"></i>
-                                            <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Schritte</span>
-                                        </div>
-                                        <p class="text-lg font-bold text-emerald-900 dark:text-emerald-100">8.542</p>
-                                        <p class="text-xs text-emerald-600 dark:text-emerald-400">von 10.000</p>
-                                    </div>
-                                    
-                                    <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-xl p-3 border border-cyan-200 dark:border-cyan-800">
-                                        <div class="flex items-center gap-2 mb-2">
-                                            <i data-lucide="droplets" class="w-4 h-4 text-cyan-600"></i>
-                                            <span class="text-xs font-medium text-cyan-700 dark:text-cyan-300">Wasser</span>
-                                        </div>
-                                        <p class="text-lg font-bold text-cyan-900 dark:text-cyan-100">1.8L</p>
-                                        <p class="text-xs text-cyan-600 dark:text-cyan-400">von 2.0L</p>
-                                    </div>
-                                </div>
-                                
-                                <!-- Mini Chart -->
-                                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-slate-700">
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">7-Tage Trend</p>
-                                    <div class="flex items-end justify-between gap-1 h-16">
-                                        <div class="bg-emerald-200 dark:bg-emerald-700 rounded-t w-4 h-8"></div>
-                                        <div class="bg-emerald-300 dark:bg-emerald-600 rounded-t w-4 h-12"></div>
-                                        <div class="bg-emerald-400 dark:bg-emerald-500 rounded-t w-4 h-6"></div>
-                                        <div class="bg-emerald-500 dark:bg-emerald-400 rounded-t w-4 h-14"></div>
-                                        <div class="bg-emerald-400 dark:bg-emerald-500 rounded-t w-4 h-10"></div>
-                                        <div class="bg-emerald-300 dark:bg-emerald-600 rounded-t w-4 h-16"></div>
-                                        <div class="bg-emerald-500 dark:bg-emerald-400 rounded-t w-4 h-12"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Floating Elements -->
-                    <div class="absolute -top-4 -right-4 bg-white dark:bg-slate-800 rounded-xl p-3 shadow-lg border border-gray-200 dark:border-slate-700 animate-float">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Live Sync</span>
-                        </div>
-                    </div>
-                    
-                    <div class="absolute -bottom-4 -left-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-xl p-3 shadow-lg animate-float-delayed">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="trophy" class="w-4 h-4"></i>
-                            <span class="text-sm font-medium">Ziel erreicht!</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
+    <!-- Headline + Claim -->
+    <div class="max-w-2xl px-6 text-center space-y-6">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
+            Dein persönlicher<br>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-base-100/80 to-base-100">
+                Health&nbsp;Tracker&nbsp;
+            </span>
+        </h1>
+
+        <p class="text-base lg:text-lg text-base-100/90">
+            Behalte Gewicht, Schritte, Wasser- und Schlafziele im Blick & erreiche sie dank
+            übersichtlicher Dashboards – **offline-fähig, schnell & motivierend**.
+        </p>
+
+        <!-- Call-to-Action Buttons -->
+        <div class="flex flex-col sm:flex-row sm:justify-center gap-3 mt-4">
+            <a href="#health-form" class="btn btn-secondary btn-wide sm:btn-md gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                Erste Daten hinzufügen
+            </a>
+
+            <button id="install-btn" class="btn btn-outline btn-accent btn-wide sm:btn-md gap-2 hidden">
+                <i data-lucide="download" class="w-5 h-5"></i>
+                App installieren
+            </button>
         </div>
-        
-        <!-- Scroll Indicator -->
-        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-600">
-                <span class="text-xs font-medium">Mehr entdecken</span>
-                <i data-lucide="chevron-down" class="w-5 h-5"></i>
-            </div>
-        </div>
+    </div>
+
+    <!-- Scroll-Indicator -->
+    <div class="absolute bottom-6 inset-x-0 flex justify-center">
+        <i data-lucide="chevron-down" class="w-6 h-6 animate-bounce text-base-100/80"></i>
     </div>
 </section>
 
@@ -667,323 +354,143 @@
 </dialog>
 
 <!-- ===============================
-     ENHANCED PROGRESS HUB 2.0
+     PROGRESS HUB (Goals + Score)
      =============================== -->
-<div class="card bg-base-100 shadow-xl border border-base-300">
-    <div class="card-body p-6">
-        <!-- Enhanced Header mit Stats Summary -->
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-            <div class="flex items-center gap-3">
-                <div class="avatar placeholder">
-                    <div class="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white rounded-full w-12 h-12">
-                        <i data-lucide="trending-up" class="w-6 h-6"></i>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-bold text-base-content">Mein Fortschritt</h2>
-                    <p class="text-sm text-base-content/70">Deine Ziele, Fortschritte und Erfolge auf einen Blick</p>
-                    <!-- Quick Stats Summary -->
-                    <div class="flex gap-4 mt-2 text-xs" id="quick-stats-summary">
-                        <span class="text-success font-semibold" id="completed-goals">0/4 Ziele</span>
-                        <span class="text-info" id="current-streak">0 Tage Streak</span>
-                        <span class="text-warning" id="weekly-avg">Ø 0% diese Woche</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Enhanced Action Buttons -->
-            <div class="flex gap-2 flex-wrap">
-                <button id="edit-goals-btn" class="btn btn-outline btn-sm gap-2">
-                    <i data-lucide="settings" class="w-4 h-4"></i>
-                    <span class="hidden sm:inline">Ziele anpassen</span>
-                </button>
-                <div class="dropdown dropdown-end">
-                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
-                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
-                    </div>
-                    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
-                        <li><a onclick="window.healthTracker.progressHub.exportProgress()">
-                            <i data-lucide="download" class="w-4 h-4"></i>Fortschritt exportieren
-                        </a></li>
-                        <li><a onclick="window.healthTracker.progressHub.shareProgress()">
-                            <i data-lucide="share-2" class="w-4 h-4"></i>Fortschritt teilen
-                        </a></li>
-                        <li><a onclick="window.healthTracker.progressHub.resetProgress()">
-                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>Fortschritt zurücksetzen
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<section id="progress-hub" class="card bg-base-100 shadow-xl border border-base-300">
 
-        <!-- Enhanced Tab Navigation mit Icons und Badges -->
-        <div class="tabs tabs-boxed mb-6">
-            <a class="tab tab-active gap-2" id="tab-today" onclick="window.healthTracker.progressHub.showView('today')">
-                <i data-lucide="calendar-days" class="w-4 h-4"></i>
-                <span>Heute</span>
-                <div class="badge badge-primary badge-xs" id="today-badge">0%</div>
-            </a>
-            <a class="tab gap-2" id="tab-week" onclick="window.healthTracker.progressHub.showView('week')">
-                <i data-lucide="calendar-week" class="w-4 h-4"></i>
-                <span>Woche</span>
-                <div class="badge badge-secondary badge-xs" id="week-badge">0%</div>
-            </a>
-            <a class="tab gap-2" id="tab-achievements" onclick="window.healthTracker.progressHub.showView('achievements')">
-                <i data-lucide="trophy" class="w-4 h-4"></i>
-                <span>Erfolge</span>
-                <div class="badge badge-warning badge-xs" id="achievements-badge">0</div>
-            </a>
-            <a class="tab gap-2" id="tab-streaks" onclick="window.healthTracker.progressHub.showView('streaks')">
-                <i data-lucide="flame" class="w-4 h-4"></i>
-                <span>Streaks</span>
-                <div class="badge badge-error badge-xs" id="streaks-badge">0</div>
-            </a>
-        </div>
-
-        <!-- Enhanced Today View -->
-        <div id="view-today" class="progress-view">
-            <!-- Overall Progress Ring -->
-            <div class="text-center mb-6">
-                <div class="relative inline-flex items-center justify-center">
-                    <svg class="transform -rotate-90 w-32 h-32">
-                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="4" fill="transparent" class="text-base-300"/>
-                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="4" fill="transparent" 
-                                class="text-primary transition-all duration-500" id="overall-progress-circle"
-                                stroke-dasharray="351.86" stroke-dashoffset="351.86"/>
-                    </svg>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span class="text-3xl font-bold text-primary" id="overall-score-display">0%</span>
-                        <span class="text-xs text-base-content/60">Gesamt-Score</span>
-                    </div>
-                </div>
-                <p class="text-sm text-base-content/70 mt-2" id="overall-motivation">Lade Fortschritt...</p>
+    <!-- Header + Tabs -->
+    <div class="card-body pb-0">
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2 text-xl font-bold">
+                <i data-lucide="target" class="w-5 h-5 text-primary"></i>
+                Mein Fortschritt
             </div>
 
-            <!-- Enhanced Progress Cards Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <!-- Steps Card -->
-                <div class="card bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200 dark:border-emerald-800">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-emerald-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="footprints" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="badge badge-success badge-sm" id="steps-progress-badge">0%</div>
-                                <div class="text-xs text-emerald-600 mt-1" id="steps-status">Inaktiv</div>
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-emerald-800 dark:text-emerald-200">Schritte</h3>
-                        <div class="flex items-baseline gap-2 mb-2">
-                            <span class="text-2xl font-bold text-emerald-900 dark:text-emerald-100" id="today-steps-display">0</span>
-                            <span class="text-sm text-emerald-600 dark:text-emerald-400">/ <span id="steps-goal-display">10.000</span></span>
-                        </div>
-                        <progress class="progress progress-success h-2 mb-2" value="0" max="100" id="steps-progress-bar"></progress>
-                        <div class="text-xs text-emerald-600 dark:text-emerald-400" id="steps-motivation">Jeder Schritt zählt!</div>
-                        <!-- Mini Chart Sparkline -->
-                        <div class="mt-2">
-                            <canvas id="steps-sparkline" width="100" height="20" class="w-full h-5"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Water Card -->
-                <div class="card bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 border border-cyan-200 dark:border-cyan-800">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-cyan-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="droplets" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="badge badge-info badge-sm" id="water-progress-badge">0%</div>
-                                <div class="text-xs text-cyan-600 mt-1" id="water-status">Dehydriert</div>
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-cyan-800 dark:text-cyan-200">Wasser</h3>
-                        <div class="flex items-baseline gap-2 mb-2">
-                            <span class="text-2xl font-bold text-cyan-900 dark:text-cyan-100" id="today-water-display">0L</span>
-                            <span class="text-sm text-cyan-600 dark:text-cyan-400">/ <span id="water-goal-display">2L</span></span>
-                        </div>
-                        <progress class="progress progress-info h-2 mb-2" value="0" max="100" id="water-progress-bar"></progress>
-                        <div class="text-xs text-cyan-600 dark:text-cyan-400" id="water-motivation">Denk ans Trinken!</div>
-                        <!-- Water Glasses Visual -->
-                        <div class="flex gap-1 mt-2" id="water-glasses">
-                            <!-- Dynamically filled glasses -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sleep Card -->
-                <div class="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border border-indigo-200 dark:border-indigo-800">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-indigo-500 text-white rounded-full w-10 h-10">
-                                    <i data-lucide="moon" class="w-5 h-5"></i>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="badge badge-secondary badge-sm" id="sleep-progress-badge">0%</div>
-                                <div class="text-xs text-indigo-600 mt-1" id="sleep-status">Müde</div>
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-indigo-800 dark:text-indigo-200">Schlaf</h3>
-                        <div class="flex items-baseline gap-2 mb-2">
-                            <span class="text-2xl font-bold text-indigo-900 dark:text-indigo-100" id="today-sleep-display">0h</span>
-                            <span class="text-sm text-indigo-600 dark:text-indigo-400">/ <span id="sleep-goal-display">8h</span></span>
-                        </div>
-                        <progress class="progress progress-secondary h-2 mb-2" value="0" max="100" id="sleep-progress-bar"></progress>
-                        <div class="text-xs text-indigo-600 dark:text-indigo-400" id="sleep-motivation">Erholung ist wichtig!</div>
-                        <!-- Sleep Quality Indicator -->
-                        <div class="flex gap-1 mt-2" id="sleep-quality">
-                            <div class="w-2 h-2 rounded-full bg-indigo-200" title="Schlafqualität"></div>
-                            <div class="w-2 h-2 rounded-full bg-indigo-200"></div>
-                            <div class="w-2 h-2 rounded-full bg-indigo-200"></div>
-                            <div class="w-2 h-2 rounded-full bg-indigo-200"></div>
-                            <div class="w-2 h-2 rounded-full bg-indigo-200"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mood & Bonus Card -->
-                <div class="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800">
-                    <div class="card-body p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="avatar placeholder">
-                                <div class="bg-purple-500 text-white rounded-full w-10 h-10" id="mood-emoji-display">
-                                    <span class="text-lg">😐</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="badge badge-accent badge-sm" id="mood-badge">Neutral</div>
-                                <div class="text-xs text-purple-600 mt-1" id="bonus-points">+0 Bonus</div>
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-purple-800 dark:text-purple-200">Stimmung</h3>
-                        <div class="text-lg font-bold text-purple-900 dark:text-purple-100 mb-2" id="current-mood-display">Neutral</div>
-                        <!-- Mood Streak -->
-                        <div class="text-xs text-purple-600 dark:text-purple-400 mb-2" id="mood-streak">Heute tracken</div>
-                        <!-- Quick Mood Selector -->
-                        <div class="flex gap-1 justify-center" id="quick-mood-selector">
-                            <button class="btn btn-xs btn-ghost text-lg" onclick="window.healthTracker.progressHub.quickMoodUpdate('terrible')" title="Schrecklich">😞</button>
-                            <button class="btn btn-xs btn-ghost text-lg" onclick="window.healthTracker.progressHub.quickMoodUpdate('bad')" title="Schlecht">😔</button>
-                            <button class="btn btn-xs btn-ghost text-lg" onclick="window.healthTracker.progressHub.quickMoodUpdate('neutral')" title="Neutral">😐</button>
-                            <button class="btn btn-xs btn-ghost text-lg" onclick="window.healthTracker.progressHub.quickMoodUpdate('good')" title="Gut">😊</button>
-                            <button class="btn btn-xs btn-ghost text-lg" onclick="window.healthTracker.progressHub.quickMoodUpdate('excellent')" title="Ausgezeichnet">😄</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Enhanced Quick Actions mit Smart Suggestions -->
-            <div class="bg-gradient-to-r from-base-200/50 to-base-300/50 rounded-xl p-4 mb-6">
-                <div class="flex justify-between items-center mb-3">
-                    <h4 class="font-semibold flex items-center gap-2">
-                        <i data-lucide="zap" class="w-4 h-4 text-primary"></i>
-                        Smart Aktionen für dich
-                    </h4>
-                    <button class="btn btn-ghost btn-xs" onclick="window.healthTracker.progressHub.refreshActions()">
-                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" id="today-quick-actions">
-                    <!-- Dynamisch generierte Action-Buttons -->
-                </div>
-            </div>
-
-            <!-- Daily Challenge Section -->
-            <div class="bg-gradient-to-r from-accent/10 to-secondary/10 rounded-xl p-4">
-                <h4 class="font-semibold flex items-center gap-2 mb-3">
-                    <i data-lucide="target" class="w-4 h-4 text-accent"></i>
-                    Tägliche Herausforderung
-                </h4>
-                <div id="daily-challenge" class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm" id="challenge-description">Lade Challenge...</span>
-                        <div class="badge badge-outline" id="challenge-reward">+0 XP</div>
-                    </div>
-                    <progress class="progress progress-accent h-2" value="0" max="100" id="challenge-progress"></progress>
-                </div>
-            </div>
-        </div>
-
-        <!-- Week View (Enhanced) -->
-        <div id="view-week" class="progress-view hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Weekly Calendar -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="calendar-week" class="w-5 h-5 text-primary"></i>
-                        Diese Woche
-                    </h3>
-                    <div class="grid grid-cols-7 gap-2 text-center" id="week-overview">
-                        <!-- 7 Tage der aktuellen Woche -->
-                    </div>
-                </div>
-
-                <!-- Weekly Stats -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="trending-up" class="w-5 h-5 text-secondary"></i>
-                        Wochenstatistiken
-                    </h3>
-                    <div class="stats stats-vertical bg-base-200" id="weekly-stats">
-                        <!-- Dynamisch generierte Wochenstatistiken -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Achievements View (Enhanced) -->
-        <div id="view-achievements" class="progress-view hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="achievements-grid">
-                <!-- Dynamisch generierte Achievement-Karten -->
-            </div>
-        </div>
-
-        <!-- Streaks View (Enhanced) -->
-        <div id="view-streaks" class="progress-view hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Current Streaks -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="flame" class="w-5 h-5 text-orange-500"></i>
-                        Aktuelle Streaks
-                    </h3>
-                    <div class="space-y-3" id="current-streaks">
-                        <!-- Dynamisch generierte Streak-Karten -->
-                    </div>
-                </div>
-
-                <!-- Personal Records -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="medal" class="w-5 h-5 text-yellow-500"></i>
-                        Persönliche Rekorde
-                    </h3>
-                    <div class="space-y-3" id="personal-records">
-                        <!-- Dynamisch generierte Rekord-Karten -->
-                    </div>
-                </div>
-
-                <!-- Streak Calendar -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-green-500"></i>
-                        Streak-Kalender
-                    </h3>
-                    <div class="bg-base-200 rounded-lg p-4" id="streak-calendar">
-                        <!-- Mini-Kalender für Streak-Visualisierung -->
-                    </div>
-                </div>
+            <!-- Tabs -->
+            <div class="tabs tabs-boxed">
+                <a id="tab-today"        class="tab tab-active"
+                   onclick="window.healthTracker.progressHub.showView('today')">Heute</a>
+                <a id="tab-week"         class="tab"
+                   onclick="window.healthTracker.progressHub.showView('week')">Woche</a>
+                <a id="tab-achievements" class="tab"
+                   onclick="window.healthTracker.progressHub.showView('achievements')">Erfolge</a>
+                <a id="tab-streaks"      class="tab"
+                   onclick="window.healthTracker.progressHub.showView('streaks')">Streaks</a>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Views ----------------------------------------------------------->
+    <div class="card-body pt-4 space-y-6">
+
+        <!-- 1) TODAY VIEW -->
+        <div id="view-today" class="progress-view space-y-6">
+
+            <!-- Progress Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <!-- Steps ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="footprints" class="w-4 h-4 text-success"></i> Schritte
+                        </span>
+                        <span id="steps-progress-badge" class="badge badge-success badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-steps-display" class="text-3xl font-bold">0</div>
+
+                    <progress id="steps-progress-bar" class="progress progress-success w-full" value="0" max="100"></progress>
+
+                    <div id="steps-motivation" class="text-xs text-success/80 mt-1">
+                        Jeder Schritt zählt! 🚶‍♂️
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="steps-goal-display">10 000</span>
+                    </div>
+                </div>
+
+                <!-- Water ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="droplets" class="w-4 h-4 text-info"></i> Wasser
+                        </span>
+                        <span id="water-progress-badge" class="badge badge-info badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-water-display" class="text-3xl font-bold">0 L</div>
+
+                    <progress id="water-progress-bar" class="progress progress-info w-full" value="0" max="100"></progress>
+
+                    <div id="water-motivation" class="text-xs text-info/80 mt-1">
+                        Denk ans Trinken! 💧
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="water-goal-display">2,0 L</span>
+                    </div>
+                </div>
+
+                <!-- Sleep ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="moon" class="w-4 h-4 text-warning"></i> Schlaf
+                        </span>
+                        <span id="sleep-progress-badge" class="badge badge-warning badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-sleep-display" class="text-3xl font-bold">0 h</div>
+
+                    <progress id="sleep-progress-bar" class="progress progress-warning w-full" value="0" max="100"></progress>
+
+                    <div id="sleep-motivation" class="text-xs text-warning/80 mt-1">
+                        Erholung ist wichtig! 😴
+                    </div>
+                    <div class="text-xs text-base-content/60 mt-1">
+                        Ziel:&nbsp;<span id="sleep-goal-display">8 h</span>
+                    </div>
+                </div>
+
+                <!-- Score ------------------------------------------------>
+                <div class="card bg-base-200/50 stat-card p-4 border border-base-300 rounded-lg">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1 font-semibold">
+                            <i data-lucide="star" class="w-4 h-4 text-accent"></i> Gesamt-Score
+                        </span>
+                        <span id="score-progress-badge" class="badge badge-accent badge-outline text-xs">0%</span>
+                    </div>
+
+                    <div id="today-score-display" class="text-3xl font-bold">0</div>
+
+                    <progress id="score-progress-bar" class="progress progress-accent w-full" value="0" max="100"></progress>
+
+                    <div id="score-motivation" class="text-xs text-accent/80 mt-1">
+                        Du schaffst das! 💪
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div id="today-quick-actions" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 2) WEEK VIEW (Placeholder) -->
+        <div id="view-week" class="progress-view hidden">
+            <p class="text-base-content/70">🗓️ Wochenansicht wird geladen …</p>
+        </div>
+
+        <!-- 3) ACHIEVEMENTS VIEW (Placeholder) -->
+        <div id="view-achievements" class="progress-view hidden">
+            <p class="text-base-content/70">🏆 Deine Erfolge erscheinen hier!</p>
+        </div>
+
+        <!-- 4) STREAKS VIEW (Placeholder) -->
+        <div id="view-streaks" class="progress-view hidden">
+            <p class="text-base-content/70">🔥 Behalte deine Streaks im Blick!</p>
+        </div>
+    </div>
+</section>
 
 <!-- Advanced Analytics Dashboard -->
 <div class="card bg-base-100 shadow-xl border border-base-300">

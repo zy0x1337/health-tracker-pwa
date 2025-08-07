@@ -5638,82 +5638,146 @@ calculateBasicCorrelations(data) {
 }
 
 /**
- * Update weekly summary chart with bar, pie, and area charts
+ * Get weekly data (last 7 days) - Missing method
  */
-async updateWeeklySummaryChart(data) {
-    let container = document.getElementById('weekly-summary-chart');
+getWeeklyData(allData) {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     
-    if (!container) {
-        console.error('❌ Weekly summary chart container not found');
-        return;
-    }
-
-    const parentContainer = container.closest('.card-body');
-    if (!parentContainer) {
-        console.error('❌ Parent container for weekly summary chart not found');
-        return;
-    }
-
-    try {
-        // Canvas für Charts sichtbar machen
-        container.style.display = 'block';
-        container.width = container.offsetWidth || 400;
-        container.height = container.offsetHeight || 300;
+    return allData.filter(entry => {
+        if (!entry.date) return false;
         
-        const ctx = container.getContext('2d');
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, container.width, container.height);
-        
-        // Check if we have enough data
-        if (!data || data.length < 1) {
-            this.drawEmptyState(ctx, container, '📅', 'Keine Wochendaten verfügbar');
-            return;
-        }
-
-        // Get weekly data
-        const weekData = this.getWeeklyData(data);
-        
-        if (weekData.length === 0) {
-            this.drawEmptyState(ctx, container, '📊', 'Keine Wochendaten');
-            return;
-        }
-
-        // Prepare chart data
-        const chartData = this.prepareWeeklyChartData(weekData);
-        
-        // Get current chart type from dropdown or default to bar
-        const chartType = this.getCurrentChartType() || 'bar';
-        
-        // Render appropriate chart
-        switch (chartType) {
-            case 'bar':
-                this.drawBarChart(ctx, container, chartData);
-                break;
-            case 'pie':
-                this.drawPieChart(ctx, container, chartData);
-                break;
-            case 'area':
-                this.drawAreaChart(ctx, container, chartData);
-                break;
-            default:
-                this.drawBarChart(ctx, container, chartData);
+        let entryDate;
+        if (typeof entry.date === 'string') {
+            entryDate = new Date(entry.date.split('T')[0]);
+        } else if (entry.date instanceof Date) {
+            entryDate = entry.date;
+        } else {
+            return false;
         }
         
-        // Add chart info below canvas
-        this.addChartInfo(parentContainer, chartData);
-        
-        console.log('✅ Weekly summary chart updated successfully');
-
-    } catch (error) {
-        console.error('❌ Error updating weekly summary chart:', error);
-        const ctx = container.getContext('2d');
-        this.drawEmptyState(ctx, container, '⚠️', 'Fehler beim Laden der Charts');
-    }
+        return entryDate >= oneWeekAgo && entryDate <= now;
+    });
 }
 
 /**
- * Prepare weekly chart data
+ * Calculate weekly statistics - Missing method
+ */
+calculateWeeklyStats(weekData) {
+    if (weekData.length === 0) {
+        return {
+            avgSteps: 0,
+            avgWater: 0,
+            avgSleep: 0,
+            totalEntries: 0,
+            bestDay: null,
+            improvement: null
+        };
+    }
+
+    const totals = weekData.reduce((acc, entry) => {
+        acc.steps += entry.steps || 0;
+        acc.water += entry.waterIntake || 0;
+        acc.sleep += entry.sleepHours || 0;
+        acc.entries += 1;
+        return acc;
+    }, { steps: 0, water: 0, sleep: 0, entries: 0 });
+
+    return {
+        avgSteps: Math.round(totals.steps / weekData.length),
+        avgWater: Math.round((totals.water / weekData.length) * 10) / 10,
+        avgSleep: Math.round((totals.sleep / weekData.length) * 10) / 10,
+        totalEntries: totals.entries,
+        bestDay: this.findBestDay(weekData),
+        improvement: this.calculateImprovement(weekData)
+    };
+}
+
+/**
+ * Generate weekly trend bars - Missing method
+ */
+generateWeeklyTrendBars(stats) {
+    const trends = [
+        { label: 'Schritte-Ziel', value: Math.min((stats.avgSteps / 10000) * 100, 100), color: 'bg-primary' },
+        { label: 'Wasser-Ziel', value: Math.min((stats.avgWater / 2.0) * 100, 100), color: 'bg-info' },
+        { label: 'Schlaf-Ziel', value: Math.min((stats.avgSleep / 8) * 100, 100), color: 'bg-success' }
+    ];
+
+    return trends.map(trend => `
+        <div class="flex items-center justify-between text-xs">
+            <span class="w-20">${trend.label}</span>
+            <div class="flex-1 mx-2 bg-base-300 rounded-full h-2">
+                <div class="${trend.color} h-2 rounded-full transition-all" 
+                     style="width: ${trend.value}%"></div>
+            </div>
+            <span class="w-8">${Math.round(trend.value)}%</span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Generate weekly insights - Missing method
+ */
+generateWeeklyInsights(stats) {
+    const insights = [];
+    
+    if (stats.avgSteps >= 8000) {
+        insights.push('🚶‍♂️ Tolle Aktivität diese Woche!');
+    }
+    
+    if (stats.avgWater >= 1.8) {
+        insights.push('💧 Gute Hydration beibehalten');
+    }
+    
+    if (stats.avgSleep >= 7) {
+        insights.push('😴 Ausreichend Schlaf diese Woche');
+    }
+    
+    if (stats.totalEntries >= 5) {
+        insights.push('📊 Konsistente Datenerfassung');
+    }
+
+    if (insights.length === 0) {
+        insights.push('💪 Weiter so - jeder Schritt zählt!');
+    }
+    
+    return insights.map(insight => `
+        <div class="flex items-center gap-2">
+            <span>${insight}</span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Find best performing day - Missing method
+ */
+findBestDay(weekData) {
+    if (weekData.length === 0) return null;
+    
+    return weekData.reduce((best, current) => {
+        const currentScore = (current.steps || 0) + (current.waterIntake || 0) * 1000 + (current.sleepHours || 0) * 100;
+        const bestScore = (best.steps || 0) + (best.waterIntake || 0) * 1000 + (best.sleepHours || 0) * 100;
+        return currentScore > bestScore ? current : best;
+    });
+}
+
+/**
+ * Calculate improvement trend - Missing method
+ */
+calculateImprovement(weekData) {
+    if (weekData.length < 3) return null;
+    
+    const firstHalf = weekData.slice(0, Math.floor(weekData.length / 2));
+    const secondHalf = weekData.slice(Math.floor(weekData.length / 2));
+    
+    const firstAvg = firstHalf.reduce((sum, entry) => sum + (entry.steps || 0), 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, entry) => sum + (entry.steps || 0), 0) / secondHalf.length;
+    
+    return firstAvg === 0 ? 0 : ((secondAvg - firstAvg) / firstAvg) * 100;
+}
+
+/**
+ * Prepare weekly chart data - Missing method
  */
 prepareWeeklyChartData(weekData) {
     const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -5757,198 +5821,17 @@ prepareWeeklyChartData(weekData) {
 }
 
 /**
- * Draw bar chart
+ * Get current chart type from dropdown - Missing method
  */
-drawBarChart(ctx, canvas, data) {
-    const { width, height } = canvas;
-    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
-    const chartWidth = width - margin.left - margin.right;
-    const chartHeight = height - margin.top - margin.bottom;
-    
-    // Clear and set up
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Find max value for scaling
-    const maxSteps = Math.max(...data.datasets.steps, 10000);
-    const barWidth = chartWidth / data.labels.length - 10;
-    
-    // Draw bars
-    data.datasets.steps.forEach((steps, i) => {
-        const barHeight = (steps / maxSteps) * chartHeight;
-        const x = margin.left + i * (chartWidth / data.labels.length) + 5;
-        const y = margin.top + chartHeight - barHeight;
-        
-        // Bar
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(x, y, barWidth, barHeight);
-        
-        // Value on top
-        ctx.fillStyle = '#374151';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(steps.toLocaleString(), x + barWidth/2, y - 5);
-        
-        // Day label
-        ctx.fillText(data.labels[i], x + barWidth/2, height - 10);
-    });
-    
-    // Title
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Schritte pro Tag', width/2, 15);
+getCurrentChartType() {
+    const dropdown = document.querySelector('#analytics select') || 
+                    document.querySelector('[id*="chart-type"]') || 
+                    document.querySelector('select');
+    return dropdown?.value || 'bar';
 }
 
 /**
- * Draw pie chart
- */
-drawPieChart(ctx, canvas, data) {
-    const { width, height } = canvas;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) / 2 - 40;
-    
-    // Clear and set up
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Calculate percentages
-    const total = data.totals.steps + (data.totals.water * 1000) + (data.totals.sleep * 100);
-    const segments = [
-        { label: 'Schritte', value: data.totals.steps, color: '#3b82f6' },
-        { label: 'Wasser', value: data.totals.water * 1000, color: '#06b6d4' },
-        { label: 'Schlaf', value: data.totals.sleep * 100, color: '#10b981' }
-    ];
-    
-    let currentAngle = -Math.PI / 2;
-    
-    // Draw segments
-    segments.forEach((segment, i) => {
-        const sliceAngle = (segment.value / total) * 2 * Math.PI;
-        
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fillStyle = segment.color;
-        ctx.fill();
-        
-        // Label
-        const labelAngle = currentAngle + sliceAngle / 2;
-        const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
-        const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        const percentage = Math.round((segment.value / total) * 100);
-        ctx.fillText(`${percentage}%`, labelX, labelY);
-        
-        currentAngle += sliceAngle;
-    });
-    
-    // Title
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Wöchentliche Verteilung', centerX, 15);
-    
-    // Legend
-    segments.forEach((segment, i) => {
-        const y = height - 60 + i * 15;
-        ctx.fillStyle = segment.color;
-        ctx.fillRect(20, y, 10, 10);
-        ctx.fillStyle = '#374151';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(segment.label, 35, y + 8);
-    });
-}
-
-/**
- * Draw area chart
- */
-drawAreaChart(ctx, canvas, data) {
-    const { width, height } = canvas;
-    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
-    const chartWidth = width - margin.left - margin.right;
-    const chartHeight = height - margin.top - margin.bottom;
-    
-    // Clear and set up
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Find max value for scaling
-    const maxSteps = Math.max(...data.datasets.steps, 10000);
-    const stepX = chartWidth / (data.labels.length - 1);
-    
-    // Create path
-    ctx.beginPath();
-    ctx.moveTo(margin.left, margin.top + chartHeight);
-    
-    data.datasets.steps.forEach((steps, i) => {
-        const x = margin.left + i * stepX;
-        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
-        if (i === 0) {
-            ctx.lineTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    });
-    
-    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
-    ctx.closePath();
-    
-    // Fill area
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
-    ctx.fill();
-    
-    // Draw line
-    ctx.beginPath();
-    data.datasets.steps.forEach((steps, i) => {
-        const x = margin.left + i * stepX;
-        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    });
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Add points and labels
-    data.datasets.steps.forEach((steps, i) => {
-        const x = margin.left + i * stepX;
-        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
-        
-        // Point
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fill();
-        
-        // Day label
-        ctx.fillStyle = '#374151';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(data.labels[i], x, height - 10);
-    });
-    
-    // Title
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Schritte-Trend', width/2, 15);
-}
-
-/**
- * Draw empty state
+ * Draw empty state - Missing method
  */
 drawEmptyState(ctx, canvas, icon, message) {
     const { width, height } = canvas;
@@ -5966,7 +5849,7 @@ drawEmptyState(ctx, canvas, icon, message) {
 }
 
 /**
- * Add chart info below canvas
+ * Add chart info below canvas - Missing method
  */
 addChartInfo(parentContainer, data) {
     let infoDiv = parentContainer.querySelector('.chart-info');
@@ -5991,13 +5874,171 @@ addChartInfo(parentContainer, data) {
 }
 
 /**
- * Get current chart type from dropdown
+ * Draw bar chart - Missing method
  */
-getCurrentChartType() {
-    const dropdown = document.querySelector('#analytics select') || 
-                    document.querySelector('[id*="chart-type"]') || 
-                    document.querySelector('select');
-    return dropdown?.value || 'bar';
+drawBarChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    const maxSteps = Math.max(...data.datasets.steps, 10000);
+    const barWidth = chartWidth / data.labels.length - 10;
+    
+    data.datasets.steps.forEach((steps, i) => {
+        const barHeight = (steps / maxSteps) * chartHeight;
+        const x = margin.left + i * (chartWidth / data.labels.length) + 5;
+        const y = margin.top + chartHeight - barHeight;
+        
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(steps.toLocaleString(), x + barWidth/2, y - 5);
+        ctx.fillText(data.labels[i], x + barWidth/2, height - 10);
+    });
+    
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Schritte pro Tag', width/2, 15);
+}
+
+/**
+ * Draw pie chart - Missing method
+ */
+drawPieChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2 - 40;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    const total = data.totals.steps + (data.totals.water * 1000) + (data.totals.sleep * 100);
+    const segments = [
+        { label: 'Schritte', value: data.totals.steps, color: '#3b82f6' },
+        { label: 'Wasser', value: data.totals.water * 1000, color: '#06b6d4' },
+        { label: 'Schlaf', value: data.totals.sleep * 100, color: '#10b981' }
+    ];
+    
+    let currentAngle = -Math.PI / 2;
+    
+    segments.forEach((segment, i) => {
+        const sliceAngle = (segment.value / total) * 2 * Math.PI;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = segment.color;
+        ctx.fill();
+        
+        const labelAngle = currentAngle + sliceAngle / 2;
+        const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+        const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        const percentage = Math.round((segment.value / total) * 100);
+        ctx.fillText(`${percentage}%`, labelX, labelY);
+        
+        currentAngle += sliceAngle;
+    });
+    
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Wöchentliche Verteilung', centerX, 15);
+    
+    segments.forEach((segment, i) => {
+        const y = height - 60 + i * 15;
+        ctx.fillStyle = segment.color;
+        ctx.fillRect(20, y, 10, 10);
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(segment.label, 35, y + 8);
+    });
+}
+
+/**
+ * Draw area chart - Missing method
+ */
+drawAreaChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    const maxSteps = Math.max(...data.datasets.steps, 10000);
+    const stepX = chartWidth / (data.labels.length - 1);
+    
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top + chartHeight);
+    
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        if (i === 0) {
+            ctx.lineTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.closePath();
+    
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+    ctx.fill();
+    
+    ctx.beginPath();
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(data.labels[i], x, height - 10);
+    });
+    
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Schritte-Trend', width/2, 15);
 }
 
 /** Get goal comparison text */

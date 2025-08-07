@@ -693,39 +693,362 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 max-w-7xl space-y-8">
 
-        <!-- Progress Hub -->
-<section id="progress-hub" class="card bg-base-100 shadow-xl border border-base-300">
-    <div class="card-body">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-3">
-                <div class="avatar placeholder">
-                    <div class="bg-primary text-primary-content rounded-full w-10 h-10">
-                        <i data-lucide="target" class="w-5 h-5"></i>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-bold text-base-content">Fortschrittshub</h2>
-                    <p class="text-base-content/70">Verfolge deine Ziele und Erfolge</p>
-                </div>
+        <!-- ============================================ -->
+<!-- FORTSCHRITTSHUB - Optimiertes Design -->
+<!-- ============================================ -->
+<section id="progress-hub" class="max-w-6xl mx-auto mb-16 px-4">
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-3 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl mb-4">
+            <div class="p-3 bg-primary/20 rounded-xl">
+                <i data-lucide="trending-up" class="w-8 h-8 text-primary"></i>
             </div>
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tabs tabs-boxed mb-6">
-            <button id="tab-today" class="tab tab-active">Heute</button>
-            <button id="tab-week" class="tab">Woche</button>
-        </div>
-
-        <!-- Content Container -->
-        <div id="progress-content" class="min-h-[400px]">
-            <!-- Die ProgressHub Klasse füllt diesen Container automatisch -->
-            <div class="text-center py-12">
-                <div class="text-4xl mb-4">📊</div>
-                <p class="text-base-content/70">Progress Hub wird geladen...</p>
+            <div class="text-left">
+                <h2 class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    Fortschrittshub
+                </h2>
+                <p class="text-base-content/70">Verfolge deine Ziele und Erfolge</p>
             </div>
         </div>
     </div>
+
+    <!-- Moderne Tab-Navigation -->
+    <div class="tabs tabs-boxed bg-base-200/50 backdrop-blur-sm p-2 rounded-2xl mb-8 shadow-lg">
+        <button id="tab-overview" class="tab tab-active flex-1 gap-2 transition-all duration-300 hover:scale-105">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Übersicht</span>
+        </button>
+        <button id="tab-weekly" class="tab flex-1 gap-2 transition-all duration-300 hover:scale-105">
+            <i data-lucide="calendar-days" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Wöchentlich</span>
+        </button>
+        <button id="tab-goals" class="tab flex-1 gap-2 transition-all duration-300 hover:scale-105">
+            <i data-lucide="target" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Ziele</span>
+        </button>
+        <button id="tab-achievements" class="tab flex-1 gap-2 transition-all duration-300 hover:scale-105">
+            <i data-lucide="trophy" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Erfolge</span>
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="progress-loading" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="skeleton h-40 rounded-2xl"></div>
+            <div class="skeleton h-40 rounded-2xl"></div>
+            <div class="skeleton h-40 rounded-2xl"></div>
+        </div>
+    </div>
+
+    <!-- Tab Content Container -->
+    <div id="progress-content" class="min-h-[400px]">
+        
+        <!-- ÜBERSICHT VIEW - Optimiertes Design -->
+        <div id="overview-view" class="space-y-8">
+            <!-- Heute Highlights -->
+            <div class="card bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl border border-primary/10">
+                <div class="card-body p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-primary/20 rounded-xl">
+                                <i data-lucide="calendar-check" class="w-6 h-6 text-primary"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold">Heute im Fokus</h3>
+                                <p id="today-date" class="text-base-content/70 text-sm">
+                                    <!-- Wird dynamisch gefüllt -->
+                                </p>
+                            </div>
+                        </div>
+                        <div class="badge badge-primary badge-lg">
+                            <span id="today-completion-rate">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Heute Stats Grid -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="stat bg-base-100/50 rounded-xl p-4 border border-primary/10">
+                            <div class="stat-figure text-primary">
+                                <i data-lucide="footprints" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Schritte</div>
+                            <div id="today-steps-display" class="stat-value text-lg font-bold text-primary">—</div>
+                            <div class="stat-desc">
+                                <div class="progress progress-primary w-full h-2 mt-1">
+                                    <div id="today-steps-progress" class="progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat bg-base-100/50 rounded-xl p-4 border border-info/10">
+                            <div class="stat-figure text-info">
+                                <i data-lucide="droplets" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Wasser</div>
+                            <div id="today-water-display" class="stat-value text-lg font-bold text-info">—</div>
+                            <div class="stat-desc">
+                                <div class="progress progress-info w-full h-2 mt-1">
+                                    <div id="today-water-progress" class="progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat bg-base-100/50 rounded-xl p-4 border border-accent/10">
+                            <div class="stat-figure text-accent">
+                                <i data-lucide="moon" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Schlaf</div>
+                            <div id="today-sleep-display" class="stat-value text-lg font-bold text-accent">—</div>
+                            <div class="stat-desc">
+                                <div class="progress progress-accent w-full h-2 mt-1">
+                                    <div id="today-sleep-progress" class="progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat bg-base-100/50 rounded-xl p-4 border border-secondary/10">
+                            <div class="stat-figure text-secondary">
+                                <i data-lucide="scale" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Gewicht</div>
+                            <div id="today-weight-display" class="stat-value text-lg font-bold text-secondary">—</div>
+                            <div class="stat-desc">
+                                <div class="badge badge-ghost badge-sm">
+                                    <span id="weight-trend">→</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notizen Section -->
+                    <div id="today-notes-section" class="mt-6 hidden">
+                        <div class="divider">Notizen</div>
+                        <div class="alert alert-info">
+                            <i data-lucide="sticky-note" class="w-5 h-5"></i>
+                            <div class="text-sm">
+                                <div class="font-medium mb-1">Deine heutigen Notizen</div>
+                                <div id="today-notes-content" class="opacity-80">
+                                    <!-- Wird dynamisch gefüllt -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wöchentliche Trends -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card bg-base-100 shadow-xl border border-base-300">
+                    <div class="card-body p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-primary/20 rounded-lg">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">Wöchentliche Trends</h4>
+                                <p class="text-sm opacity-70">Deine 7-Tage Performance</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="footprints" class="w-4 h-4 text-primary"></i>
+                                    <span class="text-sm">Schritte/Tag</span>
+                                </div>
+                                <div class="text-right">
+                                    <div id="week-avg-steps" class="font-bold">—</div>
+                                    <div id="week-steps-trend" class="text-xs opacity-70">—</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="droplets" class="w-4 h-4 text-info"></i>
+                                    <span class="text-sm">Wasser/Tag</span>
+                                </div>
+                                <div class="text-right">
+                                    <div id="week-avg-water" class="font-bold">—</div>
+                                    <div id="week-water-trend" class="text-xs opacity-70">—</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="moon" class="w-4 h-4 text-accent"></i>
+                                    <span class="text-sm">Schlaf/Nacht</span>
+                                </div>
+                                <div class="text-right">
+                                    <div id="week-avg-sleep" class="font-bold">—</div>
+                                    <div id="week-sleep-trend" class="text-xs opacity-70">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 shadow-xl border border-base-300">
+                    <div class="card-body p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-secondary/20 rounded-lg">
+                                <i data-lucide="zap" class="w-5 h-5 text-secondary"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">Quick Stats</h4>
+                                <p class="text-sm opacity-70">Auf einen Blick</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="stat p-0">
+                                <div class="stat-title text-xs">Aktuelle Serie</div>
+                                <div id="current-streak" class="stat-value text-2xl text-primary">—</div>
+                                <div class="stat-desc">Tage in Folge</div>
+                            </div>
+
+                            <div class="stat p-0">
+                                <div class="stat-title text-xs">Ziele diese Woche</div>
+                                <div id="weekly-goals-achieved" class="stat-value text-2xl text-success">—</div>
+                                <div class="stat-desc">erreicht</div>
+                            </div>
+
+                            <div class="stat p-0">
+                                <div class="stat-title text-xs">Einträge gesamt</div>
+                                <div id="total-entries" class="stat-value text-2xl text-info">—</div>
+                                <div class="stat-desc">Datenpunkte</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WÖCHENTLICH VIEW -->
+        <div id="weekly-view" class="hidden space-y-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title">
+                        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                        Wöchentliche Entwicklung
+                    </h3>
+                    <div id="weekly-chart-container" class="mt-4">
+                        <div class="text-center py-8">
+                            <i data-lucide="bar-chart-3" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></i>
+                            <p class="text-base-content/70">Wöchentliche Daten werden geladen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ZIELE VIEW -->
+        <div id="goals-view" class="hidden space-y-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title">
+                        <i data-lucide="target" class="w-5 h-5"></i>
+                        Zielfortschritt
+                    </h3>
+                    <div id="goals-progress-container" class="mt-4">
+                        <div class="text-center py-8">
+                            <i data-lucide="target" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></i>
+                            <p class="text-base-content/70">Zielfortschritte werden geladen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ERFOLGE VIEW -->
+        <div id="achievements-view" class="hidden space-y-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title">
+                        <i data-lucide="trophy" class="w-5 h-5"></i>
+                        Erfolge & Meilensteine
+                    </h3>
+                    <div id="achievements-container" class="mt-4">
+                        <div class="text-center py-8">
+                            <i data-lucide="trophy" class="w-12 h-12 mx-auto text-base-content/30 mb-4"></i>
+                            <p class="text-base-content/70">Erfolge werden geladen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </section>
+
+<style>
+/* Custom Progress Bar Animations */
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: currentColor;
+    border-radius: inherit;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tab Hover Effects */
+.tab:hover {
+    background-color: hsl(var(--p) / 0.1);
+}
+
+.tab-active {
+    background: linear-gradient(135deg, hsl(var(--p) / 0.2), hsl(var(--s) / 0.1));
+    border: 1px solid hsl(var(--p) / 0.3);
+}
+
+/* Card Hover Effects */
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+/* Stat Cards Animation */
+.stat {
+    transition: all 0.3s ease;
+}
+
+.stat:hover {
+    transform: scale(1.02);
+}
+
+/* Loading Animation */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Gradient Text */
+.bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Custom Scrollbar */
+#progress-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#progress-content::-webkit-scrollbar-track {
+    background: hsl(var(--b2));
+}
+
+#progress-content::-webkit-scrollbar-thumb {
+    background: hsl(var(--p) / 0.3);
+    border-radius: 3px;
+}
+
+#progress-content::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--p) / 0.5);
+}
+</style>
 
         <!-- Enhanced Analytics Section -->
 <section id="analytics" class="card bg-gradient-to-br from-base-100 via-base-50 to-base-100 shadow-2xl border border-base-300/50 backdrop-blur-sm">

@@ -2287,67 +2287,6 @@ async loadViewData() {
     }
 
     /**
- * Show specific view in progress hub
- */
-showView(viewName) {
-    console.log('🔄 ProgressHub showView called:', viewName);
-    
-    this.currentView = viewName;
-    
-    // Update tab states (DaisyUI tabs)
-    const tabs = document.querySelectorAll('[id^="tab-"]');
-    console.log('📊 Found tabs:', tabs.length);
-    
-    tabs.forEach(tab => {
-        tab.classList.remove('tab-active');
-    });
-    
-    const activeTab = document.getElementById(`tab-${viewName}`);
-    console.log('🎯 Active tab element:', activeTab);
-    
-    if (activeTab) {
-        activeTab.classList.add('tab-active');
-    }
-
-    // Show appropriate content
-    const container = document.getElementById('progress-content');
-    console.log('📦 Progress content container:', container);
-    
-    if (!container) {
-        console.error('❌ progress-content Container nicht gefunden!');
-        return;
-    }
-
-    // Analytics view - trigger analytics engine
-        if (viewName === 'analytics') {
-            console.log('📊 Switching to analytics view - triggering analytics engine...');
-            setTimeout(() => {
-                if (this.healthTracker.analyticsEngine) {
-                    this.healthTracker.analyticsEngine.updateAllAnalytics();
-                }
-            }, 100);
-        }
-
-    switch (viewName) {
-        case 'today':
-            console.log('📅 Showing today view');
-            this.showTodayView();
-            break;
-        case 'week':
-            console.log('📊 Showing week view');
-            this.showWeekView();
-            break;
-        case 'analytics':
-            console.log('📈 Showing analytics view');
-            this.showAnalyticsView();
-            break;
-        default:
-            console.log('📅 Default to today view');
-            this.showTodayView();
-    }
-}
-
-    /**
  * Show specific view in progress hub with proper content switching
  */
 showView(viewName) {

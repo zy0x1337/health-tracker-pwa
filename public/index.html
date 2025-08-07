@@ -700,40 +700,266 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 max-w-7xl space-y-8">
 
-        <!-- Progress Hub -->
-<section id="progress-hub" class="card bg-base-100 shadow-xl border border-base-300">
-    <div class="card-body">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-3">
-                <div class="avatar placeholder">
-                    <div class="bg-primary text-primary-content rounded-full w-10 h-10">
-                        <i data-lucide="target" class="w-5 h-5"></i>
+        <!-- Progress Hub Navigation - Optimiert ohne Analytics -->
+<div class="tabs tabs-boxed justify-center mb-6 bg-base-200">
+    <button id="tab-overview" class="tab tab-active tab-lg gap-2 font-semibold">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        Übersicht
+    </button>
+    <button id="tab-trends" class="tab tab-lg gap-2 font-semibold">
+        <i data-lucide="trending-up" class="w-4 h-4"></i>
+        Trends
+    </button>
+    <button id="tab-weekly" class="tab tab-lg gap-2 font-semibold">
+        <i data-lucide="calendar-days" class="w-4 h-4"></i>
+        Wochenbericht
+    </button>
+</div>
+
+<!-- Progress Hub Content Views -->
+<div id="progress-hub-content" class="space-y-6">
+    
+    <!-- Overview View - Verbessert -->
+    <div id="view-overview" class="progress-view">
+        <!-- Heute Card - Redesigned -->
+        <div class="card bg-gradient-to-br from-primary/10 to-secondary/10 shadow-xl border border-base-300">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="card-title text-xl flex items-center gap-2">
+                        <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                        Heute
+                    </h3>
+                    <div class="badge badge-primary badge-lg font-semibold" id="today-date-badge">
+                        Heute
                     </div>
                 </div>
-                <div>
-                    <h2 class="text-2xl font-bold text-base-content">Fortschrittshub</h2>
-                    <p class="text-base-content/70">Verfolge deine Ziele und Erfolge</p>
+                
+                <div id="today-content" class="space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- Gewicht -->
+                        <div class="stat bg-base-100 rounded-lg border">
+                            <div class="stat-figure text-primary">
+                                <i data-lucide="scale" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Gewicht</div>
+                            <div class="stat-value text-lg" id="today-weight-display">—</div>
+                            <div class="stat-desc text-xs">kg</div>
+                        </div>
+
+                        <!-- Schritte -->
+                        <div class="stat bg-base-100 rounded-lg border">
+                            <div class="stat-figure text-secondary">
+                                <i data-lucide="footprints" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Schritte</div>
+                            <div class="stat-value text-lg" id="today-steps-display">—</div>
+                            <div class="stat-desc text-xs">
+                                <div class="progress progress-secondary w-16 h-2 mt-1" id="steps-mini-progress">
+                                    <div class="progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Wasser -->
+                        <div class="stat bg-base-100 rounded-lg border">
+                            <div class="stat-figure text-info">
+                                <i data-lucide="droplets" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Wasser</div>
+                            <div class="stat-value text-lg" id="today-water-display">—</div>
+                            <div class="stat-desc text-xs">
+                                Liter
+                                <div class="progress progress-info w-16 h-2 mt-1" id="water-mini-progress">
+                                    <div class="progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Schlaf -->
+                        <div class="stat bg-base-100 rounded-lg border">
+                            <div class="stat-figure text-accent">
+                                <i data-lucide="moon" class="w-6 h-6"></i>
+                            </div>
+                            <div class="stat-title text-xs">Schlaf</div>
+                            <div class="stat-value text-lg" id="today-sleep-display">—</div>
+                            <div class="stat-desc text-xs">
+                                Stunden
+                                <div class="progress progress-accent w-16 h-2 mt-1" id="sleep-mini-progress">
+                                    <div class="progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stimmung & Notizen -->
+                    <div class="grid md:grid-cols-2 gap-4" id="mood-notes-section">
+                        <div class="bg-base-100 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                <i data-lucide="smile" class="w-4 h-4"></i>
+                                Stimmung
+                            </h4>
+                            <div id="today-mood-display" class="text-2xl">—</div>
+                        </div>
+                        <div class="bg-base-100 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                <i data-lucide="sticky-note" class="w-4 h-4"></i>
+                                Notizen
+                            </h4>
+                            <div id="today-notes-display" class="text-sm text-base-content/80 max-h-20 overflow-y-auto">—</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tabs tabs-boxed mb-6">
-            <button id="tab-today" class="tab tab-active">Heute</button>
-            <button id="tab-week" class="tab">Woche</button>
-            <button id="tab-analytics" class="tab">Analytics</button>
-        </div>
+        <!-- Wochenzusammenfassung Card -->
+        <div class="card bg-base-100 shadow-lg border border-base-300">
+            <div class="card-body">
+                <h3 class="card-title text-lg flex items-center gap-2 mb-4">
+                    <i data-lucide="calendar-range" class="w-5 h-5"></i>
+                    Diese Woche
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Wochendurchschnitte -->
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-sm text-base-content/80">Durchschnitte</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">🚶♂️ Schritte</span>
+                                <span class="font-semibold" id="week-avg-steps">—</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">💧 Wasser</span>
+                                <span class="font-semibold" id="week-avg-water">—</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">😴 Schlaf</span>
+                                <span class="font-semibold" id="week-avg-sleep">—</span>
+                            </div>
+                        </div>
+                    </div>
 
-        <!-- Content Container -->
-        <div id="progress-content" class="min-h-[400px]">
-            <!-- Die ProgressHub Klasse füllt diesen Container automatisch -->
-            <div class="text-center py-12">
-                <div class="text-4xl mb-4">📊</div>
-                <p class="text-base-content/70">Progress Hub wird geladen...</p>
+                    <!-- Zielerreichung -->
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-sm text-base-content/80">Zielerreichung</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">Schritte</span>
+                                <div class="badge badge-sm" id="steps-achievement">—</div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">Wasser</span>
+                                <div class="badge badge-sm" id="water-achievement">—</div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">Schlaf</span>
+                                <div class="badge badge-sm" id="sleep-achievement">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aktivität -->
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-sm text-base-content/80">Aktivität</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">Einträge</span>
+                                <span class="font-semibold" id="week-entries-count">—</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm">Streak</span>
+                                <span class="font-semibold text-primary" id="current-streak">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</section>
+
+    <!-- Trends View - Verbessert -->
+    <div id="view-trends" class="progress-view hidden">
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h3 class="card-title text-xl">Trends & Entwicklung</h3>
+                    <div class="flex gap-2">
+                        <select class="select select-sm select-bordered" id="trends-period">
+                            <option value="7">7 Tage</option>
+                            <option value="14">14 Tage</option>
+                            <option value="30" selected>30 Tage</option>
+                        </select>
+                        <select class="select select-sm select-bordered" id="trends-metric">
+                            <option value="steps">Schritte</option>
+                            <option value="water">Wasser</option>
+                            <option value="sleep">Schlaf</option>
+                            <option value="weight">Gewicht</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="h-64 bg-base-200 rounded-lg flex items-center justify-center" id="trends-chart-container">
+                    <div class="text-center">
+                        <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 text-base-content/50"></i>
+                        <p class="text-base-content/70">Trend-Chart wird geladen...</p>
+                    </div>
+                </div>
+
+                <!-- Trend Insights -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6" id="trend-insights">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly View - Verbessert -->
+    <div id="view-weekly" class="progress-view hidden">
+        <div class="space-y-6">
+            <!-- Wochenbericht Header -->
+            <div class="card bg-gradient-to-r from-primary/5 to-secondary/5 border border-base-300">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h3 class="card-title text-xl">Wöchentlicher Bericht</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-base-content/70" id="week-date-range">KW 32, 2025</div>
+                            <div class="text-xs text-base-content/50">Automatisch generiert</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wochenstats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="weekly-stats-grid">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+
+            <!-- Tägliche Übersicht -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h4 class="card-title text-lg mb-4">Tägliche Übersicht</h4>
+                    <div class="space-y-3" id="daily-breakdown">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empfehlungen -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h4 class="card-title text-lg mb-4 flex items-center gap-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                        Empfehlungen für nächste Woche
+                    </h4>
+                    <div id="weekly-recommendations" class="space-y-2">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Enhanced Analytics Section -->
 <section id="analytics" class="card bg-gradient-to-br from-base-100 via-base-50 to-base-100 shadow-2xl border border-base-300/50 backdrop-blur-sm">

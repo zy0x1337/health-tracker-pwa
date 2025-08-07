@@ -174,28 +174,31 @@ setupProgressHubTabs() {
 }
     
     /**
-     * Load initial application data
-     */
-    async loadInitialData() {
-        try {
-            // Show loading state
-            this.setLoadingState(true);
-            
-            // Load and display current stats
-            await this.updateDashboardStats();
-            
-            // Load activity feed
-            await this.activityFeed?.load();
-            
-            // Load analytics
-            await this.analyticsEngine?.updateAllAnalytics();
-            
-        } catch (error) {
-            console.error('❌ Fehler beim Laden der initialen Daten:', error);
-        } finally {
-            this.setLoadingState(false);
-        }
+ * Load initial application data
+ */
+async loadInitialData() {
+    try {
+        // Show loading state
+        this.setLoadingState(true);
+        
+        // Load and display current stats
+        await this.updateDashboardStats();
+        
+        // Update Hero statistics
+        await this.updateHeroStats();
+        
+        // Load activity feed
+        await this.activityFeed?.load();
+        
+        // Load analytics
+        await this.analyticsEngine?.updateAllAnalytics();
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der initialen Daten:', error);
+    } finally {
+        this.setLoadingState(false);
     }
+}
     
     /**
  * Handle health data form submission
@@ -908,6 +911,165 @@ async updateDashboardStats() {
     } catch (error) {
         console.error('❌ Fehler beim Aktualisieren der Statistiken:', error);
     }
+}
+
+/**
+ * Update Hero section statistics with real data
+ */
+async updateHeroStats() {
+    try {
+        const allData = await this.getAllHealthData();
+        const todayData = this.getTodayData(allData);
+        
+        console.log('🎯 Updating Hero stats with data:', { todayData, totalEntries: allData.length });
+        
+        // Calculate goals achieved today
+        let goalsAchieved = 0;
+        let totalGoals = 0;
+        
+        if (this.goals.stepsGoal) {
+            totalGoals++;
+            if (todayData.steps >= this.goals.stepsGoal) goalsAchieved++;
+        }
+        
+        if (this.goals.waterGoal) {
+            totalGoals++;
+            if (todayData.waterIntake >= this.goals.waterGoal) goalsAchieved++;
+        }
+        
+        if (this.goals.sleepGoal) {
+            totalGoals++;
+            if (todayData.sleepHours >= this.goals.sleepGoal) goalsAchieved++;
+        }
+        
+        if (this.goals.weightGoal && todayData.weight) {
+            totalGoals++;
+            const weightDiff = Math.abs(todayData.weight - this.goals.weightGoal);
+            if (weightDiff <= this.goals.weightGoal * 0.05) goalsAchieved++; // 5% tolerance
+        }
+        
+        // Calculate current streak
+        const currentStreak = this.calculateCurrentStreak(allData);
+        
+        // Calculate weekly improvement
+        const weeklyImprovement = this.calculateWeeklyImprovement(allData);
+        
+        // Update Hero elements with animation
+        this.updateHeroElement('hero-goals-today', `${goalsAchieved}/${totalGoals}`);
+        this.updateHeroElement('hero-current-streak', currentStreak);
+        this.updateHeroElement('hero-improvement', `${weeklyImprovement >= 0 ? '+' : ''}${weeklyImprovement}%`);
+        this.updateHeroElement('hero-total-entries', allData.length);
+        
+        console.log('✅ Hero stats updated successfully');
+        
+    } catch (error) {
+        console.error('❌ Error updating hero stats:', error);
+        // Show fallback values on error
+        this.updateHeroElement('hero-goals-today', '0/0');
+        this.updateHeroElement('hero-current-streak', '0');
+        this.updateHeroElement('hero-improvement', '0%');
+        this.updateHeroElement('hero-total-entries', '0');
+    }
+}
+
+/**
+ * Update individual hero statistic element with animation
+ */
+updateHeroElement(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        // Add loading animation
+        element.style.opacity = '0.5';
+        element.style.transform = 'scale(0.9)';
+        element.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            element.textContent = value;
+            element.style.opacity = '1';
+            element.style.transform = 'scale(1)';
+            
+            // Add success animation
+            setTimeout(() => {
+                element.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                }, 200);
+            }, 100);
+        }, 150);
+    }
+}
+
+/**
+ * Calculate current tracking streak
+ */
+calculateCurrentStreak(allData) {
+    if (!allData || allData.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 365; i++) { // Max 1 year streak
+        const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+        const dateStr = checkDate.getFullYear() + '-' + 
+                       String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(checkDate.getDate()).padStart(2, '0');
+        
+        const hasEntry = allData.some(entry => {
+            if (!entry.date) return false;
+            let entryDateStr;
+            
+            if (typeof entry.date === 'string') {
+                entryDateStr = entry.date.split('T')[0];
+            } else if (entry.date instanceof Date) {
+                entryDateStr = entry.date.getFullYear() + '-' + 
+                              String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(entry.date.getDate()).padStart(2, '0');
+            } else {
+                return false;
+            }
+            
+            return entryDateStr === dateStr;
+        });
+        
+        if (hasEntry) {
+            streak++;
+        } else {
+            break;
+        }
+    }
+    
+    return streak;
+}
+
+/**
+ * Calculate weekly improvement percentage
+ */
+calculateWeeklyImprovement(allData) {
+    if (!allData || allData.length < 7) return 0;
+    
+    const now = new Date();
+    const thisWeekStart = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const lastWeekStart = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+    
+    const thisWeek = allData.filter(entry => {
+        const date = new Date(entry.date);
+        return date >= thisWeekStart;
+    });
+    
+    const lastWeek = allData.filter(entry => {
+        const date = new Date(entry.date);
+        return date >= lastWeekStart && date < thisWeekStart;
+    });
+    
+    if (thisWeek.length === 0 || lastWeek.length === 0) return 0;
+    
+    // Calculate average steps for comparison
+    const thisWeekSteps = thisWeek.reduce((sum, d) => sum + (d.steps || 0), 0) / thisWeek.length;
+    const lastWeekSteps = lastWeek.reduce((sum, d) => sum + (d.steps || 0), 0) / lastWeek.length;
+    
+    if (lastWeekSteps === 0) return 0;
+    
+    return Math.round(((thisWeekSteps - lastWeekSteps) / lastWeekSteps) * 100);
 }
 
 /**

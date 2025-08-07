@@ -3321,84 +3321,113 @@ formatTimeAgo(dateInput) {
 }
 
 // ==================================================================== 
-// ANALYTICS ENGINE
+// ANALYTICS DASHBOARD ENGINE - Vollständige Standalone-Implementierung
 // ====================================================================
-class AnalyticsEngine {
+class AnalyticsDashboard {
     constructor(healthTracker) {
         this.healthTracker = healthTracker;
-        this.analyticsData = {};
-        this.trendPeriod = 30; // Default 30 Tage
+        this.currentPeriod = 30;
+        this.currentMetric = 'steps';
+        this.charts = {};
+        this.isInitialized = false;
         this.initialize();
     }
 
-    /** Initialize analytics engine */
-    initialize() {
-        console.log('📊 Analytics Engine wird initialisiert...');
-        this.setupAnalyticsEventListeners();
-        this.updateAllAnalytics();
+    /** Initialize analytics dashboard */
+    async initialize() {
+        console.log('📊 Analytics Dashboard wird initialisiert...');
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setup());
+        } else {
+            this.setup();
+        }
     }
 
-        /** Setup event listeners for analytics controls */
-    setupAnalyticsEventListeners() {
-        console.log('📊 Setting up analytics event listeners...');
-        
+    /** Setup dashboard after DOM is ready */
+    async setup() {
+        try {
+            this.setupEventListeners();
+            await this.loadAndDisplayData();
+            this.isInitialized = true;
+            console.log('✅ Analytics Dashboard erfolgreich initialisiert');
+        } catch (error) {
+            console.error('❌ Analytics Dashboard Initialisierungsfehler:', error);
+        }
+    }
+
+    /** Setup all event listeners */
+    setupEventListeners() {
         // Period filter buttons
         document.querySelectorAll('[data-period]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                console.log('📊 Period filter clicked:', e.target.dataset.period);
-                this.updateAnalyticsPeriod(parseInt(e.target.dataset.period));
+                this.updatePeriod(parseInt(e.target.dataset.period));
             });
         });
 
         // Metric tabs
         document.querySelectorAll('[data-metric]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                console.log('📈 Metric tab clicked:', e.target.dataset.metric);
-                this.updateTrendsChart(e.target.dataset.metric);
+                this.updateMetric(e.target.dataset.metric);
             });
         });
-        
-        console.log('✅ Analytics event listeners setup complete');
+
+        // Refresh button
+        const refreshBtn = document.getElementById('analytics-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadAndDisplayData());
+        }
+
+        console.log('📊 Analytics event listeners setup complete');
     }
 
-    /** Update analytics for specified period */
-    async updateAnalyticsPeriod(period) {
-        this.trendPeriod = period;
-        console.log(`📊 Updating analytics for ${period} days`);
+    /** Update period and refresh data */
+    async updatePeriod(period) {
+        this.currentPeriod = period;
         
         // Update button states
         document.querySelectorAll('[data-period]').forEach(btn => {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-ghost');
         });
-        document.querySelector(`[data-period="${period}"]`).classList.add('btn-primary');
-        document.querySelector(`[data-period="${period}"]`).classList.remove('btn-ghost');
+        document.querySelector(`[data-period="${period}"]`)?.classList.replace('btn-ghost', 'btn-primary');
         
-        await this.updateAllAnalytics();
+        await this.loadAndDisplayData();
     }
 
-    /** Main analytics update method */
-    async updateAllAnalytics() {
-        try {
-            console.log('📊 Updating all analytics...');
-            this.showLoadingStates();
+    /** Update metric and refresh chart */
+    async updateMetric(metric) {
+        this.currentMetric = metric;
+        
+        // Update tab states
+        document.querySelectorAll('[data-metric]').forEach(btn => btn.classList.remove('tab-active'));
+        document.querySelector(`[data-metric="${metric}"]`)?.classList.add('tab-active');
+        
+        await this.updateTrendsChart();
+    }
 
-            const data = await this.healthTracker.getAllHealthData();
-            const periodData = this.getDataForPeriod(data, this.trendPeriod);
+    /** Load and display all analytics data */
+    async loadAndDisplayData() {
+        try {
+            this.showLoadingStates();
             
-            // Update all analytics sections
+            const allData = await this.healthTracker.getAllHealthData();
+            const periodData = this.getDataForPeriod(allData, this.currentPeriod);
+            
+            // Update all sections
             await Promise.all([
-                this.updateAnalyticsStats(data),
-                this.updateTrendsAnalysis(periodData),
+                this.updateQuickStats(allData),
+                this.updateTrendsChart(periodData),
                 this.updateCorrelationAnalysis(periodData),
-                this.updateWeeklySummary(data),
+                this.updateWeeklySummary(allData),
                 this.updateAIInsights(periodData)
             ]);
-
+            
             this.hideLoadingStates();
-            console.log('✅ Analytics erfolgreich aktualisiert');
+            console.log('✅ Analytics Dashboard data updated');
         } catch (error) {
-            console.error('❌ Analytics update error:', error);
+            console.error('❌ Analytics data loading error:', error);
             this.hideLoadingStates();
         }
     }
@@ -3414,206 +3443,240 @@ class AnalyticsEngine {
         }).sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    /** Update analytics statistics */
-    async updateAnalyticsStats(data) {
-        const todayData = this.healthTracker.getTodayData(data);
-        const weekData = this.healthTracker.getWeekData(data);
+    /** Update quick statistics */
+    async updateQuickStats(allData) {
+        const todayData = this.healthTracker.getTodayData(allData);
+        const weekData = this.healthTracker.getWeekData(allData);
         
         // Total entries
-        const totalEntries = data.length;
-        this.updateStatElement('analytics-total-entries', totalEntries);
+        this.updateStat('analytics-total-entries', allData.length);
         
         // Weekly improvement calculation
-        const currentWeekAvg = this.calculateWeeklyAverage(weekData, 'steps');
-        const previousWeekData = this.getPreviousWeekData(data);
-        const previousWeekAvg = this.calculateWeeklyAverage(previousWeekData, 'steps');
-        
-        const improvement = previousWeekAvg > 0 
-            ? Math.round(((currentWeekAvg - previousWeekAvg) / previousWeekAvg) * 100)
-            : 0;
-        this.updateStatElement('analytics-improvement', `${improvement > 0 ? '+' : ''}${improvement}%`);
+        const improvement = this.calculateWeeklyImprovement(allData);
+        this.updateStat('analytics-improvement', `${improvement > 0 ? '+' : ''}${improvement}%`);
         
         // Goal achievement rate
-        const goalRate = this.calculateGoalAchievementRate(data);
-        this.updateStatElement('analytics-goal-rate', `${goalRate}%`);
+        const goalRate = this.calculateGoalAchievementRate(allData);
+        this.updateStat('analytics-goal-rate', `${goalRate}%`);
         
         // Current streak
-        const streak = this.calculateCurrentStreak(data);
-        this.updateStatElement('analytics-streak', streak);
+        const streak = this.calculateCurrentStreak(allData);
+        this.updateStat('analytics-streak', streak);
     }
 
-    /** Update trends analysis with Chart.js */
-    async updateTrendsAnalysis(periodData) {
-        const trendsContainer = document.getElementById('trends-chart-container');
-        if (!trendsContainer) return;
+    /** Update trends chart with Chart.js */
+    async updateTrendsChart(data = null) {
+        const chartContainer = document.getElementById('trends-chart-container');
+        if (!chartContainer) return;
+
+        if (!data) {
+            const allData = await this.healthTracker.getAllHealthData();
+            data = this.getDataForPeriod(allData, this.currentPeriod);
+        }
 
         // Create canvas if not exists
-        let canvas = trendsContainer.querySelector('canvas');
+        let canvas = chartContainer.querySelector('canvas');
         if (!canvas) {
             canvas = document.createElement('canvas');
             canvas.id = 'trends-chart';
-            canvas.width = 800;
-            canvas.height = 400;
-            trendsContainer.innerHTML = '';
-            trendsContainer.appendChild(canvas);
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(canvas);
+        }
+
+        // Destroy existing chart
+        if (this.charts.trends) {
+            this.charts.trends.destroy();
         }
 
         // Prepare chart data
-        const chartData = this.prepareChartData(periodData);
+        const chartData = this.prepareChartData(data);
         
-        // Initialize Chart.js
-        if (window.trendsChart) {
-            window.trendsChart.destroy();
-        }
-
+        // Create Chart.js chart
         const ctx = canvas.getContext('2d');
-        window.trendsChart = new Chart(ctx, {
+        this.charts.trends = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: chartData.labels,
-                datasets: [
-                    {
-                        label: 'Schritte',
-                        data: chartData.steps,
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    },
-                    {
-                        label: 'Wasser (L)',
-                        data: chartData.water,
-                        borderColor: '#06B6D4',
-                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                        tension: 0.4,
-                        fill: false,
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Schlaf (h)',
-                        data: chartData.sleep,
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        fill: false,
-                        yAxisID: 'y1'
-                    }
-                ]
+                datasets: this.createDatasets(chartData)
             },
-            options: {
-                responsive: true,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: `Gesundheitstrends (${this.trendPeriod} Tage)`
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Datum'
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Schritte'
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Liter / Stunden'
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                    }
-                }
-            }
+            options: this.getChartOptions()
         });
     }
 
-    /** Prepare chart data from period data */
-    prepareChartData(periodData) {
-        const labels = [];
-        const steps = [];
-        const water = [];
-        const sleep = [];
-
-        // Group data by date and aggregate
-        const groupedData = {};
-        periodData.forEach(entry => {
-            const dateStr = new Date(entry.date).toLocaleDateString('de-DE', { 
+    /** Prepare chart data from health data */
+    prepareChartData(data) {
+        const grouped = {};
+        
+        data.forEach(entry => {
+            const date = new Date(entry.date).toLocaleDateString('de-DE', { 
                 month: 'short', 
                 day: 'numeric' 
             });
             
-            if (!groupedData[dateStr]) {
-                groupedData[dateStr] = {
-                    steps: 0,
-                    water: 0,
-                    sleep: 0,
-                    count: 0
-                };
+            if (!grouped[date]) {
+                grouped[date] = { steps: 0, water: 0, sleep: 0, weight: null };
             }
             
-            groupedData[dateStr].steps += entry.steps || 0;
-            groupedData[dateStr].water += entry.waterIntake || 0;
-            groupedData[dateStr].sleep += entry.sleepHours || 0;
-            groupedData[dateStr].count++;
+            grouped[date].steps += entry.steps || 0;
+            grouped[date].water += entry.waterIntake || 0;
+            grouped[date].sleep += entry.sleepHours || 0;
+            if (entry.weight) grouped[date].weight = entry.weight;
         });
 
-        // Convert to arrays
-        Object.entries(groupedData).forEach(([date, data]) => {
-            labels.push(date);
-            steps.push(data.steps);
-            water.push(Math.round(data.water * 10) / 10);
-            sleep.push(Math.round(data.sleep * 10) / 10);
-        });
+        const labels = Object.keys(grouped);
+        const steps = labels.map(date => grouped[date].steps);
+        const water = labels.map(date => Math.round(grouped[date].water * 10) / 10);
+        const sleep = labels.map(date => Math.round(grouped[date].sleep * 10) / 10);
+        const weight = labels.map(date => grouped[date].weight);
 
-        return { labels, steps, water, sleep };
+        return { labels, steps, water, sleep, weight };
+    }
+
+    /** Create chart datasets based on current metric */
+    createDatasets(chartData) {
+        const datasets = [];
+        
+        if (this.currentMetric === 'steps' || this.currentMetric === 'all') {
+            datasets.push({
+                label: 'Schritte',
+                data: chartData.steps,
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: this.currentMetric === 'steps'
+            });
+        }
+        
+        if (this.currentMetric === 'water' || this.currentMetric === 'all') {
+            datasets.push({
+                label: 'Wasser (L)',
+                data: chartData.water,
+                borderColor: '#06B6D4',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                tension: 0.4,
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+            });
+        }
+        
+        if (this.currentMetric === 'sleep' || this.currentMetric === 'all') {
+            datasets.push({
+                label: 'Schlaf (h)',
+                data: chartData.sleep,
+                borderColor: '#8B5CF6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4,
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+            });
+        }
+        
+        if (this.currentMetric === 'weight') {
+            datasets.push({
+                label: 'Gewicht (kg)',
+                data: chartData.weight,
+                borderColor: '#EF4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: false
+            });
+        }
+        
+        return datasets;
+    }
+
+    /** Get chart options configuration */
+    getChartOptions() {
+        const scales = {
+            x: {
+                display: true,
+                title: { display: true, text: 'Datum' }
+            },
+            y: {
+                display: true,
+                title: { 
+                    display: true, 
+                    text: this.getYAxisLabel() 
+                }
+            }
+        };
+
+        // Add second y-axis for mixed charts
+        if (this.currentMetric === 'all') {
+            scales.y1 = {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: { display: true, text: 'Liter / Stunden' },
+                grid: { drawOnChartArea: false }
+            };
+        }
+
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: `${this.getMetricTitle()} (${this.currentPeriod} Tage)`
+                }
+            },
+            scales
+        };
+    }
+
+    /** Get Y-axis label based on current metric */
+    getYAxisLabel() {
+        const labels = {
+            steps: 'Schritte',
+            water: 'Liter',
+            sleep: 'Stunden',
+            weight: 'Kilogramm',
+            all: 'Schritte'
+        };
+        return labels[this.currentMetric] || 'Wert';
+    }
+
+    /** Get metric title for chart */
+    getMetricTitle() {
+        const titles = {
+            steps: 'Schritte-Trends',
+            water: 'Wasserzufuhr-Trends',
+            sleep: 'Schlaf-Trends',
+            weight: 'Gewichts-Trends',
+            all: 'Alle Metriken'
+        };
+        return titles[this.currentMetric] || 'Gesundheitstrends';
     }
 
     /** Update correlation analysis */
-    async updateCorrelationAnalysis(periodData) {
-        const correlationContainer = document.getElementById('correlation-analysis');
-        if (!correlationContainer) return;
+    async updateCorrelationAnalysis(data) {
+        const container = document.getElementById('correlation-analysis');
+        if (!container) return;
 
-        const correlations = this.calculateCorrelations(periodData);
+        const correlations = this.calculateCorrelations(data);
         
-        correlationContainer.innerHTML = `
+        container.innerHTML = `
             <div class="space-y-4">
                 <h4 class="font-semibold text-lg mb-4">🔍 Datenkorrelationen</h4>
                 ${correlations.map(corr => `
-                    <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">${corr.icon}</span>
-                            <div>
-                                <div class="font-medium">${corr.title}</div>
-                                <div class="text-sm opacity-70">${corr.description}</div>
+                    <div class="card bg-base-200 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">${corr.icon}</span>
+                                    <div>
+                                        <div class="font-medium">${corr.title}</div>
+                                        <div class="text-sm opacity-70">${corr.description}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold ${corr.strength >= 0.5 ? 'text-success' : corr.strength >= 0.3 ? 'text-warning' : 'text-error'}">
+                                        ${Math.round(corr.strength * 100)}%
+                                    </div>
+                                    <div class="text-xs opacity-60">${corr.strength >= 0.5 ? 'Stark' : corr.strength >= 0.3 ? 'Mittel' : 'Schwach'}</div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold ${corr.strength >= 0.5 ? 'text-success' : corr.strength >= 0.3 ? 'text-warning' : 'text-error'}">
-                                ${Math.round(corr.strength * 100)}%
-                            </div>
-                            <div class="text-xs opacity-60">${corr.strength >= 0.5 ? 'Stark' : corr.strength >= 0.3 ? 'Mittel' : 'Schwach'}</div>
                         </div>
                     </div>
                 `).join('')}
@@ -3623,60 +3686,43 @@ class AnalyticsEngine {
 
     /** Calculate correlations between metrics */
     calculateCorrelations(data) {
+        if (data.length < 5) {
+            return [{
+                icon: '📊',
+                title: 'Mehr Daten benötigt',
+                description: 'Sammle mehr Gesundheitsdaten für Korrelationsanalyse',
+                strength: 0
+            }];
+        }
+
         const correlations = [];
         
-        // Steps vs Sleep correlation
+        // Steps vs Sleep
         const stepsVsSleep = this.calculatePearsonCorrelation(
             data.map(d => d.steps || 0),
             data.map(d => d.sleepHours || 0)
         );
+        
         correlations.push({
             icon: '🚶‍♂️💤',
             title: 'Schritte & Schlaf',
-            description: 'Mehr Bewegung führt zu besserem Schlaf',
+            description: 'Zusammenhang zwischen Bewegung und Schlafqualität',
             strength: Math.abs(stepsVsSleep)
         });
 
-        // Water vs Mood correlation
-        const waterData = data.filter(d => d.waterIntake && d.mood);
-        if (waterData.length > 5) {
-            const moodValues = waterData.map(d => this.moodToNumber(d.mood));
-            const waterValues = waterData.map(d => d.waterIntake);
-            const waterVsMood = this.calculatePearsonCorrelation(waterValues, moodValues);
-            
+        // Water vs general wellness (using data availability as proxy)
+        const waterData = data.filter(d => d.waterIntake && d.waterIntake > 0);
+        if (waterData.length > 3) {
+            const waterConsistency = waterData.length / data.length;
             correlations.push({
                 icon: '💧😊',
                 title: 'Wasser & Wohlbefinden',
-                description: 'Ausreichend Trinken steigert die Stimmung',
-                strength: Math.abs(waterVsMood)
+                description: 'Regelmäßige Wasserzufuhr und Datenerfassung',
+                strength: waterConsistency
             });
         }
 
-        // Sleep vs Weight correlation
-        const sleepVsWeight = this.calculatePearsonCorrelation(
-            data.filter(d => d.sleepHours && d.weight).map(d => d.sleepHours),
-            data.filter(d => d.sleepHours && d.weight).map(d => d.weight)
-        );
-        correlations.push({
-            icon: '😴⚖️',
-            title: 'Schlaf & Gewicht',
-            description: 'Guter Schlaf unterstützt Gewichtsmanagement',
-            strength: Math.abs(sleepVsWeight)
-        });
-
         return correlations.sort((a, b) => b.strength - a.strength);
-    }
-
-    /** Convert mood string to number for correlation */
-    moodToNumber(mood) {
-        const moodMap = {
-            'terrible': 1,
-            'bad': 2,
-            'neutral': 3,
-            'good': 4,
-            'excellent': 5
-        };
-        return moodMap[mood] || 3;
     }
 
     /** Calculate Pearson correlation coefficient */
@@ -3698,128 +3744,110 @@ class AnalyticsEngine {
 
     /** Update weekly summary */
     async updateWeeklySummary(allData) {
-        const summaryContainer = document.getElementById('weekly-summary-content');
-        if (!summaryContainer) return;
+        const container = document.getElementById('weekly-summary-content');
+        if (!container) return;
 
         const weekData = this.healthTracker.getWeekData(allData);
         const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
         
-        const summary = this.generateWeeklySummary(weekData, weeklyAvg);
-        
-        summaryContainer.innerHTML = `
+        container.innerHTML = `
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="space-y-4">
-                    <h4 class="font-semibold">📊 Diese Woche</h4>
-                    <div class="stats stats-vertical shadow">
+                    <h4 class="font-semibold">📊 Wöchentliche Durchschnitte</h4>
+                    <div class="stats stats-vertical shadow bg-base-200">
                         <div class="stat">
-                            <div class="stat-title">Durchschnittliche Schritte</div>
+                            <div class="stat-title">Schritte/Tag</div>
                             <div class="stat-value text-primary">${weeklyAvg.steps.toLocaleString()}</div>
+                            <div class="stat-desc">${this.getGoalComparison('steps', weeklyAvg.steps)}</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-title">Wasser pro Tag</div>
+                            <div class="stat-title">Wasser/Tag</div>
                             <div class="stat-value text-info">${weeklyAvg.water}L</div>
+                            <div class="stat-desc">${this.getGoalComparison('water', weeklyAvg.water)}</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-title">Schlaf pro Nacht</div>
+                            <div class="stat-title">Schlaf/Nacht</div>
                             <div class="stat-value text-accent">${weeklyAvg.sleep}h</div>
+                            <div class="stat-desc">${this.getGoalComparison('sleep', weeklyAvg.sleep)}</div>
                         </div>
                     </div>
                 </div>
                 <div class="space-y-4">
-                    <h4 class="font-semibold">🎯 Bewertung</h4>
-                    <div class="space-y-3">
-                        ${summary.achievements.map(achievement => `
-                            <div class="alert alert-success">
-                                <span class="text-lg">${achievement.icon}</span>
-                                <span>${achievement.text}</span>
-                            </div>
-                        `).join('')}
-                        ${summary.improvements.map(improvement => `
-                            <div class="alert alert-warning">
-                                <span class="text-lg">${improvement.icon}</span>
-                                <span>${improvement.text}</span>
-                            </div>
-                        `).join('')}
-                    </div>
+                    <h4 class="font-semibold">🎯 Wöchentliche Insights</h4>
+                    ${this.generateWeeklyInsights(weekData, weeklyAvg)}
                 </div>
             </div>
         `;
     }
 
-    /** Generate weekly summary insights */
-    generateWeeklySummary(weekData, weeklyAvg) {
-        const achievements = [];
-        const improvements = [];
+    /** Get goal comparison text */
+    getGoalComparison(metric, value) {
+        const goals = {
+            steps: this.healthTracker.goals.stepsGoal,
+            water: this.healthTracker.goals.waterGoal,
+            sleep: this.healthTracker.goals.sleepGoal
+        };
         
-        // Check achievements
+        const goal = goals[metric];
+        if (!goal) return '';
+        
+        const percentage = Math.round((value / goal) * 100);
+        const status = percentage >= 100 ? '🎯 Ziel erreicht!' : percentage >= 80 ? '📈 Fast da!' : '📊 Ausbaufähig';
+        
+        return `${percentage}% des Ziels - ${status}`;
+    }
+
+    /** Generate weekly insights */
+    generateWeeklyInsights(weekData, weeklyAvg) {
+        const insights = [];
+        
         if (weeklyAvg.steps >= this.healthTracker.goals.stepsGoal * 0.9) {
-            achievements.push({
-                icon: '🚶‍♂️',
-                text: `Fantastisch! Du erreichst dein Schrittziel zu ${Math.round((weeklyAvg.steps / this.healthTracker.goals.stepsGoal) * 100)}%`
-            });
+            insights.push('🚶‍♂️ Fantastische Aktivität diese Woche!');
         }
         
         if (weeklyAvg.water >= this.healthTracker.goals.waterGoal * 0.8) {
-            achievements.push({
-                icon: '💧',
-                text: 'Super Hydration! Du trinkst ausreichend Wasser'
-            });
+            insights.push('💧 Hervorragende Hydration!');
         }
         
         if (weeklyAvg.sleep >= this.healthTracker.goals.sleepGoal * 0.9) {
-            achievements.push({
-                icon: '😴',
-                text: 'Erholsamer Schlaf! Deine Schlafgewohnheiten sind vorbildlich'
-            });
+            insights.push('😴 Optimale Schlafgewohnheiten!');
         }
         
-        // Check improvements needed
-        if (weeklyAvg.steps < this.healthTracker.goals.stepsGoal * 0.7) {
-            improvements.push({
-                icon: '👟',
-                text: 'Mehr Bewegung wäre gut - versuche täglich ein paar Extra-Schritte'
-            });
+        if (weekData.length >= 5) {
+            insights.push('📊 Konsistente Datenerfassung!');
         }
         
-        if (weeklyAvg.water < this.healthTracker.goals.waterGoal * 0.6) {
-            improvements.push({
-                icon: '🥤',
-                text: 'Denk daran, mehr zu trinken - dein Körper braucht ausreichend Flüssigkeit'
-            });
+        if (insights.length === 0) {
+            insights.push('📈 Raum für Verbesserungen - du schaffst das!');
         }
         
-        if (weeklyAvg.sleep < this.healthTracker.goals.sleepGoal * 0.8) {
-            improvements.push({
-                icon: '🌙',
-                text: 'Früher ins Bett - ausreichender Schlaf ist wichtig für deine Gesundheit'
-            });
-        }
-        
-        return { achievements, improvements };
+        return insights.map(insight => `
+            <div class="alert alert-info">
+                <span>${insight}</span>
+            </div>
+        `).join('');
     }
 
     /** Update AI insights */
-    async updateAIInsights(periodData) {
-        const insightsContainer = document.getElementById('ai-insights-content');
-        if (!insightsContainer) return;
+    async updateAIInsights(data) {
+        const container = document.getElementById('ai-insights-content');
+        if (!container) return;
 
-        const insights = this.generateAIInsights(periodData);
+        const insights = this.generateAIInsights(data);
         
-        insightsContainer.innerHTML = `
+        container.innerHTML = `
             <div class="space-y-4">
-                ${insights.map((insight, index) => `
-                    <div class="card bg-base-200 shadow-sm">
+                ${insights.map(insight => `
+                    <div class="card bg-gradient-to-r from-primary/10 to-secondary/10 shadow-sm">
                         <div class="card-body p-4">
                             <div class="flex items-start gap-3">
                                 <span class="text-2xl">${insight.icon}</span>
                                 <div class="flex-1">
                                     <h5 class="font-semibold text-sm uppercase tracking-wide opacity-70 mb-1">${insight.category}</h5>
                                     <p class="font-medium mb-2">${insight.title}</p>
-                                    <p class="text-sm opacity-80">${insight.description}</p>
+                                    <p class="text-sm opacity-80 mb-3">${insight.description}</p>
                                     ${insight.action ? `
-                                        <div class="mt-3">
-                                            <div class="badge badge-outline">${insight.action}</div>
-                                        </div>
+                                        <div class="badge badge-outline">${insight.action}</div>
                                     ` : ''}
                                 </div>
                             </div>
@@ -3832,18 +3860,17 @@ class AnalyticsEngine {
 
     /** Generate AI-powered insights */
     generateAIInsights(data) {
-        const insights = [];
-        
         if (data.length < 3) {
-            insights.push({
-                icon: '📊',
-                category: 'DATENSAMMLUNG',
-                title: 'Mehr Daten für bessere Insights',
-                description: 'Sammle mehr Gesundheitsdaten, um personalisierte Einblicke zu erhalten.',
-                action: 'Täglich tracken'
-            });
-            return insights;
+            return [{
+                icon: '🎯',
+                category: 'ERSTE SCHRITTE',
+                title: 'Starte deine Gesundheitsreise',
+                description: 'Erfasse täglich deine Gesundheitsdaten für personalisierte Einblicke.',
+                action: 'Mehr Daten sammeln'
+            }];
         }
+
+        const insights = [];
         
         // Trend analysis
         const stepsData = data.filter(d => d.steps).map(d => d.steps);
@@ -3853,67 +3880,31 @@ class AnalyticsEngine {
                 insights.push({
                     icon: '📈',
                     category: 'POSITIVE ENTWICKLUNG',
-                    title: 'Deine Aktivität steigt kontinuierlich!',
-                    description: `Deine Schrittanzahl ist in den letzten ${this.trendPeriod} Tagen um ${Math.round(trend * 100)}% gestiegen.`,
+                    title: 'Deine Aktivität steigt!',
+                    description: `Deine Schrittanzahl zeigt einen positiven Trend von ${Math.round(trend * 100)}%.`,
                     action: 'Weiter so!'
                 });
             } else if (trend < -0.1) {
                 insights.push({
                     icon: '📉',
-                    category: 'AUFMERKSAMKEIT',
-                    title: 'Aktivitätslevel ist gesunken',
-                    description: 'Deine täglichen Schritte haben abgenommen. Zeit für mehr Bewegung?',
-                    action: 'Spaziergang planen'
+                    category: 'MOTIVATION',
+                    title: 'Zeit für mehr Bewegung',
+                    description: 'Deine Aktivität hat abgenommen. Wie wäre es mit einem Spaziergang?',
+                    action: 'Aktivität steigern'
                 });
             }
         }
         
-        // Sleep pattern analysis
-        const sleepData = data.filter(d => d.sleepHours && d.sleepHours > 0);
-        if (sleepData.length >= 5) {
-            const avgSleep = sleepData.reduce((sum, d) => sum + d.sleepHours, 0) / sleepData.length;
-            if (avgSleep < 6) {
-                insights.push({
-                    icon: '😴',
-                    category: 'SCHLAFOPTIMIERUNG',
-                    title: 'Du schläfst zu wenig',
-                    description: `Mit ${Math.round(avgSleep * 10) / 10}h Schlaf pro Nacht liegst du unter dem empfohlenen Minimum.`,
-                    action: 'Früher ins Bett'
-                });
-            } else if (avgSleep >= 7.5) {
-                insights.push({
-                    icon: '✨',
-                    category: 'SCHLAFOPTIMIERUNG',
-                    title: 'Hervorragende Schlafgewohnheiten!',
-                    description: `${Math.round(avgSleep * 10) / 10}h Schlaf pro Nacht sind optimal für deine Gesundheit.`,
-                    action: 'Routine beibehalten'
-                });
-            }
-        }
-        
-        // Hydration insights
-        const waterData = data.filter(d => d.waterIntake && d.waterIntake > 0);
-        if (waterData.length >= 3) {
-            const avgWater = waterData.reduce((sum, d) => sum + d.waterIntake, 0) / waterData.length;
-            const goalRate = (avgWater / this.healthTracker.goals.waterGoal) * 100;
-            
-            if (goalRate >= 85) {
-                insights.push({
-                    icon: '💧',
-                    category: 'ZIELERREICHUNG',
-                    title: 'Perfekte Hydration!',
-                    description: `Du erreichst dein Wasserziel zu ${Math.round(goalRate)}% - großartig!`,
-                    action: 'Weiter so!'
-                });
-            } else if (goalRate < 60) {
-                insights.push({
-                    icon: '🚰',
-                    category: 'ZIELERREICHUNG',
-                    title: 'Mehr trinken nötig',
-                    description: `Du erreichst nur ${Math.round(goalRate)}% deines Wasserziels. Dein Körper braucht mehr Flüssigkeit.`,
-                    action: 'Wasserflasche bereitlegen'
-                });
-            }
+        // Data consistency
+        const consistencyRate = data.length / this.currentPeriod;
+        if (consistencyRate >= 0.8) {
+            insights.push({
+                icon: '⭐',
+                category: 'KONSISTENZ',
+                title: 'Hervorragende Datenerfassung!',
+                description: `Du trackst ${Math.round(consistencyRate * 100)}% deiner Tage - das ist vorbildlich!`,
+                action: 'Routine beibehalten'
+            });
         }
         
         return insights;
@@ -3928,67 +3919,51 @@ class AnalyticsEngine {
     }
 
     /** Utility methods */
-    showLoadingStates() {
-        ['trends-loading', 'correlation-loading', 'weekly-loading', 'ai-insights-loading'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.classList.remove('hidden');
-        });
-    }
-
-    hideLoadingStates() {
-        ['trends-loading', 'correlation-loading', 'weekly-loading', 'ai-insights-loading'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.classList.add('hidden');
-        });
-    }
-
-    updateStatElement(id, value) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.style.transform = 'scale(1.1)';
-            element.textContent = value;
-            setTimeout(() => {
-                element.style.transform = 'scale(1)';
-            }, 200);
-        }
-    }
-
-    calculateGoalAchievementRate(data) {
-        if (data.length === 0) return 0;
+    calculateWeeklyImprovement(allData) {
+        const thisWeek = this.healthTracker.getWeekData(allData);
+        const lastWeekStart = new Date();
+        lastWeekStart.setDate(lastWeekStart.getDate() - 14);
+        const lastWeekEnd = new Date();
+        lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
         
-        const dailyGoals = {};
-        data.forEach(entry => {
-            const date = entry.date;
-            if (!dailyGoals[date]) {
-                dailyGoals[date] = { achieved: 0, total: 0 };
-            }
-            
-            // Check each goal
-            if (entry.steps && entry.steps >= this.healthTracker.goals.stepsGoal) {
-                dailyGoals[date].achieved++;
-            }
-            if (entry.steps) dailyGoals[date].total++;
-            
-            if (entry.waterIntake && entry.waterIntake >= this.healthTracker.goals.waterGoal) {
-                dailyGoals[date].achieved++;
-            }
-            if (entry.waterIntake) dailyGoals[date].total++;
-            
-            if (entry.sleepHours && entry.sleepHours >= this.healthTracker.goals.sleepGoal) {
-                dailyGoals[date].achieved++;
-            }
-            if (entry.sleepHours) dailyGoals[date].total++;
+        const lastWeek = allData.filter(entry => {
+            const date = new Date(entry.date);
+            return date >= lastWeekStart && date < lastWeekEnd;
         });
         
-        const totalAchieved = Object.values(dailyGoals).reduce((sum, day) => sum + day.achieved, 0);
-        const totalGoals = Object.values(dailyGoals).reduce((sum, day) => sum + day.total, 0);
+        if (thisWeek.length === 0 || lastWeek.length === 0) return 0;
         
-        return totalGoals > 0 ? Math.round((totalAchieved / totalGoals) * 100) : 0;
+        const thisWeekSteps = thisWeek.reduce((sum, d) => sum + (d.steps || 0), 0);
+        const lastWeekSteps = lastWeek.reduce((sum, d) => sum + (d.steps || 0), 0);
+        
+        return lastWeekSteps > 0 ? Math.round(((thisWeekSteps - lastWeekSteps) / lastWeekSteps) * 100) : 0;
     }
 
-    calculateCurrentStreak(data) {
-        if (!data || data.length === 0) return 0;
+    calculateGoalAchievementRate(allData) {
+        if (allData.length === 0) return 0;
         
+        let achievedGoals = 0;
+        let totalGoals = 0;
+        
+        allData.forEach(entry => {
+            if (entry.steps) {
+                totalGoals++;
+                if (entry.steps >= this.healthTracker.goals.stepsGoal) achievedGoals++;
+            }
+            if (entry.waterIntake) {
+                totalGoals++;
+                if (entry.waterIntake >= this.healthTracker.goals.waterGoal) achievedGoals++;
+            }
+            if (entry.sleepHours) {
+                totalGoals++;
+                if (entry.sleepHours >= this.healthTracker.goals.sleepGoal) achievedGoals++;
+            }
+        });
+        
+        return totalGoals > 0 ? Math.round((achievedGoals / totalGoals) * 100) : 0;
+    }
+
+    calculateCurrentStreak(allData) {
         let streak = 0;
         const today = new Date();
         
@@ -3996,7 +3971,7 @@ class AnalyticsEngine {
             const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
             const dateStr = checkDate.toISOString().split('T')[0];
             
-            const hasEntry = data.some(entry => {
+            const hasEntry = allData.some(entry => {
                 const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
                 return entryDate === dateStr;
             });
@@ -4011,21 +3986,38 @@ class AnalyticsEngine {
         return streak;
     }
 
-    calculateWeeklyAverage(data, field) {
-        if (!data || data.length === 0) return 0;
-        const values = data.filter(d => d[field] && d[field] > 0).map(d => d[field]);
-        return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+    updateStat(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.transform = 'scale(1.1)';
+            element.textContent = value;
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        }
     }
 
-    getPreviousWeekData(allData) {
-        const oneWeekAgo = new Date();
-        const twoWeeksAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    showLoadingStates() {
+        const loadingElements = [
+            'trends-loading', 'correlation-loading', 
+            'weekly-loading', 'ai-insights-loading'
+        ];
         
-        return allData.filter(entry => {
-            const entryDate = new Date(entry.date);
-            return entryDate >= twoWeeksAgo && entryDate < oneWeekAgo;
+        loadingElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.classList.remove('hidden');
+        });
+    }
+
+    hideLoadingStates() {
+        const loadingElements = [
+            'trends-loading', 'correlation-loading', 
+            'weekly-loading', 'ai-insights-loading'
+        ];
+        
+        loadingElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.classList.add('hidden');
         });
     }
 }

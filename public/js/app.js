@@ -4813,48 +4813,48 @@ if (typeof this.showView === 'function') {
     }
 
     /** Load complete analytics data */
-    async loadCompleteAnalyticsData() {
-        try {
-            console.log('📊 Loading complete analytics data...');
-            this.showAllLoadingStates();
+async loadCompleteAnalyticsData() {
+    try {
+        console.log('📊 Loading complete analytics data...');
+        this.showAllLoadingStates();
 
-            // Get health data
-            const allData = await this.healthTracker.getAllHealthData();
-            console.log(`📊 Loaded ${allData.length} health entries`);
-            
-            if (!Array.isArray(allData)) {
-                throw new Error('Health data is not an array');
-            }
-
-            // Filter data for current period
-            const periodData = this.filterDataForPeriod(allData, this.currentPeriod);
-            console.log(`📊 Filtered to ${periodData.length} entries for ${this.currentPeriod} days`);
-
-            this.analyticsData = {
-                all: allData,
-                period: periodData
-            };
-
-            // Update all analytics components
-            await Promise.all([
-                this.updateQuickStats(allData, periodData),
-                this.updateTrendsChart(),
-                this.updateHeatmapChart(),
-                this.updateCorrelationChart(),
-                this.updateWeeklySummaryChart(),
-                this.updateAnalyticsInsights(periodData),
-                this.updateCorrelationInsights(periodData)
-            ]);
-
-            this.hideAllLoadingStates();
-            console.log('✅ Analytics data loaded successfully');
-
-        } catch (error) {
-            console.error('❌ Analytics data loading error:', error);
-            this.hideAllLoadingStates();
-            this.showAnalyticsError(error);
+        // Get health data
+        const allData = await this.healthTracker.getAllHealthData();
+        console.log(`📊 Loaded ${allData.length} health entries`);
+        
+        if (!Array.isArray(allData)) {
+            throw new Error('Health data is not an array');
         }
+
+        // Filter data for current period
+        const periodData = this.filterDataForPeriod(allData, this.currentPeriod);
+        console.log(`📊 Filtered to ${periodData.length} entries for ${this.currentPeriod} days`);
+
+        this.analyticsData = {
+            all: allData,
+            period: periodData
+        };
+
+        // **FIX: Korrekte Parameter für Chart-Updates**
+        await Promise.all([
+            this.updateQuickStats(allData, periodData),
+            this.updateTrendsChart(),
+            this.updateHeatmapChart(),
+            this.updateCorrelationChart(periodData), // ✅ Übergebe periodData
+            this.updateWeeklySummaryChart(periodData), // ✅ Übergebe periodData
+            this.updateAnalyticsInsights(periodData),
+            this.updateCorrelationInsights(periodData)
+        ]);
+
+        this.hideAllLoadingStates();
+        console.log('✅ Analytics data loaded successfully');
+
+    } catch (error) {
+        console.error('❌ Analytics data loading error:', error);
+        this.hideAllLoadingStates();
+        this.showAnalyticsError(error);
     }
+}
 
     /** Filter data for specific period */
     filterDataForPeriod(allData, days) {

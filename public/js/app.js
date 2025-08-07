@@ -4977,7 +4977,7 @@ if (typeof this.showView === 'function') {
         await this.updateTrendsChart();
     }
 
-    /** Load complete analytics data - Updated without correlation and weekly summary */
+    /** Load complete analytics data */
 async loadCompleteAnalyticsData() {
     try {
         console.log('📊 Loading complete analytics data...');

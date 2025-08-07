@@ -4977,7 +4977,7 @@ if (typeof this.showView === 'function') {
         await this.updateTrendsChart();
     }
 
-    /** Load complete analytics data */
+    /** Load complete analytics data - Updated without correlation and weekly summary */
 async loadCompleteAnalyticsData() {
     try {
         console.log('📊 Loading complete analytics data...');
@@ -5005,6 +5005,8 @@ async loadCompleteAnalyticsData() {
             this.updateQuickStats(allData, periodData),
             this.updateTrendsChart(),
             this.updateHeatmapChart(),
+            // ❌ ENTFERNT: this.updateCorrelationChart(periodData),
+            // ❌ ENTFERNT: this.updateWeeklySummaryChart(periodData),
             this.updateAnalyticsInsights(periodData)
         ]);
 

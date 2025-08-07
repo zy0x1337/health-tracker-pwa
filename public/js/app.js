@@ -5638,7 +5638,7 @@ calculateBasicCorrelations(data) {
 }
 
 /**
- * Get weekly data (last 7 days) - Missing method
+ * Get weekly data (last 7 days)
  */
 getWeeklyData(allData) {
     const now = new Date();
@@ -5661,7 +5661,7 @@ getWeeklyData(allData) {
 }
 
 /**
- * Calculate weekly statistics - Missing method
+ * Calculate weekly statistics
  */
 calculateWeeklyStats(weekData) {
     if (weekData.length === 0) {
@@ -5694,7 +5694,7 @@ calculateWeeklyStats(weekData) {
 }
 
 /**
- * Generate weekly trend bars - Missing method
+ * Generate weekly trend bars
  */
 generateWeeklyTrendBars(stats) {
     const trends = [
@@ -5716,7 +5716,7 @@ generateWeeklyTrendBars(stats) {
 }
 
 /**
- * Generate weekly insights - Missing method
+ * Generate weekly insights
  */
 generateWeeklyInsights(stats) {
     const insights = [];
@@ -5749,7 +5749,7 @@ generateWeeklyInsights(stats) {
 }
 
 /**
- * Find best performing day - Missing method
+ * Find best performing day
  */
 findBestDay(weekData) {
     if (weekData.length === 0) return null;
@@ -5762,7 +5762,7 @@ findBestDay(weekData) {
 }
 
 /**
- * Calculate improvement trend - Missing method
+ * Calculate improvement trend
  */
 calculateImprovement(weekData) {
     if (weekData.length < 3) return null;
@@ -5777,7 +5777,82 @@ calculateImprovement(weekData) {
 }
 
 /**
- * Prepare weekly chart data - Missing method
+ * Update weekly summary chart with bar, pie, and area charts
+ */
+async updateWeeklySummaryChart(data) {
+    let container = document.getElementById('weekly-summary-chart');
+    
+    if (!container) {
+        console.error('❌ Weekly summary chart container not found');
+        return;
+    }
+
+    const parentContainer = container.closest('.card-body');
+    if (!parentContainer) {
+        console.error('❌ Parent container for weekly summary chart not found');
+        return;
+    }
+
+    try {
+        // Canvas für Charts sichtbar machen
+        container.style.display = 'block';
+        container.width = container.offsetWidth || 400;
+        container.height = container.offsetHeight || 300;
+        
+        const ctx = container.getContext('2d');
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, container.width, container.height);
+        
+        // Check if we have enough data
+        if (!data || data.length < 1) {
+            this.drawEmptyState(ctx, container, '📅', 'Keine Wochendaten verfügbar');
+            return;
+        }
+
+        // Get weekly data
+        const weekData = this.getWeeklyData(data);
+        
+        if (weekData.length === 0) {
+            this.drawEmptyState(ctx, container, '📊', 'Keine Wochendaten');
+            return;
+        }
+
+        // Prepare chart data
+        const chartData = this.prepareWeeklyChartData(weekData);
+        
+        // Get current chart type from dropdown or default to bar
+        const chartType = this.getCurrentChartType() || 'bar';
+        
+        // Render appropriate chart
+        switch (chartType) {
+            case 'bar':
+                this.drawBarChart(ctx, container, chartData);
+                break;
+            case 'pie':
+                this.drawPieChart(ctx, container, chartData);
+                break;
+            case 'area':
+                this.drawAreaChart(ctx, container, chartData);
+                break;
+            default:
+                this.drawBarChart(ctx, container, chartData);
+        }
+        
+        // Add chart info below canvas
+        this.addChartInfo(parentContainer, chartData);
+        
+        console.log('✅ Weekly summary chart updated successfully');
+
+    } catch (error) {
+        console.error('❌ Error updating weekly summary chart:', error);
+        const ctx = container.getContext('2d');
+        this.drawEmptyState(ctx, container, '⚠️', 'Fehler beim Laden der Charts');
+    }
+}
+
+/**
+ * Prepare weekly chart data
  */
 prepareWeeklyChartData(weekData) {
     const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -5821,7 +5896,7 @@ prepareWeeklyChartData(weekData) {
 }
 
 /**
- * Get current chart type from dropdown - Missing method
+ * Get current chart type from dropdown
  */
 getCurrentChartType() {
     const dropdown = document.querySelector('#analytics select') || 
@@ -5831,7 +5906,7 @@ getCurrentChartType() {
 }
 
 /**
- * Draw empty state - Missing method
+ * Draw empty state
  */
 drawEmptyState(ctx, canvas, icon, message) {
     const { width, height } = canvas;
@@ -5849,7 +5924,7 @@ drawEmptyState(ctx, canvas, icon, message) {
 }
 
 /**
- * Add chart info below canvas - Missing method
+ * Add chart info below canvas
  */
 addChartInfo(parentContainer, data) {
     let infoDiv = parentContainer.querySelector('.chart-info');
@@ -5874,7 +5949,7 @@ addChartInfo(parentContainer, data) {
 }
 
 /**
- * Draw bar chart - Missing method
+ * Draw bar chart
  */
 drawBarChart(ctx, canvas, data) {
     const { width, height } = canvas;
@@ -5911,7 +5986,7 @@ drawBarChart(ctx, canvas, data) {
 }
 
 /**
- * Draw pie chart - Missing method
+ * Draw pie chart
  */
 drawPieChart(ctx, canvas, data) {
     const { width, height } = canvas;
@@ -5972,7 +6047,7 @@ drawPieChart(ctx, canvas, data) {
 }
 
 /**
- * Draw area chart - Missing method
+ * Draw area chart
  */
 drawAreaChart(ctx, canvas, data) {
     const { width, height } = canvas;

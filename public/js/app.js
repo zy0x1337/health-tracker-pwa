@@ -2347,52 +2347,567 @@ showView(viewName) {
     }
 }
 
-    /** Show today's overview with enhanced UI */
-async showTodayView() {
-    console.log('📊 Showing optimized today view...');
+    /**
+ * Show specific view in progress hub with proper content switching
+ */
+showView(viewName) {
+    console.log('🔄 ProgressHub showView called:', viewName);
+    
+    this.currentView = viewName;
+    
+    // Update tab states (DaisyUI tabs)
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    tabs.forEach(tab => {
+        tab.classList.remove('tab-active');
+    });
+    
+    const activeTab = document.getElementById(`tab-${viewName}`);
+    if (activeTab) {
+        activeTab.classList.add('tab-active');
+    }
+
+    // Hide all views first
+    const allViews = ['overview-view', 'weekly-view', 'goals-view', 'achievements-view'];
+    allViews.forEach(viewId => {
+        const viewElement = document.getElementById(viewId);
+        if (viewElement) {
+            viewElement.classList.add('hidden');
+        }
+    });
+
+    // Show the selected view and populate with appropriate content
+    switch (viewName) {
+        case 'overview':
+            this.showOverviewView();
+            break;
+        case 'weekly':
+            this.showWeeklyView();
+            break;
+        case 'goals':
+            this.showGoalsView();
+            break;
+        case 'achievements':
+            this.showAchievementsView();
+            break;
+        default:
+            this.showOverviewView();
+    }
+}
+
+/** Show overview view (existing today view functionality) */
+showOverviewView() {
+    const overviewView = document.getElementById('overview-view');
+    if (overviewView) {
+        overviewView.classList.remove('hidden');
+        // The existing showTodayView functionality is already implemented
+        this.showTodayView();
+    }
+}
+
+/** Show weekly view with weekly data */
+showWeeklyView() {
+    const weeklyView = document.getElementById('weekly-view');
+    if (weeklyView) {
+        weeklyView.classList.remove('hidden');
+        this.populateWeeklyView();
+    }
+}
+
+/** Show goals view with goal progress */
+showGoalsView() {
+    const goalsView = document.getElementById('goals-view');
+    if (goalsView) {
+        goalsView.classList.remove('hidden');
+        this.populateGoalsView();
+    }
+}
+
+/** Show achievements view with milestones */
+showAchievementsView() {
+    const achievementsView = document.getElementById('achievements-view');
+    if (achievementsView) {
+        achievementsView.classList.remove('hidden');
+        this.populateAchievementsView();
+    }
+}
+
+/** Populate weekly view with actual weekly data */
+populateWeeklyView() {
+    const container = document.getElementById('weekly-chart-container');
+    if (!container) return;
+
+    if (this.weekData.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <i data-lucide="calendar-x" class="w-16 h-16 mx-auto text-base-content/30 mb-4"></i>
+                <h3 class="text-xl font-semibold text-base-content mb-2">Keine Wochendaten</h3>
+                <p class="text-base-content/70">Füge mehr Daten hinzu, um deine Wochenentwicklung zu sehen!</p>
+            </div>
+        `;
+        return;
+    }
+
+    const weekStats = this.calculateWeekStats();
+    
+    container.innerHTML = `
+        <div class="space-y-6">
+            <!-- Weekly Stats Overview -->
+            <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200 w-full">
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <i data-lucide="footprints" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Ø Schritte/Tag</div>
+                    <div class="stat-value text-primary">${weekStats.avgSteps.toLocaleString()}</div>
+                    <div class="stat-desc">Diese Woche</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-figure text-info">
+                        <i data-lucide="droplets" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Ø Wasser/Tag</div>
+                    <div class="stat-value text-info">${weekStats.avgWater}L</div>
+                    <div class="stat-desc">Diese Woche</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-figure text-accent">
+                        <i data-lucide="moon" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Ø Schlaf/Nacht</div>
+                    <div class="stat-value text-accent">${weekStats.avgSleep}h</div>
+                    <div class="stat-desc">Diese Woche</div>
+                </div>
+            </div>
+
+            <!-- Daily Breakdown -->
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Tägliche Aufschlüsselung</h4>
+                    <div class="space-y-3">
+                        ${this.weekData.slice(0, 7).map((entry, index) => {
+                            const entryDate = new Date(entry.date);
+                            const isToday = entryDate.toDateString() === new Date().toDateString();
+                            const dayName = entryDate.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
+                            
+                            return `
+                                <div class="alert ${isToday ? 'alert-info' : 'alert-ghost'} flex justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="font-medium">${dayName}</div>
+                                        ${isToday ? '<div class="badge badge-primary">Heute</div>' : ''}
+                                    </div>
+                                    <div class="flex gap-2 text-sm">
+                                        ${entry.steps ? `<div class="badge badge-success">${entry.steps.toLocaleString()} Schritte</div>` : ''}
+                                        ${entry.waterIntake ? `<div class="badge badge-info">${entry.waterIntake}L</div>` : ''}
+                                        ${entry.sleepHours ? `<div class="badge badge-warning">${entry.sleepHours}h</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Reinitialize lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+/** Populate goals view with goal progress */
+populateGoalsView() {
+    const container = document.getElementById('goals-progress-container');
+    if (!container) return;
+
+    const goalProgress = this.calculateGoalProgress();
+    
+    container.innerHTML = `
+        <div class="space-y-6">
+            <!-- Overall Progress -->
+            <div class="card bg-gradient-to-br from-primary/10 to-secondary/10 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="radial-progress text-primary mb-4" style="--value:${goalProgress.overallProgress}; --size:120px;">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">${Math.round(goalProgress.overallProgress)}%</div>
+                            <div class="text-xs opacity-70">Gesamt</div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Zielfortschritt Heute</h3>
+                    <p class="text-base-content/70">${goalProgress.completedGoals} von ${goalProgress.totalGoals} Zielen erreicht</p>
+                </div>
+            </div>
+
+            <!-- Individual Goal Progress -->
+            <div class="grid md:grid-cols-2 gap-4">
+                ${Object.entries(goalProgress.details).map(([metric, progress]) => {
+                    const icons = {
+                        steps: 'footprints',
+                        water: 'droplets',
+                        sleep: 'moon',
+                        weight: 'scale'
+                    };
+                    const colors = {
+                        steps: 'primary',
+                        water: 'info',
+                        sleep: 'warning',
+                        weight: 'secondary'
+                    };
+                    const labels = {
+                        steps: 'Schritte',
+                        water: 'Wasser',
+                        sleep: 'Schlaf',
+                        weight: 'Gewicht'
+                    };
+                    
+                    return `
+                        <div class="card bg-base-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <i data-lucide="${icons[metric]}" class="w-6 h-6 text-${colors[metric]}"></i>
+                                    <h4 class="font-bold">${labels[metric]}</h4>
+                                </div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm opacity-70">Fortschritt</span>
+                                    <span class="font-bold">${Math.round(progress)}%</span>
+                                </div>
+                                <progress class="progress progress-${colors[metric]} w-full" value="${progress}" max="100"></progress>
+                                ${progress >= 100 ? '<div class="badge badge-success mt-2">🎯 Ziel erreicht!</div>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+/** Populate achievements view with milestones */
+populateAchievementsView() {
+    const container = document.getElementById('achievements-container');
+    if (!container) return;
+
+    const achievements = this.generateAchievements();
+    
+    container.innerHTML = `
+        <div class="space-y-6">
+            <!-- Achievement Stats -->
+            <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200 w-full">
+                <div class="stat">
+                    <div class="stat-figure text-success">
+                        <i data-lucide="trophy" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Errungenschaften</div>
+                    <div class="stat-value text-success">${achievements.unlocked.length}</div>
+                    <div class="stat-desc">Freigeschaltet</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <i data-lucide="flame" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Längste Serie</div>
+                    <div class="stat-value text-primary">${achievements.longestStreak}</div>
+                    <div class="stat-desc">Tage am Stück</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-figure text-accent">
+                        <i data-lucide="star" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title">Erfahrungspunkte</div>
+                    <div class="stat-value text-accent">${achievements.totalXP}</div>
+                    <div class="stat-desc">Gesammelt</div>
+                </div>
+            </div>
+
+            <!-- Unlocked Achievements -->
+            <div class="space-y-4">
+                <h4 class="text-lg font-bold flex items-center gap-2">
+                    <i data-lucide="award" class="w-5 h-5 text-success"></i>
+                    Freigeschaltete Errungenschaften
+                </h4>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    ${achievements.unlocked.map(achievement => `
+                        <div class="card bg-gradient-to-br from-success/10 to-primary/10 border border-success/20 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="text-3xl">${achievement.icon}</div>
+                                    <div class="flex-1">
+                                        <h5 class="font-bold text-success">${achievement.title}</h5>
+                                        <p class="text-sm text-base-content/70 mb-2">${achievement.description}</p>
+                                        <div class="flex items-center gap-2">
+                                            <div class="badge badge-success badge-sm">${achievement.xp} XP</div>
+                                            <div class="badge badge-ghost badge-sm">${achievement.unlockedDate}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Locked Achievements -->
+            ${achievements.locked.length > 0 ? `
+                <div class="space-y-4">
+                    <h4 class="text-lg font-bold flex items-center gap-2">
+                        <i data-lucide="lock" class="w-5 h-5 text-base-content/50"></i>
+                        Noch zu erreichen
+                    </h4>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        ${achievements.locked.slice(0, 4).map(achievement => `
+                            <div class="card bg-base-200 border border-base-300 shadow-sm opacity-60">
+                                <div class="card-body p-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-3xl grayscale">${achievement.icon}</div>
+                                        <div class="flex-1">
+                                            <h5 class="font-bold">${achievement.title}</h5>
+                                            <p class="text-sm text-base-content/70 mb-2">${achievement.description}</p>
+                                            <div class="flex items-center gap-2">
+                                                <div class="badge badge-ghost badge-sm">${achievement.xp} XP</div>
+                                                <div class="badge badge-outline badge-sm">🔒 Gesperrt</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+/** Generate achievements based on user data */
+generateAchievements() {
+    // Robuste Datenabfrage mit Fallback
+    let allData = [];
     
     try {
-        // Show loading state with enhanced animation
-        this.showEnhancedLoadingState();
-        
-        // Get all health data
-        const allData = await this.healthTracker.getAllHealthData();
-        const todayData = this.healthTracker.getTodayData(allData);
-        const weekData = this.healthTracker.getWeekData(allData);
-        
-        // Update today's date with enhanced formatting
-        this.updateTodayDate();
-        
-        // Enhanced stats updates with animations
-        await this.updateTodayStatsWithAnimations(todayData);
-        
-        // Update weekly trends with enhanced visuals
-        await this.updateWeeklyTrendsEnhanced(weekData, allData);
-        
-        // Update quick stats with smooth animations
-        await this.updateQuickStatsEnhanced(allData);
-        
-        // Add interactive elements and tooltips
-        this.enhanceInteractiveElements();
-        
-        // Add completion rate calculation and visual feedback
-        this.updateCompletionRateEnhanced(todayData);
-        
-        // Show today's notes if available
-        this.updateTodayNotesEnhanced(todayData);
-        
-        // Add progress animations
-        this.animateProgressBars(todayData);
-        
-        // Hide loading state
-        this.hideLoadingState();
-        
-        console.log('✅ Today view optimized and displayed');
-        
+        if (this.healthTracker && 
+            typeof this.healthTracker.getAllHealthData === 'function') {
+            allData = this.healthTracker.getAllHealthData() || [];
+        }
     } catch (error) {
-        console.error('❌ Error showing today view:', error);
-        this.showErrorState();
+        console.warn('❌ Fehler beim Laden der Daten für Achievements:', error);
+        allData = [];
     }
+
+    // Ensure allData is always an array
+    if (!Array.isArray(allData)) {
+        allData = [];
+    }
+
+    const currentStreak = this.calculateCurrentStreak(allData);
+    const totalEntries = allData.length;
+    const todayData = this.todayData || {};
+
+    const achievements = {
+        unlocked: [],
+        locked: [],
+        longestStreak: currentStreak,
+        totalXP: 0
+    };
+
+    // Define all possible achievements
+    const allAchievements = [
+        {
+            id: 'first_entry',
+            title: 'Erste Schritte',
+            description: 'Ersten Gesundheitseintrag erstellt',
+            icon: '🌱',
+            xp: 10,
+            condition: () => totalEntries >= 1
+        },
+        {
+            id: 'week_streak',
+            title: 'Wochenkrieger',
+            description: '7 Tage am Stück getrackt',
+            icon: '🔥',
+            xp: 50,
+            condition: () => currentStreak >= 7
+        },
+        {
+            id: 'month_streak',
+            title: 'Monatsmeister',
+            description: '30 Tage am Stück getrackt',
+            icon: '💪',
+            xp: 150,
+            condition: () => currentStreak >= 30
+        },
+        {
+            id: 'step_master',
+            title: 'Schrittmeister',
+            description: '10.000 Schritte an einem Tag erreicht',
+            icon: '👟',
+            xp: 25,
+            condition: () => (todayData.steps || 0) >= 10000
+        },
+        {
+            id: 'step_champion',
+            title: 'Schritt-Champion',
+            description: '20.000 Schritte an einem Tag erreicht',
+            icon: '🏃‍♂️',
+            xp: 75,
+            condition: () => {
+                return allData.some(entry => (entry.steps || 0) >= 20000);
+            }
+        },
+        {
+            id: 'hydration_hero',
+            title: 'Hydrations-Held',
+            description: 'Wasserziel 5 Tage in Folge erreicht',
+            icon: '💧',
+            xp: 30,
+            condition: () => {
+                if (!this.healthTracker?.goals?.waterGoal) return false;
+                let consecutiveDays = 0;
+                let maxConsecutive = 0;
+                
+                // Sort by date descending
+                const sortedData = [...allData]
+                    .filter(entry => entry.waterIntake >= this.healthTracker.goals.waterGoal)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                for (let i = 0; i < sortedData.length - 1; i++) {
+                    const currentDate = new Date(sortedData[i].date);
+                    const nextDate = new Date(sortedData[i + 1].date);
+                    const diffDays = Math.abs((currentDate - nextDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 1) {
+                        consecutiveDays++;
+                    } else {
+                        maxConsecutive = Math.max(maxConsecutive, consecutiveDays);
+                        consecutiveDays = 0;
+                    }
+                }
+                
+                return Math.max(maxConsecutive, consecutiveDays) >= 5;
+            }
+        },
+        {
+            id: 'sleep_champion',
+            title: 'Schlaf-Champion',
+            description: 'Optimal geschlafen (8h+) 3 Nächte in Folge',
+            icon: '😴',
+            xp: 40,
+            condition: () => {
+                let consecutiveNights = 0;
+                const sortedData = [...allData]
+                    .filter(entry => (entry.sleepHours || 0) >= 8)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                for (let i = 0; i < sortedData.length - 1; i++) {
+                    const currentDate = new Date(sortedData[i].date);
+                    const nextDate = new Date(sortedData[i + 1].date);
+                    const diffDays = Math.abs((currentDate - nextDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 1) {
+                        consecutiveNights++;
+                        if (consecutiveNights >= 3) return true;
+                    } else {
+                        consecutiveNights = 0;
+                    }
+                }
+                
+                return false;
+            }
+        },
+        {
+            id: 'data_collector',
+            title: 'Datensammler',
+            description: '50 Gesundheitseinträge erfasst',
+            icon: '📊',
+            xp: 60,
+            condition: () => totalEntries >= 50
+        },
+        {
+            id: 'data_master',
+            title: 'Datenmeister',
+            description: '100 Gesundheitseinträge erfasst',
+            icon: '🎯',
+            xp: 120,
+            condition: () => totalEntries >= 100
+        },
+        {
+            id: 'perfect_day',
+            title: 'Perfekter Tag',
+            description: 'Alle Ziele an einem Tag erreicht',
+            icon: '⭐',
+            xp: 100,
+            condition: () => {
+                return allData.some(entry => {
+                    const goals = this.healthTracker?.goals || {};
+                    let goalsReached = 0;
+                    let totalGoals = 0;
+                    
+                    if (goals.stepsGoal) {
+                        totalGoals++;
+                        if ((entry.steps || 0) >= goals.stepsGoal) goalsReached++;
+                    }
+                    if (goals.waterGoal) {
+                        totalGoals++;
+                        if ((entry.waterIntake || 0) >= goals.waterGoal) goalsReached++;
+                    }
+                    if (goals.sleepGoal) {
+                        totalGoals++;
+                        if ((entry.sleepHours || 0) >= goals.sleepGoal) goalsReached++;
+                    }
+                    
+                    return totalGoals > 0 && goalsReached === totalGoals;
+                });
+            }
+        }
+    ];
+
+    // Check which achievements are unlocked
+    allAchievements.forEach(achievement => {
+        try {
+            if (achievement.condition()) {
+                achievements.unlocked.push({
+                    ...achievement,
+                    unlockedDate: this.formatRecentDate()
+                });
+                achievements.totalXP += achievement.xp;
+            } else {
+                achievements.locked.push(achievement);
+            }
+        } catch (error) {
+            console.warn(`❌ Fehler bei Achievement ${achievement.id}:`, error);
+            // If condition fails, treat as locked
+            achievements.locked.push(achievement);
+        }
+    });
+
+    // Sort unlocked achievements by XP (highest first)
+    achievements.unlocked.sort((a, b) => b.xp - a.xp);
+
+    return achievements;
+}
+
+/** Helper method to format recent date */
+formatRecentDate() {
+    const now = new Date();
+    const hours = now.getHours();
+    
+    if (hours < 6) return 'Heute Nacht';
+    if (hours < 12) return 'Heute Morgen';
+    if (hours < 18) return 'Heute Nachmittag';
+    return 'Heute Abend';
 }
 
 /** Enhanced loading state with modern animation */

@@ -3321,9 +3321,9 @@ formatTimeAgo(dateInput) {
 }
 
 // ==================================================================== 
-// ANALYTICS DASHBOARD ENGINE - Vollständige Standalone-Implementierung
+// ANALYTICS ENGINE - Vollständiges eigenständiges Analytics Dashboard
 // ====================================================================
-class AnalyticsDashboard {
+class AnalyticsEngine {
     constructor(healthTracker) {
         this.healthTracker = healthTracker;
         this.currentPeriod = 30;
@@ -3333,58 +3333,71 @@ class AnalyticsDashboard {
         this.initialize();
     }
 
-    /** Initialize analytics dashboard */
+    /** Initialize analytics engine */
     async initialize() {
-        console.log('📊 Analytics Dashboard wird initialisiert...');
+        console.log('📊 Analytics Engine wird initialisiert...');
         
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setup());
         } else {
-            this.setup();
+            await this.setup();
         }
     }
 
-    /** Setup dashboard after DOM is ready */
+    /** Setup analytics engine after DOM is ready */
     async setup() {
         try {
-            this.setupEventListeners();
-            await this.loadAndDisplayData();
-            this.isInitialized = true;
-            console.log('✅ Analytics Dashboard erfolgreich initialisiert');
+            // Setup event listeners for analytics dashboard
+            this.setupAnalyticsEventListeners();
+            
+            // Initial data load with delay to ensure DOM is ready
+            setTimeout(async () => {
+                await this.updateAllAnalytics();
+                this.isInitialized = true;
+                console.log('✅ Analytics Engine erfolgreich initialisiert');
+            }, 500);
         } catch (error) {
-            console.error('❌ Analytics Dashboard Initialisierungsfehler:', error);
+            console.error('❌ Analytics Engine Setup-Fehler:', error);
         }
     }
 
-    /** Setup all event listeners */
-    setupEventListeners() {
+    /** Setup all event listeners for analytics dashboard */
+    setupAnalyticsEventListeners() {
+        console.log('📊 Setting up analytics event listeners...');
+        
         // Period filter buttons
         document.querySelectorAll('[data-period]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.updatePeriod(parseInt(e.target.dataset.period));
+                console.log('📊 Period filter clicked:', e.target.dataset.period);
+                this.updateAnalyticsPeriod(parseInt(e.target.dataset.period));
             });
         });
 
         // Metric tabs
         document.querySelectorAll('[data-metric]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.updateMetric(e.target.dataset.metric);
+                console.log('📈 Metric tab clicked:', e.target.dataset.metric);
+                this.updateAnalyticsMetric(e.target.dataset.metric);
             });
         });
 
         // Refresh button
         const refreshBtn = document.getElementById('analytics-refresh-btn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.loadAndDisplayData());
+            refreshBtn.addEventListener('click', () => {
+                console.log('🔄 Manual analytics refresh triggered');
+                this.updateAllAnalytics();
+            });
         }
-
-        console.log('📊 Analytics event listeners setup complete');
+        
+        console.log('✅ Analytics event listeners setup complete');
     }
 
-    /** Update period and refresh data */
-    async updatePeriod(period) {
+    /** Update analytics period and refresh data */
+    async updateAnalyticsPeriod(period) {
         this.currentPeriod = period;
+        console.log(`📊 Updating analytics period to ${period} days`);
         
         // Update button states
         document.querySelectorAll('[data-period]').forEach(btn => {
@@ -3393,42 +3406,49 @@ class AnalyticsDashboard {
         });
         document.querySelector(`[data-period="${period}"]`)?.classList.replace('btn-ghost', 'btn-primary');
         
-        await this.loadAndDisplayData();
+        await this.updateAllAnalytics();
     }
 
-    /** Update metric and refresh chart */
-    async updateMetric(metric) {
+    /** Update analytics metric and refresh chart */
+    async updateAnalyticsMetric(metric) {
         this.currentMetric = metric;
+        console.log(`📈 Updating analytics metric to ${metric}`);
         
         // Update tab states
         document.querySelectorAll('[data-metric]').forEach(btn => btn.classList.remove('tab-active'));
         document.querySelector(`[data-metric="${metric}"]`)?.classList.add('tab-active');
         
+        // Refresh trends chart with new metric
         await this.updateTrendsChart();
     }
 
-    /** Load and display all analytics data */
-    async loadAndDisplayData() {
+    /** Main analytics update method */
+    async updateAllAnalytics() {
         try {
+            console.log('📊 Updating all analytics...');
             this.showLoadingStates();
-            
+
             const allData = await this.healthTracker.getAllHealthData();
             const periodData = this.getDataForPeriod(allData, this.currentPeriod);
             
-            // Update all sections
+            console.log(`📊 Analytics data: ${allData.length} total entries, ${periodData.length} for ${this.currentPeriod} days`);
+            
+            // Update all analytics sections
             await Promise.all([
-                this.updateQuickStats(allData),
+                this.updateAnalyticsStats(allData),
                 this.updateTrendsChart(periodData),
                 this.updateCorrelationAnalysis(periodData),
                 this.updateWeeklySummary(allData),
-                this.updateAIInsights(periodData)
+                this.updateAIInsights(periodData),
+                this.updateHeatmap(periodData)
             ]);
-            
+
             this.hideLoadingStates();
-            console.log('✅ Analytics Dashboard data updated');
+            console.log('✅ Analytics erfolgreich aktualisiert');
         } catch (error) {
-            console.error('❌ Analytics data loading error:', error);
+            console.error('❌ Analytics update error:', error);
             this.hideLoadingStates();
+            this.showAnalyticsError();
         }
     }
 
@@ -3443,31 +3463,36 @@ class AnalyticsDashboard {
         }).sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    /** Update quick statistics */
-    async updateQuickStats(allData) {
+    /** Update analytics statistics */
+    async updateAnalyticsStats(allData) {
         const todayData = this.healthTracker.getTodayData(allData);
         const weekData = this.healthTracker.getWeekData(allData);
         
         // Total entries
-        this.updateStat('analytics-total-entries', allData.length);
+        this.updateStatElement('analytics-total-entries', allData.length);
         
         // Weekly improvement calculation
         const improvement = this.calculateWeeklyImprovement(allData);
-        this.updateStat('analytics-improvement', `${improvement > 0 ? '+' : ''}${improvement}%`);
+        this.updateStatElement('analytics-improvement', `${improvement > 0 ? '+' : ''}${improvement}%`);
         
         // Goal achievement rate
         const goalRate = this.calculateGoalAchievementRate(allData);
-        this.updateStat('analytics-goal-rate', `${goalRate}%`);
+        this.updateStatElement('analytics-goal-rate', `${goalRate}%`);
         
         // Current streak
         const streak = this.calculateCurrentStreak(allData);
-        this.updateStat('analytics-streak', streak);
+        this.updateStatElement('analytics-streak', streak);
+
+        console.log('📊 Analytics stats updated');
     }
 
     /** Update trends chart with Chart.js */
     async updateTrendsChart(data = null) {
         const chartContainer = document.getElementById('trends-chart-container');
-        if (!chartContainer) return;
+        if (!chartContainer) {
+            console.warn('⚠️ Trends chart container not found');
+            return;
+        }
 
         if (!data) {
             const allData = await this.healthTracker.getAllHealthData();
@@ -3479,6 +3504,7 @@ class AnalyticsDashboard {
         if (!canvas) {
             canvas = document.createElement('canvas');
             canvas.id = 'trends-chart';
+            canvas.style.maxHeight = '400px';
             chartContainer.innerHTML = '';
             chartContainer.appendChild(canvas);
         }
@@ -3488,8 +3514,35 @@ class AnalyticsDashboard {
             this.charts.trends.destroy();
         }
 
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            chartContainer.innerHTML = `
+                <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📊</div>
+                        <div class="font-semibold">Chart.js wird geladen...</div>
+                        <div class="text-sm opacity-70">Bitte Chart.js in HTML einbinden</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         // Prepare chart data
         const chartData = this.prepareChartData(data);
+        
+        if (chartData.labels.length === 0) {
+            chartContainer.innerHTML = `
+                <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📈</div>
+                        <div class="font-semibold">Keine Daten für ${this.currentPeriod} Tage</div>
+                        <div class="text-sm opacity-70">Erfasse Gesundheitsdaten um Trends zu sehen</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
         
         // Create Chart.js chart
         const ctx = canvas.getContext('2d');
@@ -3501,10 +3554,16 @@ class AnalyticsDashboard {
             },
             options: this.getChartOptions()
         });
+
+        console.log(`📈 Trends chart updated for metric: ${this.currentMetric}`);
     }
 
     /** Prepare chart data from health data */
     prepareChartData(data) {
+        if (!data || data.length === 0) {
+            return { labels: [], steps: [], water: [], sleep: [], weight: [] };
+        }
+
         const grouped = {};
         
         data.forEach(entry => {
@@ -3514,13 +3573,14 @@ class AnalyticsDashboard {
             });
             
             if (!grouped[date]) {
-                grouped[date] = { steps: 0, water: 0, sleep: 0, weight: null };
+                grouped[date] = { steps: 0, water: 0, sleep: 0, weight: null, count: 0 };
             }
             
             grouped[date].steps += entry.steps || 0;
             grouped[date].water += entry.waterIntake || 0;
             grouped[date].sleep += entry.sleepHours || 0;
             if (entry.weight) grouped[date].weight = entry.weight;
+            grouped[date].count++;
         });
 
         const labels = Object.keys(grouped);
@@ -3543,7 +3603,11 @@ class AnalyticsDashboard {
                 borderColor: '#3B82F6',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 tension: 0.4,
-                fill: this.currentMetric === 'steps'
+                fill: this.currentMetric === 'steps',
+                pointBackgroundColor: '#3B82F6',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+                pointRadius: 4
             });
         }
         
@@ -3554,7 +3618,12 @@ class AnalyticsDashboard {
                 borderColor: '#06B6D4',
                 backgroundColor: 'rgba(6, 182, 212, 0.1)',
                 tension: 0.4,
-                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+                fill: this.currentMetric === 'water',
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y',
+                pointBackgroundColor: '#06B6D4',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+                pointRadius: 4
             });
         }
         
@@ -3565,7 +3634,12 @@ class AnalyticsDashboard {
                 borderColor: '#8B5CF6',
                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
                 tension: 0.4,
-                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+                fill: this.currentMetric === 'sleep',
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y',
+                pointBackgroundColor: '#8B5CF6',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+                pointRadius: 4
             });
         }
         
@@ -3576,7 +3650,11 @@ class AnalyticsDashboard {
                 borderColor: '#EF4444',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 tension: 0.4,
-                fill: false
+                fill: false,
+                pointBackgroundColor: '#EF4444',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+                pointRadius: 4
             });
         }
         
@@ -3588,14 +3666,26 @@ class AnalyticsDashboard {
         const scales = {
             x: {
                 display: true,
-                title: { display: true, text: 'Datum' }
+                title: { 
+                    display: true, 
+                    text: 'Datum',
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { color: 'rgba(156, 163, 175, 0.2)' },
+                ticks: { color: '#6B7280' }
             },
             y: {
                 display: true,
                 title: { 
                     display: true, 
-                    text: this.getYAxisLabel() 
-                }
+                    text: this.getYAxisLabel(),
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { color: 'rgba(156, 163, 175, 0.2)' },
+                ticks: { color: '#6B7280' },
+                beginAtZero: true
             }
         };
 
@@ -3605,23 +3695,58 @@ class AnalyticsDashboard {
                 type: 'linear',
                 display: true,
                 position: 'right',
-                title: { display: true, text: 'Liter / Stunden' },
-                grid: { drawOnChartArea: false }
+                title: { 
+                    display: true, 
+                    text: 'Liter / Stunden',
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#6B7280' },
+                beginAtZero: true
             };
         }
 
         return {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: { 
+                mode: 'index', 
+                intersect: false 
+            },
             plugins: {
-                legend: { position: 'top' },
+                legend: { 
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        color: '#374151',
+                        font: { size: 12 }
+                    }
+                },
                 title: {
                     display: true,
-                    text: `${this.getMetricTitle()} (${this.currentPeriod} Tage)`
+                    text: `${this.getMetricTitle()} (${this.currentPeriod} Tage)`,
+                    color: '#1F2937',
+                    font: { size: 16, weight: 'bold' }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#FFFFFF',
+                    bodyColor: '#FFFFFF',
+                    borderColor: '#3B82F6',
+                    borderWidth: 1
                 }
             },
-            scales
+            scales,
+            elements: {
+                line: {
+                    tension: 0.4
+                },
+                point: {
+                    hoverRadius: 6
+                }
+            }
         };
     }
 
@@ -3649,6 +3774,97 @@ class AnalyticsDashboard {
         return titles[this.currentMetric] || 'Gesundheitstrends';
     }
 
+    /** Update heatmap visualization */
+    async updateHeatmap(data) {
+        const heatmapContainer = document.getElementById('activity-heatmap');
+        if (!heatmapContainer) return;
+
+        const heatmapData = this.generateHeatmapData(data);
+        
+        heatmapContainer.innerHTML = `
+            <div class="space-y-4">
+                <h4 class="font-semibold text-lg">🔥 Aktivitäts-Heatmap</h4>
+                <div class="grid grid-cols-7 gap-1 p-4 bg-base-200 rounded-lg">
+                    ${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => `
+                        <div class="text-center text-xs font-medium opacity-70 p-1">${day}</div>
+                    `).join('')}
+                    ${heatmapData.map(day => `
+                        <div class="aspect-square rounded ${this.getHeatmapColor(day.intensity)} 
+                             flex items-center justify-center text-xs font-medium relative group"
+                             title="${day.date}: ${day.value} Aktivität">
+                            ${day.day}
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 
+                                        bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 
+                                        transition-opacity z-10 whitespace-nowrap">
+                                ${day.date}<br>${day.value} Schritte
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="flex items-center justify-between text-xs opacity-70">
+                    <span>Weniger</span>
+                    <div class="flex gap-1">
+                        <div class="w-3 h-3 rounded bg-base-300"></div>
+                        <div class="w-3 h-3 rounded bg-primary/20"></div>
+                        <div class="w-3 h-3 rounded bg-primary/50"></div>
+                        <div class="w-3 h-3 rounded bg-primary/80"></div>
+                        <div class="w-3 h-3 rounded bg-primary"></div>
+                    </div>
+                    <span>Mehr</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /** Generate heatmap data */
+    generateHeatmapData(data) {
+        const today = new Date();
+        const days = [];
+        
+        for (let i = 41; i >= 0; i--) {
+            const date = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const dayData = data.find(entry => {
+                const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
+                return entryDate === dateStr;
+            });
+            
+            const steps = dayData ? dayData.steps || 0 : 0;
+            const intensity = this.calculateIntensity(steps);
+            
+            days.push({
+                date: date.toLocaleDateString('de-DE'),
+                day: date.getDate(),
+                value: steps,
+                intensity
+            });
+        }
+        
+        return days;
+    }
+
+    /** Calculate intensity for heatmap */
+    calculateIntensity(steps) {
+        if (steps === 0) return 0;
+        if (steps < 3000) return 1;
+        if (steps < 6000) return 2;
+        if (steps < 10000) return 3;
+        return 4;
+    }
+
+    /** Get heatmap color based on intensity */
+    getHeatmapColor(intensity) {
+        const colors = [
+            'bg-base-300',
+            'bg-primary/20',
+            'bg-primary/50', 
+            'bg-primary/80',
+            'bg-primary'
+        ];
+        return colors[intensity] || colors[0];
+    }
+
     /** Update correlation analysis */
     async updateCorrelationAnalysis(data) {
         const container = document.getElementById('correlation-analysis');
@@ -3659,7 +3875,7 @@ class AnalyticsDashboard {
         container.innerHTML = `
             <div class="space-y-4">
                 <h4 class="font-semibold text-lg mb-4">🔍 Datenkorrelationen</h4>
-                ${correlations.map(corr => `
+                ${correlations.length > 0 ? correlations.map(corr => `
                     <div class="card bg-base-200 shadow-sm">
                         <div class="card-body p-4">
                             <div class="flex items-center justify-between">
@@ -3679,7 +3895,12 @@ class AnalyticsDashboard {
                             </div>
                         </div>
                     </div>
-                `).join('')}
+                `).join('') : `
+                    <div class="alert alert-info">
+                        <span>📊</span>
+                        <span>Sammle mehr Daten für Korrelationsanalyse (mindestens 5 Einträge benötigt)</span>
+                    </div>
+                `}
             </div>
         `;
     }
@@ -3687,38 +3908,52 @@ class AnalyticsDashboard {
     /** Calculate correlations between metrics */
     calculateCorrelations(data) {
         if (data.length < 5) {
-            return [{
-                icon: '📊',
-                title: 'Mehr Daten benötigt',
-                description: 'Sammle mehr Gesundheitsdaten für Korrelationsanalyse',
-                strength: 0
-            }];
+            return [];
         }
 
         const correlations = [];
         
-        // Steps vs Sleep
-        const stepsVsSleep = this.calculatePearsonCorrelation(
-            data.map(d => d.steps || 0),
-            data.map(d => d.sleepHours || 0)
-        );
-        
-        correlations.push({
-            icon: '🚶‍♂️💤',
-            title: 'Schritte & Schlaf',
-            description: 'Zusammenhang zwischen Bewegung und Schlafqualität',
-            strength: Math.abs(stepsVsSleep)
-        });
+        // Steps vs Sleep correlation
+        const stepsData = data.filter(d => d.steps && d.sleepHours).map(d => ({ steps: d.steps, sleep: d.sleepHours }));
+        if (stepsData.length >= 5) {
+            const stepsVsSleep = this.calculatePearsonCorrelation(
+                stepsData.map(d => d.steps),
+                stepsData.map(d => d.sleep)
+            );
+            
+            correlations.push({
+                icon: '🚶‍♂️💤',
+                title: 'Schritte & Schlaf',
+                description: 'Zusammenhang zwischen Bewegung und Schlafqualität',
+                strength: Math.abs(stepsVsSleep)
+            });
+        }
 
-        // Water vs general wellness (using data availability as proxy)
+        // Water vs general consistency
         const waterData = data.filter(d => d.waterIntake && d.waterIntake > 0);
-        if (waterData.length > 3) {
+        if (waterData.length >= 3) {
             const waterConsistency = waterData.length / data.length;
             correlations.push({
-                icon: '💧😊',
-                title: 'Wasser & Wohlbefinden',
+                icon: '💧📊',
+                title: 'Wasser & Konsistenz',
                 description: 'Regelmäßige Wasserzufuhr und Datenerfassung',
                 strength: waterConsistency
+            });
+        }
+
+        // Sleep vs Weight (if weight data available)
+        const sleepWeightData = data.filter(d => d.sleepHours && d.weight);
+        if (sleepWeightData.length >= 5) {
+            const sleepVsWeight = this.calculatePearsonCorrelation(
+                sleepWeightData.map(d => d.sleepHours),
+                sleepWeightData.map(d => d.weight)
+            );
+            
+            correlations.push({
+                icon: '😴⚖️',
+                title: 'Schlaf & Gewicht',
+                description: 'Einfluss von Schlaf auf Gewichtsmanagement',
+                strength: Math.abs(sleepVsWeight)
             });
         }
 
@@ -3819,6 +4054,7 @@ class AnalyticsDashboard {
         
         if (insights.length === 0) {
             insights.push('📈 Raum für Verbesserungen - du schaffst das!');
+            insights.push('💪 Setze dir kleine, erreichbare Ziele');
         }
         
         return insights.map(insight => `
@@ -3865,7 +4101,7 @@ class AnalyticsDashboard {
                 icon: '🎯',
                 category: 'ERSTE SCHRITTE',
                 title: 'Starte deine Gesundheitsreise',
-                description: 'Erfasse täglich deine Gesundheitsdaten für personalisierte Einblicke.',
+                description: 'Erfasse täglich deine Gesundheitsdaten für personalisierte Einblicke und Trends.',
                 action: 'Mehr Daten sammeln'
             }];
         }
@@ -3873,15 +4109,15 @@ class AnalyticsDashboard {
         const insights = [];
         
         // Trend analysis
-        const stepsData = data.filter(d => d.steps).map(d => d.steps);
+        const stepsData = data.filter(d => d.steps && d.steps > 0).map(d => d.steps);
         if (stepsData.length >= 5) {
             const trend = this.calculateTrend(stepsData);
             if (trend > 0.1) {
                 insights.push({
                     icon: '📈',
                     category: 'POSITIVE ENTWICKLUNG',
-                    title: 'Deine Aktivität steigt!',
-                    description: `Deine Schrittanzahl zeigt einen positiven Trend von ${Math.round(trend * 100)}%.`,
+                    title: 'Deine Aktivität steigt kontinuierlich!',
+                    description: `Deine Schrittanzahl zeigt einen positiven Trend von ${Math.round(trend * 100)}%. Das ist ein großartiger Fortschritt!`,
                     action: 'Weiter so!'
                 });
             } else if (trend < -0.1) {
@@ -3889,25 +4125,81 @@ class AnalyticsDashboard {
                     icon: '📉',
                     category: 'MOTIVATION',
                     title: 'Zeit für mehr Bewegung',
-                    description: 'Deine Aktivität hat abgenommen. Wie wäre es mit einem Spaziergang?',
+                    description: `Deine Aktivität hat um ${Math.round(Math.abs(trend) * 100)}% abgenommen. Wie wäre es mit einem erfrischenden Spaziergang?`,
                     action: 'Aktivität steigern'
                 });
             }
         }
         
-        // Data consistency
+        // Sleep analysis
+        const sleepData = data.filter(d => d.sleepHours && d.sleepHours > 0);
+        if (sleepData.length >= 5) {
+            const avgSleep = sleepData.reduce((sum, d) => sum + d.sleepHours, 0) / sleepData.length;
+            if (avgSleep < 6) {
+                insights.push({
+                    icon: '😴',
+                    category: 'SCHLAFOPTIMIERUNG',
+                    title: 'Du schläfst zu wenig',
+                    description: `Mit durchschnittlich ${Math.round(avgSleep * 10) / 10}h Schlaf liegst du unter dem empfohlenen Minimum von 7-8 Stunden.`,
+                    action: 'Früher ins Bett'
+                });
+            } else if (avgSleep >= 7.5) {
+                insights.push({
+                    icon: '✨',
+                    category: 'SCHLAFOPTIMIERUNG',
+                    title: 'Hervorragende Schlafgewohnheiten!',
+                    description: `${Math.round(avgSleep * 10) / 10}h Schlaf pro Nacht sind optimal für deine Gesundheit und Wohlbefinden.`,
+                    action: 'Routine beibehalten'
+                });
+            }
+        }
+        
+        // Data consistency analysis
         const consistencyRate = data.length / this.currentPeriod;
         if (consistencyRate >= 0.8) {
             insights.push({
                 icon: '⭐',
                 category: 'KONSISTENZ',
                 title: 'Hervorragende Datenerfassung!',
-                description: `Du trackst ${Math.round(consistencyRate * 100)}% deiner Tage - das ist vorbildlich!`,
+                description: `Du trackst ${Math.round(consistencyRate * 100)}% deiner Tage. Diese Konsistenz ist der Schlüssel zum Erfolg!`,
                 action: 'Routine beibehalten'
+            });
+        } else if (consistencyRate < 0.5) {
+            insights.push({
+                icon: '📱',
+                category: 'DATENERFASSUNG',
+                title: 'Mehr Tracking für bessere Insights',
+                description: 'Regelmäßiges Tracking hilft dir, Muster zu erkennen und deine Ziele zu erreichen.',
+                action: 'Tägliches Tracking'
             });
         }
         
-        return insights;
+        // Water intake analysis
+        const waterData = data.filter(d => d.waterIntake && d.waterIntake > 0);
+        if (waterData.length >= 3) {
+            const avgWater = waterData.reduce((sum, d) => sum + d.waterIntake, 0) / waterData.length;
+            const goalRate = (avgWater / this.healthTracker.goals.waterGoal) * 100;
+            
+            if (goalRate >= 85) {
+                insights.push({
+                    icon: '💧',
+                    category: 'HYDRATION',
+                    title: 'Perfekte Hydration!',
+                    description: `Du erreichst dein Wasserziel zu ${Math.round(goalRate)}%. Dein Körper dankt es dir!`,
+                    action: 'Weiter so!'
+                });
+            } else if (goalRate < 60) {
+                insights.push({
+                    icon: '🚰',
+                    category: 'HYDRATION',
+                    title: 'Mehr trinken nötig',
+                    description: `Du erreichst nur ${Math.round(goalRate)}% deines Wasserziels. Ausreichend Flüssigkeit ist wichtig für deine Gesundheit.`,
+                    action: 'Wasserflasche bereitlegen'
+                });
+            }
+        }
+        
+        return insights.slice(0, 4); // Maximal 4 Insights anzeigen
     }
 
     /** Calculate trend from array of numbers */
@@ -3986,7 +4278,7 @@ class AnalyticsDashboard {
         return streak;
     }
 
-    updateStat(id, value) {
+    updateStatElement(id, value) {
         const element = document.getElementById(id);
         if (element) {
             element.style.transform = 'scale(1.1)';
@@ -4019,5 +4311,22 @@ class AnalyticsDashboard {
             const element = document.getElementById(id);
             if (element) element.classList.add('hidden');
         });
+    }
+
+    showAnalyticsError() {
+        const container = document.getElementById('analytics-dashboard');
+        if (container) {
+            const errorDiv = container.querySelector('.analytics-error') || document.createElement('div');
+            errorDiv.className = 'analytics-error alert alert-error mb-4';
+            errorDiv.innerHTML = `
+                <span>⚠️</span>
+                <span>Fehler beim Laden der Analytics. Bitte versuche es später erneut.</span>
+                <button class="btn btn-sm" onclick="this.parentElement.remove()">Schließen</button>
+            `;
+            
+            if (!container.querySelector('.analytics-error')) {
+                container.insertBefore(errorDiv, container.firstChild);
+            }
+        }
     }
 }

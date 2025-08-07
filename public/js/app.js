@@ -5328,10 +5328,15 @@ if (typeof this.showView === 'function') {
     /** Update correlation chart */
 async updateCorrelationChart() {
     console.log('🔗 Updating correlation chart...');
-
-    const container = document.getElementById('correlation-insights');
+    
+    // Verwende tatsächlich vorhandene Container-IDs
+    let container = document.getElementById('correlation-insights') || 
+                   document.getElementById('analytics-insights') ||
+                   document.querySelector('[id*="correlation"]') ||
+                   document.querySelector('.correlation-container');
+    
     if (!container) {
-        console.warn('⚠️ Correlation insights container not found');
+        console.warn('⚠️ No correlation container found - creating temporary display');
         return;
     }
 
@@ -5339,9 +5344,8 @@ async updateCorrelationChart() {
         const data = this.analyticsData?.period || [];
         const correlations = this.calculateCorrelations(data);
         
-        // Fill the container with correlation insights instead of a chart
         container.innerHTML = correlations.length > 0 ? correlations.map(corr => `
-            <div class="bg-base-100 rounded-lg p-4 shadow-sm border border-base-300/50">
+            <div class="bg-base-100 rounded-lg p-4 shadow-sm border border-base-300/50 mb-3">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-medium flex items-center gap-2">
                         <span class="text-lg">${corr.icon}</span>
@@ -5360,7 +5364,7 @@ async updateCorrelationChart() {
         `).join('') : `
             <div class="alert alert-info">
                 <span>📊</span>
-                <span>Sammle mehr Daten für Korrelationsanalyse (mindestens 5 Einträge benötigt)</span>
+                <span>Sammle mehr Daten für Korrelationsanalyse (mindestens 5 Einträge)</span>
             </div>
         `;
 
@@ -5368,11 +5372,13 @@ async updateCorrelationChart() {
 
     } catch (error) {
         console.error('❌ Correlation chart error:', error);
-        container.innerHTML = `
-            <div class="alert alert-error">
-                <span>❌ Korrelations-Fehler: ${error.message}</span>
-            </div>
-        `;
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <span>❌ Korrelations-Fehler: ${error.message}</span>
+                </div>
+            `;
+        }
     }
 }
 
@@ -5380,21 +5386,16 @@ async updateCorrelationChart() {
 async updateWeeklySummaryChart() {
     console.log('📅 Updating weekly summary chart...');
     
-    // Use the actual existing ID from the HTML
-    const container = document.getElementById('weekly-summary-content');
+    // Suche nach verschiedenen möglichen Container-IDs
+    let container = document.getElementById('weekly-summary-content') ||
+                   document.getElementById('weekly-chart-container') ||
+                   document.getElementById('analytics-insights') ||
+                   document.querySelector('[id*="weekly"]') ||
+                   document.querySelector('.weekly-container');
+    
     if (!container) {
-        // If weekly-summary-content doesn't exist, try alternative containers
-        const altContainer = document.getElementById('weekly-chart-container') || 
-                           document.getElementById('analytics-insights') ||
-                           document.querySelector('.weekly-summary');
-        
-        if (!altContainer) {
-            console.warn('⚠️ No weekly summary container found');
-            return;
-        }
-        
-        // Use alternative container
-        return this.updateWeeklySummaryInContainer(altContainer);
+        console.warn('⚠️ No weekly summary container found - skipping weekly summary update');
+        return;
     }
 
     try {
@@ -5403,7 +5404,7 @@ async updateWeeklySummaryChart() {
         
         if (weekData.length === 0) {
             container.innerHTML = `
-                <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
+                <div class="flex items-center justify-center h-48 bg-base-200 rounded-lg">
                     <div class="text-center">
                         <i data-lucide="calendar-days" class="w-12 h-12 mx-auto text-base-content/30 mb-2"></i>
                         <p class="font-semibold">Keine Wochendaten</p>
@@ -5415,93 +5416,61 @@ async updateWeeklySummaryChart() {
         }
 
         const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
-        const weeklyStats = this.calculateDetailedWeeklyStats(weekData);
         
+        // Kompakte Darstellung für verschiedene Container-Typen
         container.innerHTML = `
-            <div class="space-y-6">
-                <!-- Weekly Overview Stats -->
-                <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200 w-full">
-                    <div class="stat">
-                        <div class="stat-figure text-primary">
-                            <i data-lucide="footprints" class="w-8 h-8"></i>
+            <div class="space-y-4">
+                <!-- Wöchentliche Zusammenfassung -->
+                <div class="card bg-base-100 shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="card-title text-lg mb-4">📊 Wöchentliche Durchschnitte</h4>
+                        
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-2xl text-primary font-bold">${weeklyAvg.steps.toLocaleString()}</div>
+                                <div class="text-xs opacity-70">Schritte/Tag</div>
+                                <div class="text-xs text-primary">${this.getGoalComparison('steps', weeklyAvg.steps)}</div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="text-2xl text-info font-bold">${weeklyAvg.water}L</div>
+                                <div class="text-xs opacity-70">Wasser/Tag</div>
+                                <div class="text-xs text-info">${this.getGoalComparison('water', weeklyAvg.water)}</div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="text-2xl text-accent font-bold">${weeklyAvg.sleep}h</div>
+                                <div class="text-xs opacity-70">Schlaf/Nacht</div>
+                                <div class="text-xs text-accent">${this.getGoalComparison('sleep', weeklyAvg.sleep)}</div>
+                            </div>
                         </div>
-                        <div class="stat-title">Ø Schritte/Tag</div>
-                        <div class="stat-value text-primary">${weeklyAvg.steps.toLocaleString()}</div>
-                        <div class="stat-desc">${this.getGoalComparison('steps', weeklyAvg.steps)}</div>
-                    </div>
-                    
-                    <div class="stat">
-                        <div class="stat-figure text-info">
-                            <i data-lucide="droplets" class="w-8 h-8"></i>
-                        </div>
-                        <div class="stat-title">Ø Wasser/Tag</div>
-                        <div class="stat-value text-info">${weeklyAvg.water}L</div>
-                        <div class="stat-desc">${this.getGoalComparison('water', weeklyAvg.water)}</div>
-                    </div>
-                    
-                    <div class="stat">
-                        <div class="stat-figure text-accent">
-                            <i data-lucide="moon" class="w-8 h-8"></i>
-                        </div>
-                        <div class="stat-title">Ø Schlaf/Nacht</div>
-                        <div class="stat-value text-accent">${weeklyAvg.sleep}h</div>
-                        <div class="stat-desc">${this.getGoalComparison('sleep', weeklyAvg.sleep)}</div>
                     </div>
                 </div>
 
-                <!-- Daily Breakdown -->
+                <!-- Tägliche Aufschlüsselung (kompakt) -->
                 <div class="card bg-base-100 shadow-sm">
-                    <div class="card-body">
-                        <h4 class="card-title mb-4">Tägliche Aufschlüsselung</h4>
-                        <div class="space-y-3">
+                    <div class="card-body p-4">
+                        <h4 class="card-title text-base mb-3">📅 Letzte 7 Tage</h4>
+                        <div class="space-y-2">
                             ${weekData.slice(0, 7).map((entry, index) => {
                                 const entryDate = new Date(entry.date);
                                 const isToday = entryDate.toDateString() === new Date().toDateString();
                                 const dayName = entryDate.toLocaleDateString('de-DE', { 
-                                    weekday: 'long', 
-                                    day: '2-digit', 
-                                    month: '2-digit' 
+                                    weekday: 'short', 
+                                    day: '2-digit' 
                                 });
                                 
                                 return `
-                                    <div class="alert ${isToday ? 'alert-info' : 'alert-ghost'} flex justify-between">
-                                        <div class="flex items-center gap-3">
-                                            <div class="font-medium">${dayName}</div>
-                                            ${isToday ? '<div class="badge badge-primary">Heute</div>' : ''}
-                                        </div>
-                                        <div class="flex gap-2 text-sm">
-                                            ${entry.steps ? `<div class="badge badge-success">${entry.steps.toLocaleString()} Schritte</div>` : ''}
-                                            ${entry.waterIntake ? `<div class="badge badge-info">${entry.waterIntake}L</div>` : ''}
-                                            ${entry.sleepHours ? `<div class="badge badge-warning">${entry.sleepHours}h</div>` : ''}
+                                    <div class="flex justify-between items-center py-2 px-3 rounded ${isToday ? 'bg-primary/10' : 'bg-base-200'}">
+                                        <span class="font-medium text-sm">${dayName}</span>
+                                        <div class="flex gap-1 text-xs">
+                                            ${entry.steps ? `<span class="badge badge-success badge-xs">${(entry.steps/1000).toFixed(1)}k</span>` : ''}
+                                            ${entry.waterIntake ? `<span class="badge badge-info badge-xs">${entry.waterIntake}L</span>` : ''}
+                                            ${entry.sleepHours ? `<span class="badge badge-warning badge-xs">${entry.sleepHours}h</span>` : ''}
                                         </div>
                                     </div>
                                 `;
                             }).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Weekly Insights -->
-                <div class="card bg-gradient-to-br from-accent/5 to-primary/5 shadow-sm">
-                    <div class="card-body">
-                        <h4 class="card-title mb-4">Wöchentliche Erkenntnisse</h4>
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="target" class="w-4 h-4 text-success"></i>
-                                    <span class="font-medium">Beste Kategorie</span>
-                                </div>
-                                <div class="text-lg font-bold text-success">${weeklyStats.bestCategory}</div>
-                                <div class="text-sm opacity-70">${weeklyStats.bestCategoryDesc}</div>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="trending-up" class="w-4 h-4 text-info"></i>
-                                    <span class="font-medium">Verbesserungspotential</span>
-                                </div>
-                                <div class="text-lg font-bold text-info">${weeklyStats.improvementArea}</div>
-                                <div class="text-sm opacity-70">${weeklyStats.improvementDesc}</div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -5517,50 +5486,17 @@ async updateWeeklySummaryChart() {
 
     } catch (error) {
         console.error('❌ Weekly summary error:', error);
-        container.innerHTML = `
-            <div class="alert alert-error">
-                <span>❌ Wöchentliche Zusammenfassung Fehler: ${error.message}</span>
-            </div>
-        `;
-    }
-}
-
-/** Fallback method for alternative containers */
-async updateWeeklySummaryInContainer(container) {
-    try {
-        const allData = this.analyticsData?.all || await this.healthTracker.getAllHealthData();
-        const weekData = this.healthTracker.getWeekData(allData);
-        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
-        
-        container.innerHTML = `
-            <div class="card bg-base-100 shadow-sm">
-                <div class="card-body">
-                    <h4 class="card-title">📅 Wöchentliche Zusammenfassung</h4>
-                    <div class="stats stats-vertical">
-                        <div class="stat">
-                            <div class="stat-title">Ø Schritte/Tag</div>
-                            <div class="stat-value text-primary">${weeklyAvg.steps.toLocaleString()}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title">Ø Wasser/Tag</div>
-                            <div class="stat-value text-info">${weeklyAvg.water}L</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title">Ø Schlaf/Nacht</div>
-                            <div class="stat-value text-accent">${weeklyAvg.sleep}h</div>
-                        </div>
-                    </div>
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <span>❌ Wöchentliche Zusammenfassung Fehler: ${error.message}</span>
                 </div>
-            </div>
-        `;
-        
-        console.log('✅ Weekly summary updated in alternative container');
-    } catch (error) {
-        console.error('❌ Alternative weekly summary error:', error);
+            `;
+        }
     }
 }
 
-/** Helper methods for weekly summary */
+/** Get goal comparison text */
 getGoalComparison(metric, value) {
     const goals = {
         steps: this.healthTracker.goals?.stepsGoal,
@@ -5572,38 +5508,9 @@ getGoalComparison(metric, value) {
     if (!goal) return '';
     
     const percentage = Math.round((value / goal) * 100);
-    const status = percentage >= 100 ? '🎯 Ziel erreicht!' : 
-                   percentage >= 80 ? '📈 Fast da!' : '📊 Ausbaufähig';
-    
-    return `${percentage}% des Ziels - ${status}`;
-}
-
-calculateDetailedWeeklyStats(weekData) {
-    const goals = this.healthTracker?.goals || {};
-    
-    // Calculate goal achievement rates
-    const stepsRate = goals.stepsGoal ? 
-        weekData.filter(d => d.steps >= goals.stepsGoal).length / weekData.length * 100 : 0;
-    const waterRate = goals.waterGoal ? 
-        weekData.filter(d => d.waterIntake >= goals.waterGoal).length / weekData.length * 100 : 0;
-    const sleepRate = goals.sleepGoal ? 
-        weekData.filter(d => d.sleepHours >= goals.sleepGoal).length / weekData.length * 100 : 0;
-    
-    // Determine best and worst categories
-    const rates = [
-        { name: 'Schritte', rate: stepsRate, desc: 'Du erreichst dein Schrittziel regelmäßig' },
-        { name: 'Wasser', rate: waterRate, desc: 'Deine Hydration ist auf einem guten Niveau' },
-        { name: 'Schlaf', rate: sleepRate, desc: 'Du schläfst ausreichend und regelmäßig' }
-    ];
-    
-    rates.sort((a, b) => b.rate - a.rate);
-    
-    return {
-        bestCategory: rates[0].name,
-        bestCategoryDesc: rates[0].desc,
-        improvementArea: rates[rates.length - 1].name,
-        improvementDesc: `Hier gibt es noch Verbesserungspotential (${Math.round(rates[rates.length - 1].rate)}% erreicht)`
-    };
+    if (percentage >= 100) return '🎯';
+    if (percentage >= 80) return '📈';
+    return `${percentage}%`;
 }
 
 // Helper methods for correlation analysis

@@ -1536,6 +1536,82 @@ initializeFormDefaults() {
             statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
         }
     }
+
+        /** * Initialize footer functionality */
+    initializeFooter() {
+        console.log('👣 Initializing footer functionality');
+        
+        // Update footer stats
+        this.updateFooterStats();
+        
+        // Update stats every 30 seconds
+        setInterval(() => this.updateFooterStats(), 30000);
+        
+        // Footer theme toggle
+        const footerThemeToggle = document.getElementById('footer-theme-toggle');
+        if (footerThemeToggle) {
+            footerThemeToggle.addEventListener('click', () => {
+                const mainThemeToggle = document.getElementById('theme-toggle');
+                if (mainThemeToggle) {
+                    mainThemeToggle.click();
+                }
+            });
+        }
+        
+        // Update connection status in footer
+        this.updateFooterConnectionStatus();
+        window.addEventListener('online', () => this.updateFooterConnectionStatus());
+        window.addEventListener('offline', () => this.updateFooterConnectionStatus());
+    }
+
+    /** * Update footer statistics */
+    async updateFooterStats() {
+        try {
+            const allData = await this.getAllHealthData();
+            const todayData = this.getTodayData(allData);
+            const weekData = this.getWeekData(allData);
+            
+            // Today entries count
+            const today = new Date().toISOString().split('T')[0];
+            const todayEntries = allData.filter(entry => {
+                const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
+                return entryDate === today;
+            }).length;
+            
+            // Goals achieved today
+            let goalsAchieved = 0;
+            if (todayData.steps >= this.goals.stepsGoal) goalsAchieved++;
+            if (todayData.waterIntake >= this.goals.waterGoal) goalsAchieved++;
+            if (todayData.sleepHours >= this.goals.sleepGoal) goalsAchieved++;
+            if (this.goals.weightGoal && Math.abs(todayData.weight - this.goals.weightGoal) <= this.goals.weightGoal * 0.05) goalsAchieved++;
+            
+            // Calculate streak
+            const streak = this.calculateCurrentStreak(allData);
+            
+            // Update DOM
+            const todayEl = document.getElementById('footer-today-entries');
+            const weekEl = document.getElementById('footer-week-entries');
+            const goalsEl = document.getElementById('footer-goals-achieved');
+            const streakEl = document.getElementById('footer-current-streak');
+            
+            if (todayEl) todayEl.textContent = todayEntries;
+            if (weekEl) weekEl.textContent = weekData.length;
+            if (goalsEl) goalsEl.textContent = goalsAchieved;
+            if (streakEl) streakEl.textContent = streak;
+        } catch (error) {
+            console.error('Footer stats update error:', error);
+        }
+    }
+
+    /** * Update footer connection status */
+    updateFooterConnectionStatus() {
+        const statusEl = document.getElementById('footer-connection-status');
+        if (statusEl) {
+            const isOnline = navigator.onLine;
+            statusEl.innerHTML = `${isOnline ? '🌐 Online' : '📵 Offline'}`;
+            statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
+        }
+    }
 }
 
 // Enhanced Analytics Dashboard Functionality
@@ -1573,6 +1649,97 @@ function initializeAnalyticsDashboard() {
     // Initialize tooltips and loading states
     initializeLoadingStates();
     updateAnalyticsStats();
+}
+
+function initializeLoadingStates() {
+    console.log('🔄 Initializing loading states for analytics');
+    
+    // Hide all loading states initially
+    ['trends-loading', 'correlation-loading', 'weekly-loading', 'ai-insights-loading'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.add('hidden');
+        }
+    });
+}
+
+function updateAllCharts(period) {
+    console.log(`📊 Updating all charts for period: ${period} days`);
+    
+    // Update trends chart with mock data based on period
+    updateTrendsChart('steps');
+    
+    // Update correlation analysis
+    updateCorrelationDisplay();
+    
+    // Update weekly summary
+    updateWeeklySummaryDisplay();
+    
+    // Update AI insights
+    updateAIInsightsDisplay();
+}
+
+function updateTrendsChart(metric) {
+    console.log(`📈 Updating trends chart for metric: ${metric}`);
+    
+    // Mock chart update - in real implementation this would use Chart.js
+    const chartContainer = document.getElementById('trends-chart-container');
+    if (chartContainer) {
+        chartContainer.innerHTML = `
+            <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
+                <div class="text-center">
+                    <div class="text-4xl mb-2">📊</div>
+                    <div class="font-semibold">${metric.charAt(0).toUpperCase() + metric.slice(1)} Trend</div>
+                    <div class="text-sm opacity-70">Chart wird geladen...</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function updateCorrelationDisplay() {
+    const container = document.getElementById('correlation-analysis');
+    if (container) {
+        container.innerHTML = `
+            <div class="space-y-3">
+                <h4 class="font-semibold">🔍 Datenkorrelationen</h4>
+                <div class="alert alert-info">
+                    <span>📈</span>
+                    <span>Korrelationsanalyse wird mit echten Daten berechnet...</span>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function updateWeeklySummaryDisplay() {
+    const container = document.getElementById('weekly-summary-content');
+    if (container) {
+        container.innerHTML = `
+            <div class="space-y-4">
+                <h4 class="font-semibold">📊 Wöchentliche Zusammenfassung</h4>
+                <div class="alert alert-info">
+                    <span>📋</span>
+                    <span>Wöchentliche Daten werden analysiert...</span>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function updateAIInsightsDisplay() {
+    const container = document.getElementById('ai-insights-content');
+    if (container) {
+        container.innerHTML = `
+            <div class="space-y-4">
+                <h4 class="font-semibold">🤖 KI-Insights</h4>
+                <div class="alert alert-info">
+                    <span>🧠</span>
+                    <span>KI analysiert deine Gesundheitsdaten...</span>
+                </div>
+            </div>
+        `;
+    }
 }
 
 function updateAnalyticsPeriod(period) {
@@ -1663,7 +1830,10 @@ class SmartNotificationManager {
         
         // Always setup in-app notifications
         this.setupInAppNotifications();
-        this.initializeFooter();
+        // Initialize footer through health tracker
+        if (this.healthTracker && typeof this.healthTracker.initializeFooter === 'function') {
+            this.healthTracker.initializeFooter();
+        }
         
         console.log('✅ Smart Notification Manager initialisiert');
     }

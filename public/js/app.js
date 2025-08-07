@@ -2276,50 +2276,33 @@ async loadViewData() {
  * Show specific view in progress hub
  */
 showView(viewName) {
-    console.log('🔄 ProgressHub showView called:', viewName);
+    console.log(`🔄 Switching to view: ${viewName}`);
     
-    this.currentView = viewName;
-    
-    // Update tab states (DaisyUI tabs)
+    // Update active tab
     const tabs = document.querySelectorAll('[id^="tab-"]');
-    console.log('📊 Found tabs:', tabs.length);
-    
     tabs.forEach(tab => {
         tab.classList.remove('tab-active');
+        if (tab.id === `tab-${viewName}`) {
+            tab.classList.add('tab-active');
+        }
     });
-    
-    const activeTab = document.getElementById(`tab-${viewName}`);
-    console.log('🎯 Active tab element:', activeTab);
-    
-    if (activeTab) {
-        activeTab.classList.add('tab-active');
-    }
 
-    // Show appropriate content
-    const container = document.getElementById('progress-content');
-    console.log('📦 Progress content container:', container);
-    
-    if (!container) {
-        console.error('❌ progress-content Container nicht gefunden!');
-        return;
-    }
+    // Hide all views
+    const views = document.querySelectorAll('.progress-view');
+    views.forEach(view => view.classList.add('hidden'));
 
-    switch (viewName) {
-        case 'today':
-            console.log('📅 Showing today view');
-            this.showTodayView();
-            break;
-        case 'week':
-            console.log('📊 Showing week view');
-            this.showWeekView();
-            break;
-        case 'analytics':
-            console.log('📈 Showing analytics view');
-            this.showAnalyticsView();
-            break;
-        default:
-            console.log('📅 Default to today view');
-            this.showTodayView();
+    // Show selected view
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) {
+        targetView.classList.remove('hidden');
+        this.currentView = viewName;
+        
+        // Load data for the specific view
+        this.loadViewData(viewName);
+        
+        console.log(`✅ View ${viewName} activated`);
+    } else {
+        console.error(`❌ View element not found: view-${viewName}`);
     }
 }
 

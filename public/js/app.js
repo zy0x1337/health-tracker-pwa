@@ -2295,9 +2295,6 @@ showView(viewName) {
         activeTab.classList.add('tab-active');
     }
 
-    // Show loading state while switching views
-    this.showViewLoadingState(viewName);
-
     // Show appropriate content
     const container = document.getElementById('progress-content');
     console.log('📦 Progress content container:', container);
@@ -2307,252 +2304,22 @@ showView(viewName) {
         return;
     }
 
-    // Hide all views first
-    const allViews = container.querySelectorAll('[id$="-view"]');
-    allViews.forEach(view => view.classList.add('hidden'));
-
-    // Show selected view
-    const targetView = document.getElementById(`${viewName}-view`);
-    if (targetView) {
-        targetView.classList.remove('hidden');
-    }
-
-    // Load and update data for current view
-    this.loadAndUpdateCurrentView(viewName);
-}
-
-/**
- * Enhanced method to load and update current view with fresh data
- */
-async loadAndUpdateCurrentView(viewName) {
-    try {
-        // Get fresh data
-        const allData = await this.healthTracker.getAllHealthData();
-        
-        switch (viewName) {
-            case 'today':
-                console.log('📅 Loading today view with fresh data');
-                await this.updateTodayView(allData);
-                break;
-            case 'week':
-                console.log('📊 Loading week view with fresh data');
-                await this.updateWeekView(allData);
-                break;
-            case 'analytics':
-                console.log('📈 Loading analytics view with fresh data');
-                await this.updateAnalyticsView(allData);
-                break;
-            default:
-                console.log('📅 Default to today view');
-                await this.updateTodayView(allData);
-        }
-        
-        // Hide loading state
-        this.hideViewLoadingState(viewName);
-        
-    } catch (error) {
-        console.error('❌ Error loading view data:', error);
-        this.hideViewLoadingState(viewName);
-        this.showViewError(viewName);
-    }
-}
-
-/**
- * Enhanced today view update with better data handling
- */
-async updateTodayView(allData = null) {
-    try {
-        if (!allData) {
-            allData = await this.healthTracker.getAllHealthData();
-        }
-        
-        const todayData = this.healthTracker.getTodayData(allData);
-        console.log('📊 Today data for Progress Hub:', todayData);
-        
-        // Update date badge
-        const dateBadge = document.getElementById('today-date-badge');
-        if (dateBadge) {
-            const today = new Date();
-            dateBadge.textContent = today.toLocaleDateString('de-DE', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short'
-            });
-        }
-        
-        // Update statistics with animation
-        this.updateStatWithAnimation('today-weight-display', todayData.weight, 'kg');
-        this.updateStatWithAnimation('today-steps-display', todayData.steps);
-        this.updateStatWithAnimation('today-water-display', todayData.waterIntake, 'L');
-        this.updateStatWithAnimation('today-sleep-display', todayData.sleepHours, 'h');
-        
-        // Update progress bars
-        this.updateMiniProgress('steps-mini-progress', todayData.steps, this.healthTracker.goals.stepsGoal);
-        this.updateMiniProgress('water-mini-progress', todayData.waterIntake, this.healthTracker.goals.waterGoal);
-        this.updateMiniProgress('sleep-mini-progress', todayData.sleepHours, this.healthTracker.goals.sleepGoal);
-        
-        // Update mood and notes
-        this.updateMoodDisplay(todayData.mood);
-        this.updateNotesDisplay(todayData.notes);
-        
-        console.log('✅ Today view updated successfully');
-        
-    } catch (error) {
-        console.error('❌ Error updating today view:', error);
-    }
-}
-
-/**
- * Enhanced week view update with comprehensive weekly stats
- */
-async updateWeekView(allData = null) {
-    try {
-        if (!allData) {
-            allData = await this.healthTracker.getAllHealthData();
-        }
-        
-        const weekData = this.healthTracker.getWeekData(allData);
-        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
-        
-        // Update date range
-        const weekDateRange = document.getElementById('week-date-range');
-        if (weekDateRange) {
-            const today = new Date();
-            const weekStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
-            weekDateRange.textContent = `${weekStart.toLocaleDateString('de-DE')} - ${today.toLocaleDateString('de-DE')}`;
-        }
-        
-        // Update averages with animation
-        this.updateStatWithAnimation('week-avg-steps', weeklyAvg.steps);
-        this.updateStatWithAnimation('week-avg-water', weeklyAvg.water, 'L');
-        this.updateStatWithAnimation('week-avg-sleep', weeklyAvg.sleep, 'h');
-        
-        // Update achievements
-        this.updateAchievementBadges(weekData, weeklyAvg);
-        
-        // Update activity stats
-        this.updateStatWithAnimation('week-entries-count', weekData.length);
-        this.updateStatWithAnimation('current-streak', this.calculateStreak(allData));
-        
-        // Update daily breakdown
-        this.updateDailyBreakdown(weekData);
-        
-        console.log('✅ Week view updated successfully');
-        
-    } catch (error) {
-        console.error('❌ Error updating week view:', error);
-    }
-}
-
-/**
- * Enhanced analytics view update
- */
-async updateAnalyticsView(allData = null) {
-    try {
-        if (!allData) {
-            allData = await this.healthTracker.getAllHealthData();
-        }
-        
-        // Update analytics chart placeholder
-        const chartContainer = document.getElementById('analytics-chart-container');
-        if (chartContainer) {
-            chartContainer.innerHTML = `
-                <div class="text-center">
-                    <div class="stats shadow">
-                        <div class="stat">
-                            <div class="stat-title">Gesamteinträge</div>
-                            <div class="stat-value text-primary">${allData.length}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title">Letzte Woche</div>
-                            <div class="stat-value text-secondary">${this.healthTracker.getWeekData(allData).length}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title">Durchschn. täglich</div>
-                            <div class="stat-value text-accent">${Math.round(allData.length / Math.max(1, this.getDaysSinceFirst(allData)))}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Update insights
-        this.updateAnalyticsInsights(allData);
-        
-        console.log('✅ Analytics view updated successfully');
-        
-    } catch (error) {
-        console.error('❌ Error updating analytics view:', error);
-    }
-}
-
-/**
- * Helper: Update stat with smooth animation
- */
-updateStatWithAnimation(elementId, value, unit = '') {
-    const element = document.getElementById(elementId);
-    if (element) {
-        const displayValue = value && value !== null ? 
-            (typeof value === 'number' ? value.toLocaleString('de-DE') : value) : '—';
-        
-        element.style.transform = 'scale(0.95)';
-        element.style.opacity = '0.7';
-        
-        setTimeout(() => {
-            element.textContent = `${displayValue}${unit ? ' ' + unit : ''}`;
-            element.style.transform = 'scale(1)';
-            element.style.opacity = '1';
-        }, 150);
-    }
-}
-
-/**
- * Helper: Update mini progress bars
- */
-updateMiniProgress(elementId, current, goal) {
-    const element = document.getElementById(elementId);
-    if (element && current && goal) {
-        const progress = Math.min((current / goal) * 100, 100);
-        const progressBar = element.querySelector('.progress-bar') || element;
-        progressBar.style.width = `${progress}%`;
-        
-        // Color coding
-        if (progress >= 100) {
-            progressBar.className = progressBar.className.replace(/progress-\w+/, 'progress-success');
-        } else if (progress >= 70) {
-            progressBar.className = progressBar.className.replace(/progress-\w+/, 'progress-primary');
-        }
-    }
-}
-
-/**
- * Helper: Show loading state for specific view
- */
-showViewLoadingState(viewName) {
-    const viewElement = document.getElementById(`${viewName}-view`);
-    if (viewElement && !document.getElementById('view-loading-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'view-loading-overlay';
-        overlay.className = 'absolute inset-0 bg-base-100/70 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg';
-        overlay.innerHTML = `
-            <div class="flex flex-col items-center gap-3">
-                <div class="loading loading-spinner loading-lg text-primary"></div>
-                <span class="text-sm text-base-content/70">Daten werden geladen...</span>
-            </div>
-        `;
-        
-        viewElement.style.position = 'relative';
-        viewElement.appendChild(overlay);
-    }
-}
-
-/**
- * Helper: Hide loading state
- */
-hideViewLoadingState(viewName) {
-    const overlay = document.getElementById('view-loading-overlay');
-    if (overlay) {
-        overlay.remove();
+    switch (viewName) {
+        case 'today':
+            console.log('📅 Showing today view');
+            this.showTodayView();
+            break;
+        case 'week':
+            console.log('📊 Showing week view');
+            this.showWeekView();
+            break;
+        case 'analytics':
+            console.log('📈 Showing analytics view');
+            this.showAnalyticsView();
+            break;
+        default:
+            console.log('📅 Default to today view');
+            this.showTodayView();
     }
 }
 

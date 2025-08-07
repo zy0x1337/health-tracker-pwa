@@ -627,37 +627,6 @@ getTodayData(allData) {
     }
     
     /**
-     * Update goal progress indicators
-     */
-    updateGoalProgress(todayData) {
-        // Steps progress
-        if (todayData.steps && this.goals.stepsGoal) {
-            const progress = Math.min((todayData.steps / this.goals.stepsGoal) * 100, 100);
-            this.updateProgressIndicator('steps-progress', progress);
-        }
-        
-        // Water progress
-        if (todayData.waterIntake && this.goals.waterGoal) {
-            const progress = Math.min((todayData.waterIntake / this.goals.waterGoal) * 100, 100);
-            this.updateProgressIndicator('water-progress', progress);
-        }
-        
-        // Sleep progress
-        if (todayData.sleepHours && this.goals.sleepGoal) {
-            const progress = Math.min((todayData.sleepHours / this.goals.sleepGoal) * 100, 100);
-            this.updateProgressIndicator('sleep-progress', progress);
-        }
-        
-        // Weight progress (if goal is set)
-        if (todayData.weight && this.goals.weightGoal) {
-            const diff = Math.abs(todayData.weight - this.goals.weightGoal);
-            const maxDiff = this.goals.weightGoal * 0.1; // 10% tolerance
-            const progress = Math.max(0, Math.min(100, ((maxDiff - diff) / maxDiff) * 100));
-            this.updateProgressIndicator('weight-progress', progress);
-        }
-    }
-    
-    /**
      * Update progress indicator element
      */
     updateProgressIndicator(elementId, progress) {
@@ -1618,9 +1587,16 @@ initializeFormDefaults() {
         }
     }
 
-        /** * Initialize Analytics Event Listeners through HealthTracker */
+            /** Initialize Analytics Event Listeners through HealthTracker */
     initializeAnalyticsEventListeners() {
         console.log('📊 Initializing analytics event listeners...');
+        
+        // Check if analytics engine exists
+        if (!this.analyticsEngine) {
+            console.log('⚠️ Analytics engine not available yet, retrying...');
+            setTimeout(() => this.initializeAnalyticsEventListeners(), 1000);
+            return;
+        }
         
         // Period filter buttons
         document.querySelectorAll('[data-period]').forEach(btn => {
@@ -1635,9 +1611,8 @@ initializeFormDefaults() {
                 
                 // Trigger analytics update through AnalyticsEngine
                 const period = parseInt(e.target.dataset.period);
-                if (this.analyticsEngine && typeof this.analyticsEngine.updateAnalyticsPeriod === 'function') {
-                    this.analyticsEngine.updateAnalyticsPeriod(period);
-                }
+                console.log('📊 Updating analytics period to:', period);
+                this.analyticsEngine.updateAnalyticsPeriod(period);
             });
         });
 
@@ -1650,13 +1625,12 @@ initializeFormDefaults() {
                 
                 // Update chart through AnalyticsEngine
                 const metric = e.target.dataset.metric;
-                if (this.analyticsEngine && typeof this.analyticsEngine.updateTrendsChart === 'function') {
-                    this.analyticsEngine.updateTrendsChart(metric);
-                }
+                console.log('📈 Updating trends chart for metric:', metric);
+                this.analyticsEngine.updateTrendsChart(metric);
             });
         });
         
-        console.log('✅ Analytics event listeners initialized');
+        console.log('✅ Analytics event listeners initialized successfully');
     }
 }
 
@@ -2343,6 +2317,16 @@ showView(viewName) {
         console.error('❌ progress-content Container nicht gefunden!');
         return;
     }
+
+    // Analytics view - trigger analytics engine
+        if (viewName === 'analytics') {
+            console.log('📊 Switching to analytics view - triggering analytics engine...');
+            setTimeout(() => {
+                if (this.healthTracker.analyticsEngine) {
+                    this.healthTracker.analyticsEngine.updateAllAnalytics();
+                }
+            }, 100);
+        }
 
     switch (viewName) {
         case 'today':
@@ -3354,11 +3338,14 @@ class AnalyticsEngine {
         this.updateAllAnalytics();
     }
 
-    /** Setup event listeners for analytics controls */
+        /** Setup event listeners for analytics controls */
     setupAnalyticsEventListeners() {
+        console.log('📊 Setting up analytics event listeners...');
+        
         // Period filter buttons
         document.querySelectorAll('[data-period]').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                console.log('📊 Period filter clicked:', e.target.dataset.period);
                 this.updateAnalyticsPeriod(parseInt(e.target.dataset.period));
             });
         });
@@ -3366,9 +3353,12 @@ class AnalyticsEngine {
         // Metric tabs
         document.querySelectorAll('[data-metric]').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                console.log('📈 Metric tab clicked:', e.target.dataset.metric);
                 this.updateTrendsChart(e.target.dataset.metric);
             });
         });
+        
+        console.log('✅ Analytics event listeners setup complete');
     }
 
     /** Update analytics for specified period */

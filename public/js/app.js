@@ -2286,64 +2286,39 @@ async loadViewData() {
         });
     }
 
-    /**
- * Show specific view in progress hub
- */
-showView(viewName) {
-    console.log('🔄 ProgressHub showView called:', viewName);
-    
+    /** Zeigt den gewünschten Tab-Inhalt an */
+showView(viewName = 'overview') {
     this.currentView = viewName;
-    
-    // Update tab states (DaisyUI tabs)
-    const tabs = document.querySelectorAll('[id^="tab-"]');
-    console.log('📊 Found tabs:', tabs.length);
-    
-    tabs.forEach(tab => {
-        tab.classList.remove('tab-active');
+    console.log('🔄 ProgressHub -> showView:', viewName);
+
+    /* 1. Tabs umschalten */
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        tab.classList.toggle('tab-active', tab.id === `tab-${viewName}`);
     });
-    
-    const activeTab = document.getElementById(`tab-${viewName}`);
-    console.log('🎯 Active tab element:', activeTab);
-    
-    if (activeTab) {
-        activeTab.classList.add('tab-active');
-    }
 
-    // Show appropriate content
-    const container = document.getElementById('progress-content');
-    console.log('📦 Progress content container:', container);
-    
-    if (!container) {
-        console.error('❌ progress-content Container nicht gefunden!');
-        return;
-    }
+    /* 2. Alle Views verstecken */
+    ['overview-view', 'weekly-view', 'goals-view', 'achievements-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
 
-    // Analytics view - trigger analytics engine
-        if (viewName === 'analytics') {
-            console.log('📊 Switching to analytics view - triggering analytics engine...');
-            setTimeout(() => {
-                if (this.healthTracker.analyticsEngine) {
-                    this.healthTracker.analyticsEngine.updateAllAnalytics();
-                }
-            }, 100);
-        }
-
+    /* 3. Gewünschten View einblenden + Daten laden */
     switch (viewName) {
-        case 'today':
-            console.log('📅 Showing today view');
-            this.showTodayView();
+        case 'weekly':
+            document.getElementById('weekly-view')?.classList.remove('hidden');
+            this.populateWeeklyView?.();
             break;
-        case 'week':
-            console.log('📊 Showing week view');
-            this.showWeekView();
+        case 'goals':
+            document.getElementById('goals-view')?.classList.remove('hidden');
+            this.populateGoalsView?.();
             break;
-        case 'analytics':
-            console.log('📈 Showing analytics view');
-            this.showAnalyticsView();
+        case 'achievements':
+            document.getElementById('achievements-view')?.classList.remove('hidden');
+            this.populateAchievementsView?.();
             break;
-        default:
-            console.log('📅 Default to today view');
-            this.showTodayView();
+        default: // 'overview'
+            document.getElementById('overview-view')?.classList.remove('hidden');
+            this.showTodayView?.();
     }
 }
 

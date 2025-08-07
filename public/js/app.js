@@ -3402,7 +3402,6 @@ class AnalyticsEngine {
                 this.updateTrendsAnalysis(periodData),
                 this.updateCorrelationAnalysis(periodData),
                 this.updateWeeklySummary(data),
-                this.updateGoalProgress(data),
                 this.updateAIInsights(periodData)
             ]);
 

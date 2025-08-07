@@ -545,155 +545,148 @@
     </a>
 </div>
 
-    <!-- Enhanced Hero Section -->
-<section class="hero min-h-[80vh] bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
-    <!-- Background Pattern Overlay -->
-    <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+    <!-- Optimierte Hero Section -->
+<section class="hero min-h-[50vh] bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 relative overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.03" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="3"/%3E%3C/g%3E%3C/svg%3E')]"></div>
     
-    <!-- Floating Elements for Modern Look -->
-    <div class="absolute top-20 left-10 w-20 h-20 bg-base-100/10 rounded-full blur-xl animate-pulse"></div>
-    <div class="absolute bottom-20 right-10 w-32 h-32 bg-base-100/10 rounded-full blur-xl animate-pulse animation-delay-1000"></div>
-    <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-base-100/10 rounded-full blur-xl animate-pulse animation-delay-2000"></div>
-
-    <div class="hero-content text-center relative z-10">
-        <div class="max-w-6xl">
-            <!-- Status Badge -->
-            <div class="flex justify-center mb-6">
-                <div class="badge badge-lg gap-3 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm px-6 py-4">
-                    <div class="w-3 h-3 bg-success rounded-full animate-pulse"></div>
-                    <span class="font-medium">✨ Vollständig offline-fähig</span>
-                    <div class="badge badge-success badge-xs">PWA</div>
-                </div>
-            </div>
-
+    <div class="hero-content text-center relative z-10 max-w-6xl mx-auto px-4">
+        <div class="w-full">
             <!-- Main Heading -->
-            <h1 class="text-6xl lg:text-7xl font-bold mb-8 leading-tight">
-                <span class="block mb-2">Dein persönlicher</span>
-                <span class="block bg-clip-text text-transparent bg-gradient-to-r from-base-100 via-base-100/90 to-base-100drop-shadow-2xl">
-                    Health Tracker
-                </span>
-                <div class="flex justify-center mt-4">
-                    <div class="w-32 h-2 bg-gradient-to-r from-transparent via-base-100/60 to-transparent rounded-full"></div>
+            <div class="mb-8">
+                <div class="flex justify-center mb-4">
+                    <div class="p-4 bg-primary/10 rounded-2xl backdrop-blur-sm border border-primary/20">
+                        <i data-lucide="heart-pulse" class="w-16 h-16 text-primary"></i>
+                    </div>
                 </div>
-            </h1>
-
-            <!-- Enhanced Description -->
-            <div class="max-w-3xl mx-auto mb-10">
-                <p class="text-xl lg:text-2xl mb-6 text-base-100/90 leading-relaxed font-light">
-                    Behalte <strong class="font-semibold text-base-100">Gewicht, Schritte, Wasser- und Schlafziele</strong> im Blick & erreiche sie dank
-                    übersichtlicher Dashboards
-                </p>
                 
-                <!-- Feature Highlights -->
-                <div class="flex flex-wrap justify-center gap-3 mb-8">
-                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
-                        <i data-lucide="wifi-off" class="w-4 h-4"></i>
-                        Offline-fähig
+                <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+                    Health Tracker Pro
+                </h1>
+                
+                <div class="badge badge-primary badge-lg gap-2 mb-6">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    Progressive Web App
+                </div>
+                
+                <p class="text-lg md:text-xl text-base-content/80 max-w-2xl mx-auto leading-relaxed">
+                    Verfolge deine Gesundheitsziele intelligent und erreiche mehr Wohlbefinden durch 
+                    <span class="font-semibold text-primary">datenbasierte Einblicke</span> und 
+                    <span class="font-semibold text-secondary">personalisierte Empfehlungen</span>.
+                </p>
+            </div>
+
+            <!-- Quick Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-primary">
+                        <i data-lucide="target" class="w-8 h-8"></i>
                     </div>
-                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
-                        <i data-lucide="zap" class="w-4 h-4"></i>
-                        Blitzschnell
+                    <div class="stat-title text-xs">Heutige Ziele</div>
+                    <div class="stat-value text-2xl" id="hero-goals-today">—</div>
+                    <div class="stat-desc text-xs">erreicht</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-secondary">
+                        <i data-lucide="calendar-days" class="w-8 h-8"></i>
                     </div>
-                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
-                        <i data-lucide="trophy" class="w-4 h-4"></i>
-                        Motivierend
+                    <div class="stat-title text-xs">Aktueller Streak</div>
+                    <div class="stat-value text-2xl" id="hero-current-streak">—</div>
+                    <div class="stat-desc text-xs">Tage in Folge</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-accent">
+                        <i data-lucide="trending-up" class="w-8 h-8"></i>
                     </div>
-                    <div class="badge badge-lg gap-2 bg-base-100/20 text-base-100 border-base-100/30 backdrop-blur-sm">
-                        <i data-lucide="shield-check" class="w-4 h-4"></i>
-                        Datenschutz
+                    <div class="stat-title text-xs">Verbesserung</div>
+                    <div class="stat-value text-2xl" id="hero-improvement">—</div>
+                    <div class="stat-desc text-xs">diese Woche</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-info">
+                        <i data-lucide="database" class="w-8 h-8"></i>
                     </div>
+                    <div class="stat-title text-xs">Gesamt Einträge</div>
+                    <div class="stat-value text-2xl" id="hero-total-entries">—</div>
+                    <div class="stat-desc text-xs">erfasst</div>
                 </div>
             </div>
 
-            <!-- CTA Buttons Enhanced -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <a href="#health-form" class="btn btn-secondary btn-lg gap-3 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 group">
-                    <i data-lucide="plus-circle" class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"></i>
-                    <span>Erste Daten hinzufügen</span>
-                    <div class="badge badge-accent badge-sm">Start</div>
-                </a>
-                <button onclick="document.getElementById('goals-modal').showModal()" 
-                        class="btn btn-outline btn-lg gap-3 text-base-100 border-base-100/50 hover:bg-base-100 hover:text-primary shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 backdrop-blur-sm group">
-                    <i data-lucide="target" class="w-5 h-5 group-hover:scale-110 transition-transform duration-300"></i>
-                    <span>Ziele setzen</span>
-                    <div class="badge badge-primary badge-sm opacity-80">⭐</div>
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <button class="btn btn-primary btn-lg gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    Daten eingeben
                 </button>
-            </div>
-
-            <!-- Quick Stats Cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="avatar placeholder mb-2">
-                            <div class="bg-primary/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
-                                <i data-lucide="footprints" class="w-6 h-6"></i>
-                            </div>
-                        </div>
-                        <h3 class="card-title text-base-100 text-lg">Schritte</h3>
-                        <p class="text-base-100/80 text-sm">Tägliche Aktivität</p>
+                
+                <button class="btn btn-outline btn-secondary btn-lg gap-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('progress-hub').scrollIntoView({behavior: 'smooth'})">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    Fortschritt ansehen
+                </button>
+                
+                <div class="dropdown dropdown-top sm:dropdown-bottom">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2">
+                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+                        Mehr
                     </div>
-                </div>
-
-                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="avatar placeholder mb-2">
-                            <div class="bg-info/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
-                                <i data-lucide="droplets" class="w-6 h-6"></i>
-                            </div>
-                        </div>
-                        <h3 class="card-title text-base-100 text-lg">Wasser</h3>
-                        <p class="text-base-100/80 text-sm">Hydration</p>
-                    </div>
-                </div>
-
-                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="avatar placeholder mb-2">
-                            <div class="bg-warning/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
-                                <i data-lucide="moon" class="w-6 h-6"></i>
-                            </div>
-                        </div>
-                        <h3 class="card-title text-base-100 text-lg">Schlaf</h3>
-                        <p class="text-base-100/80 text-sm">Erholung</p>
-                    </div>
-                </div>
-
-                <div class="card bg-base-100/10 backdrop-blur-sm border border-base-100/20 hover:bg-base-100/20 transition-all duration-300 group">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="avatar placeholder mb-2">
-                            <div class="bg-success/20 text-base-100 rounded-full w-12 h-12 group-hover:scale-110 transition-transform duration-300">
-                                <i data-lucide="scale" class="w-6 h-6"></i>
-                            </div>
-                        </div>
-                        <h3 class="card-title text-base-100 text-lg">Gewicht</h3>
-                        <p class="text-base-100/80 text-sm">Körperdaten</p>
-                    </div>
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
+                        <li><a onclick="document.getElementById('analytics-dashboard').scrollIntoView({behavior: 'smooth'})">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                            Analytics Dashboard
+                        </a></li>
+                        <li><a onclick="document.getElementById('goals-form').scrollIntoView({behavior: 'smooth'})">
+                            <i data-lucide="flag" class="w-4 h-4"></i>
+                            Ziele anpassen
+                        </a></li>
+                        <li><a onclick="showInstallPrompt()">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            App installieren
+                        </a></li>
+                    </ul>
                 </div>
             </div>
 
-            <!-- Trust Indicators -->
-            <div class="flex flex-wrap justify-center items-center gap-6 mt-12 opacity-80">
-                <div class="flex items-center gap-2 text-base-100/70">
-                    <i data-lucide="lock" class="w-4 h-4"></i>
-                    <span class="text-sm">100% Privat</span>
+            <!-- Feature Highlights -->
+            <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="wifi-off" class="w-6 h-6 text-primary"></i>
+                        </div>
+                        <h3 class="card-title text-lg">Offline-First</h3>
+                        <p class="text-sm text-base-content/70">Funktioniert auch ohne Internetverbindung. Deine Daten sind immer verfügbar.</p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2 text-base-100/70">
-                    <i data-lucide="smartphone" class="w-4 h-4"></i>
-                    <span class="text-sm">Progressive Web App</span>
+                
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="brain" class="w-6 h-6 text-secondary"></i>
+                        </div>
+                        <h3 class="card-title text-lg">KI-Insights</h3>
+                        <p class="text-sm text-base-content/70">Intelligente Analyse deiner Gesundheitsdaten mit personalisierten Empfehlungen.</p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2 text-base-100/70">
-                    <i data-lucide="database" class="w-4 h-4"></i>
-                    <span class="text-sm">Lokale Datenspeicherung</span>
+                
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-accent"></i>
+                        </div>
+                        <h3 class="card-title text-lg">Datenschutz</h3>
+                        <p class="text-sm text-base-content/70">Deine Gesundheitsdaten bleiben privat und sicher auf deinem Gerät.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Bottom Wave Effect -->
-    <div class="absolute bottom-0 left-0 w-full overflow-hidden">
-        <svg class="relative block w-full h-16" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="fill-base-100"></path>
-        </svg>
+    
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <i data-lucide="chevron-down" class="w-6 h-6 text-base-content/50"></i>
     </div>
 </section>
 

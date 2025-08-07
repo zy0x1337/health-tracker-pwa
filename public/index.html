@@ -693,27 +693,27 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 max-w-7xl space-y-8">
 
-        <!-- Progress Hub Navigation - Optimiert ohne Analytics -->
+        <!-- Progress Hub Navigation -->
 <div class="tabs tabs-boxed justify-center mb-6 bg-base-200">
-    <button id="tab-overview" class="tab tab-active tab-lg gap-2 font-semibold">
-        <i data-lucide="home" class="w-4 h-4"></i>
-        Übersicht
+    <button id="tab-today" class="tab tab-active tab-lg gap-2 font-semibold">
+        <i data-lucide="calendar-check" class="w-4 h-4"></i>
+        Heute
     </button>
-    <button id="tab-trends" class="tab tab-lg gap-2 font-semibold">
-        <i data-lucide="trending-up" class="w-4 h-4"></i>
-        Trends
-    </button>
-    <button id="tab-weekly" class="tab tab-lg gap-2 font-semibold">
+    <button id="tab-week" class="tab tab-lg gap-2 font-semibold">
         <i data-lucide="calendar-days" class="w-4 h-4"></i>
-        Wochenbericht
+        Woche
+    </button>
+    <button id="tab-analytics" class="tab tab-lg gap-2 font-semibold">
+        <i data-lucide="trending-up" class="w-4 h-4"></i>
+        Analytics
     </button>
 </div>
 
-<!-- Progress Hub Content Views -->
-<div id="progress-hub-content" class="space-y-6">
+<!-- Progress Hub Content Container -->
+<div id="progress-content" class="space-y-6">
     
-    <!-- Overview View - Verbessert -->
-    <div id="view-overview" class="progress-view">
+    <!-- Heute View -->
+    <div id="today-view" class="progress-view">
         <!-- Heute Card - Redesigned -->
         <div class="card bg-gradient-to-br from-primary/10 to-secondary/10 shadow-xl border border-base-300">
             <div class="card-body">
@@ -804,39 +804,61 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Wochenzusammenfassung Card -->
-        <div class="card bg-base-100 shadow-lg border border-base-300">
-            <div class="card-body">
-                <h3 class="card-title text-lg flex items-center gap-2 mb-4">
-                    <i data-lucide="calendar-range" class="w-5 h-5"></i>
-                    Diese Woche
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Wochendurchschnitte -->
-                    <div class="space-y-3">
-                        <h4 class="font-semibold text-sm text-base-content/80">Durchschnitte</h4>
-                        <div class="space-y-2">
+    <!-- Woche View -->
+    <div id="week-view" class="progress-view hidden">
+        <div class="space-y-6">
+            <!-- Wochenbericht Header -->
+            <div class="card bg-gradient-to-r from-primary/5 to-secondary/5 border border-base-300">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h3 class="card-title text-xl">Wöchentlicher Bericht</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-base-content/70" id="week-date-range">KW 32, 2025</div>
+                            <div class="text-xs text-base-content/50">Diese Woche</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wochenstats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Wochendurchschnitte -->
+                <div class="card bg-base-100 shadow-lg">
+                    <div class="card-body">
+                        <h4 class="card-title text-lg mb-4">Durchschnitte</h4>
+                        <div class="space-y-3">
                             <div class="flex justify-between items-center">
-                                <span class="text-sm">🚶♂️ Schritte</span>
+                                <span class="text-sm flex items-center gap-2">
+                                    <i data-lucide="footprints" class="w-4 h-4"></i>
+                                    Schritte
+                                </span>
                                 <span class="font-semibold" id="week-avg-steps">—</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-sm">💧 Wasser</span>
+                                <span class="text-sm flex items-center gap-2">
+                                    <i data-lucide="droplets" class="w-4 h-4"></i>
+                                    Wasser
+                                </span>
                                 <span class="font-semibold" id="week-avg-water">—</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-sm">😴 Schlaf</span>
+                                <span class="text-sm flex items-center gap-2">
+                                    <i data-lucide="moon" class="w-4 h-4"></i>
+                                    Schlaf
+                                </span>
                                 <span class="font-semibold" id="week-avg-sleep">—</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Zielerreichung -->
-                    <div class="space-y-3">
-                        <h4 class="font-semibold text-sm text-base-content/80">Zielerreichung</h4>
-                        <div class="space-y-2">
+                <!-- Zielerreichung -->
+                <div class="card bg-base-100 shadow-lg">
+                    <div class="card-body">
+                        <h4 class="card-title text-lg mb-4">Zielerreichung</h4>
+                        <div class="space-y-3">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm">Schritte</span>
                                 <div class="badge badge-sm" id="steps-achievement">—</div>
@@ -851,11 +873,13 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Aktivität -->
-                    <div class="space-y-3">
-                        <h4 class="font-semibold text-sm text-base-content/80">Aktivität</h4>
-                        <div class="space-y-2">
+                <!-- Aktivität -->
+                <div class="card bg-base-100 shadow-lg">
+                    <div class="card-body">
+                        <h4 class="card-title text-lg mb-4">Aktivität</h4>
+                        <div class="space-y-3">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm">Einträge</span>
                                 <span class="font-semibold" id="week-entries-count">—</span>
@@ -868,65 +892,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Trends View - Verbessert -->
-    <div id="view-trends" class="progress-view hidden">
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <h3 class="card-title text-xl">Trends & Entwicklung</h3>
-                    <div class="flex gap-2">
-                        <select class="select select-sm select-bordered" id="trends-period">
-                            <option value="7">7 Tage</option>
-                            <option value="14">14 Tage</option>
-                            <option value="30" selected>30 Tage</option>
-                        </select>
-                        <select class="select select-sm select-bordered" id="trends-metric">
-                            <option value="steps">Schritte</option>
-                            <option value="water">Wasser</option>
-                            <option value="sleep">Schlaf</option>
-                            <option value="weight">Gewicht</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="h-64 bg-base-200 rounded-lg flex items-center justify-center" id="trends-chart-container">
-                    <div class="text-center">
-                        <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 text-base-content/50"></i>
-                        <p class="text-base-content/70">Trend-Chart wird geladen...</p>
-                    </div>
-                </div>
-
-                <!-- Trend Insights -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6" id="trend-insights">
-                    <!-- Wird dynamisch gefüllt -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Weekly View - Verbessert -->
-    <div id="view-weekly" class="progress-view hidden">
-        <div class="space-y-6">
-            <!-- Wochenbericht Header -->
-            <div class="card bg-gradient-to-r from-primary/5 to-secondary/5 border border-base-300">
-                <div class="card-body">
-                    <div class="flex items-center justify-between">
-                        <h3 class="card-title text-xl">Wöchentlicher Bericht</h3>
-                        <div class="text-right">
-                            <div class="text-sm text-base-content/70" id="week-date-range">KW 32, 2025</div>
-                            <div class="text-xs text-base-content/50">Automatisch generiert</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wochenstats Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="weekly-stats-grid">
-                <!-- Wird dynamisch gefüllt -->
-            </div>
 
             <!-- Tägliche Übersicht -->
             <div class="card bg-base-100 shadow-lg">
@@ -937,17 +902,40 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Empfehlungen -->
-            <div class="card bg-base-100 shadow-lg">
-                <div class="card-body">
-                    <h4 class="card-title text-lg mb-4 flex items-center gap-2">
-                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
-                        Empfehlungen für nächste Woche
-                    </h4>
-                    <div id="weekly-recommendations" class="space-y-2">
-                        <!-- Wird dynamisch gefüllt -->
+    <!-- Analytics View -->
+    <div id="analytics-view" class="progress-view hidden">
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h3 class="card-title text-xl">Trends & Analytics</h3>
+                    <div class="flex gap-2">
+                        <select class="select select-sm select-bordered" id="analytics-period">
+                            <option value="7">7 Tage</option>
+                            <option value="14">14 Tage</option>
+                            <option value="30" selected>30 Tage</option>
+                        </select>
+                        <select class="select select-sm select-bordered" id="analytics-metric">
+                            <option value="steps">Schritte</option>
+                            <option value="water">Wasser</option>
+                            <option value="sleep">Schlaf</option>
+                            <option value="weight">Gewicht</option>
+                        </select>
                     </div>
+                </div>
+                
+                <div class="h-64 bg-base-200 rounded-lg flex items-center justify-center" id="analytics-chart-container">
+                    <div class="text-center">
+                        <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 text-base-content/50"></i>
+                        <p class="text-base-content/70">Analytics-Chart wird geladen...</p>
+                    </div>
+                </div>
+
+                <!-- Analytics Insights -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6" id="analytics-insights">
+                    <!-- Wird dynamisch gefüllt -->
                 </div>
             </div>
         </div>

@@ -5383,8 +5383,18 @@ async updateWeeklySummaryChart() {
     // Use the actual existing ID from the HTML
     const container = document.getElementById('weekly-summary-content');
     if (!container) {
-        console.warn('⚠️ Weekly summary content container not found');
-        return;
+        // If weekly-summary-content doesn't exist, try alternative containers
+        const altContainer = document.getElementById('weekly-chart-container') || 
+                           document.getElementById('analytics-insights') ||
+                           document.querySelector('.weekly-summary');
+        
+        if (!altContainer) {
+            console.warn('⚠️ No weekly summary container found');
+            return;
+        }
+        
+        // Use alternative container
+        return this.updateWeeklySummaryInContainer(altContainer);
     }
 
     try {
@@ -5515,7 +5525,59 @@ async updateWeeklySummaryChart() {
     }
 }
 
-/** Calculate detailed weekly statistics */
+/** Fallback method for alternative containers */
+async updateWeeklySummaryInContainer(container) {
+    try {
+        const allData = this.analyticsData?.all || await this.healthTracker.getAllHealthData();
+        const weekData = this.healthTracker.getWeekData(allData);
+        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
+        
+        container.innerHTML = `
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title">📅 Wöchentliche Zusammenfassung</h4>
+                    <div class="stats stats-vertical">
+                        <div class="stat">
+                            <div class="stat-title">Ø Schritte/Tag</div>
+                            <div class="stat-value text-primary">${weeklyAvg.steps.toLocaleString()}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Ø Wasser/Tag</div>
+                            <div class="stat-value text-info">${weeklyAvg.water}L</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Ø Schlaf/Nacht</div>
+                            <div class="stat-value text-accent">${weeklyAvg.sleep}h</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log('✅ Weekly summary updated in alternative container');
+    } catch (error) {
+        console.error('❌ Alternative weekly summary error:', error);
+    }
+}
+
+/** Helper methods for weekly summary */
+getGoalComparison(metric, value) {
+    const goals = {
+        steps: this.healthTracker.goals?.stepsGoal,
+        water: this.healthTracker.goals?.waterGoal,
+        sleep: this.healthTracker.goals?.sleepGoal
+    };
+    
+    const goal = goals[metric];
+    if (!goal) return '';
+    
+    const percentage = Math.round((value / goal) * 100);
+    const status = percentage >= 100 ? '🎯 Ziel erreicht!' : 
+                   percentage >= 80 ? '📈 Fast da!' : '📊 Ausbaufähig';
+    
+    return `${percentage}% des Ziels - ${status}`;
+}
+
 calculateDetailedWeeklyStats(weekData) {
     const goals = this.healthTracker?.goals || {};
     
@@ -5542,6 +5604,25 @@ calculateDetailedWeeklyStats(weekData) {
         improvementArea: rates[rates.length - 1].name,
         improvementDesc: `Hier gibt es noch Verbesserungspotential (${Math.round(rates[rates.length - 1].rate)}% erreicht)`
     };
+}
+
+// Helper methods for correlation analysis
+getCorrelationBadge(strength) {
+    if (strength >= 0.7) return 'badge-success';
+    if (strength >= 0.4) return 'badge-warning';
+    return 'badge-error';
+}
+
+getCorrelationLabel(strength) {
+    if (strength >= 0.7) return 'Stark';
+    if (strength >= 0.4) return 'Mittel';
+    return 'Schwach';
+}
+
+getCorrelationColor(strength) {
+    if (strength >= 0.7) return 'bg-success';
+    if (strength >= 0.4) return 'bg-warning';
+    return 'bg-error';
 }
 
     /** Update analytics insights */

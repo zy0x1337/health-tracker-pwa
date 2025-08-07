@@ -63,6 +63,11 @@ class HealthTracker {
         
         // Setup periodic sync
         this.setupPeriodicSync();
+
+        // Initialize Analytics Dashboard after components are ready
+        setTimeout(() => {
+            this.initializeAnalyticsEventListeners();
+        }, 200);
         
         console.log('✅ Health Tracker Pro erfolgreich initialisiert');
         this.showToast('🎯 Health Tracker Pro bereit!', 'success');
@@ -1612,182 +1617,47 @@ initializeFormDefaults() {
             statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
         }
     }
-}
 
-// Enhanced Analytics Dashboard Functionality
-document.addEventListener('DOMContentLoaded', function() {
-    initializeAnalyticsDashboard();
-});
-
-function initializeAnalyticsDashboard() {
-    // Enhanced period filter functionality
-    document.querySelectorAll('[data-period]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            // Update active state
-            document.querySelectorAll('[data-period]').forEach(b => b.classList.replace('btn-primary', 'btn-ghost'));
-            e.target.classList.replace('btn-ghost', 'btn-primary');
-            
-            // Trigger analytics update
-            const period = e.target.dataset.period;
-            updateAnalyticsPeriod(period);
+        /** * Initialize Analytics Event Listeners through HealthTracker */
+    initializeAnalyticsEventListeners() {
+        console.log('📊 Initializing analytics event listeners...');
+        
+        // Period filter buttons
+        document.querySelectorAll('[data-period]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active state
+                document.querySelectorAll('[data-period]').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-ghost');
+                });
+                e.target.classList.remove('btn-ghost');
+                e.target.classList.add('btn-primary');
+                
+                // Trigger analytics update through AnalyticsEngine
+                const period = parseInt(e.target.dataset.period);
+                if (this.analyticsEngine && typeof this.analyticsEngine.updateAnalyticsPeriod === 'function') {
+                    this.analyticsEngine.updateAnalyticsPeriod(period);
+                }
+            });
         });
-    });
 
-    // Enhanced metric selection
-    document.querySelectorAll('[data-metric]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            // Update tab states
-            document.querySelectorAll('[data-metric]').forEach(b => b.classList.remove('tab-active'));
-            e.target.classList.add('tab-active');
-            
-            // Update chart
-            const metric = e.target.dataset.metric;
-            updateTrendsChart(metric);
+        // Metric selection buttons
+        document.querySelectorAll('[data-metric]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update tab states
+                document.querySelectorAll('[data-metric]').forEach(b => b.classList.remove('tab-active'));
+                e.target.classList.add('tab-active');
+                
+                // Update chart through AnalyticsEngine
+                const metric = e.target.dataset.metric;
+                if (this.analyticsEngine && typeof this.analyticsEngine.updateTrendsChart === 'function') {
+                    this.analyticsEngine.updateTrendsChart(metric);
+                }
+            });
         });
-    });
-
-    // Initialize tooltips and loading states
-    initializeLoadingStates();
-    updateAnalyticsStats();
-}
-
-function initializeLoadingStates() {
-    console.log('🔄 Initializing loading states for analytics');
-    
-    // Hide all loading states initially
-    ['trends-loading', 'correlation-loading', 'weekly-loading', 'ai-insights-loading'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.classList.add('hidden');
-        }
-    });
-}
-
-function updateAllCharts(period) {
-    console.log(`📊 Updating all charts for period: ${period} days`);
-    
-    // Update trends chart with mock data based on period
-    updateTrendsChart('steps');
-    
-    // Update correlation analysis
-    updateCorrelationDisplay();
-    
-    // Update weekly summary
-    updateWeeklySummaryDisplay();
-    
-    // Update AI insights
-    updateAIInsightsDisplay();
-}
-
-function updateTrendsChart(metric) {
-    console.log(`📈 Updating trends chart for metric: ${metric}`);
-    
-    // Mock chart update - in real implementation this would use Chart.js
-    const chartContainer = document.getElementById('trends-chart-container');
-    if (chartContainer) {
-        chartContainer.innerHTML = `
-            <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
-                <div class="text-center">
-                    <div class="text-4xl mb-2">📊</div>
-                    <div class="font-semibold">${metric.charAt(0).toUpperCase() + metric.slice(1)} Trend</div>
-                    <div class="text-sm opacity-70">Chart wird geladen...</div>
-                </div>
-            </div>
-        `;
+        
+        console.log('✅ Analytics event listeners initialized');
     }
-}
-
-function updateCorrelationDisplay() {
-    const container = document.getElementById('correlation-analysis');
-    if (container) {
-        container.innerHTML = `
-            <div class="space-y-3">
-                <h4 class="font-semibold">🔍 Datenkorrelationen</h4>
-                <div class="alert alert-info">
-                    <span>📈</span>
-                    <span>Korrelationsanalyse wird mit echten Daten berechnet...</span>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function updateWeeklySummaryDisplay() {
-    const container = document.getElementById('weekly-summary-content');
-    if (container) {
-        container.innerHTML = `
-            <div class="space-y-4">
-                <h4 class="font-semibold">📊 Wöchentliche Zusammenfassung</h4>
-                <div class="alert alert-info">
-                    <span>📋</span>
-                    <span>Wöchentliche Daten werden analysiert...</span>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function updateAIInsightsDisplay() {
-    const container = document.getElementById('ai-insights-content');
-    if (container) {
-        container.innerHTML = `
-            <div class="space-y-4">
-                <h4 class="font-semibold">🤖 KI-Insights</h4>
-                <div class="alert alert-info">
-                    <span>🧠</span>
-                    <span>KI analysiert deine Gesundheitsdaten...</span>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function updateAnalyticsPeriod(period) {
-    console.log(`📊 Updating analytics for ${period} days`);
-    
-    // Show loading states
-    showLoadingStates();
-    
-    // Simulate data loading and update
-    setTimeout(() => {
-        hideLoadingStates();
-        updateAllCharts(period);
-    }, 1000);
-}
-
-function showLoadingStates() {
-    ['trends-loading', 'correlation-loading', 'weekly-loading', 'goal-loading'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.classList.remove('hidden');
-    });
-}
-
-function hideLoadingStates() {
-    ['trends-loading', 'correlation-loading', 'weekly-loading', 'goal-loading'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.classList.add('hidden');
-    });
-}
-
-function updateAnalyticsStats() {
-    // Update quick stats with animation
-    const stats = {
-        'analytics-total-entries': Math.floor(Math.random() * 100) + 50,
-        'analytics-improvement': `+${Math.floor(Math.random() * 20) + 5}%`,
-        'analytics-goal-rate': `${Math.floor(Math.random() * 30) + 70}%`,
-        'analytics-streak': Math.floor(Math.random() * 10) + 1
-    };
-
-    Object.entries(stats).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.style.transform = 'scale(1.1)';
-            element.textContent = value;
-            setTimeout(() => {
-                element.style.transform = 'scale(1)';
-            }, 200);
-        }
-    });
 }
 
 // ====================================================================

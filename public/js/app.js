@@ -5637,11 +5637,10 @@ calculateBasicCorrelations(data) {
     return correlations.filter(c => Math.abs(c.strength) > 0.1);
 }
 
-    /**
- * Update weekly summary chart - corrected for your HTML structure
+/**
+ * Update weekly summary chart with bar, pie, and area charts
  */
 async updateWeeklySummaryChart(data) {
-    // Suche nach dem korrekten Container - dein HTML hat Canvas-Elemente
     let container = document.getElementById('weekly-summary-chart');
     
     if (!container) {
@@ -5649,7 +5648,6 @@ async updateWeeklySummaryChart(data) {
         return;
     }
 
-    // Da es ein Canvas ist, brauchen wir den Parent-Container
     const parentContainer = container.closest('.card-body');
     if (!parentContainer) {
         console.error('❌ Parent container for weekly summary chart not found');
@@ -5657,267 +5655,349 @@ async updateWeeklySummaryChart(data) {
     }
 
     try {
-        // Verstecke das Canvas und erstelle stattdessen einen Content-Container
-        container.style.display = 'none';
+        // Canvas für Charts sichtbar machen
+        container.style.display = 'block';
+        container.width = container.offsetWidth || 400;
+        container.height = container.offsetHeight || 300;
         
-        // Suche oder erstelle Content-Container
-        let contentDiv = parentContainer.querySelector('.weekly-summary-content');
-        if (!contentDiv) {
-            contentDiv = document.createElement('div');
-            contentDiv.className = 'weekly-summary-content h-64 overflow-y-auto';
-            container.parentNode.insertBefore(contentDiv, container.nextSibling);
-        }
+        const ctx = container.getContext('2d');
         
-        // Clear previous content
-        contentDiv.innerHTML = '';
+        // Clear canvas
+        ctx.clearRect(0, 0, container.width, container.height);
         
         // Check if we have enough data
         if (!data || data.length < 1) {
-            contentDiv.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="text-4xl mb-2">📅</div>
-                    <div class="text-sm text-gray-600">
-                        Keine Wochendaten verfügbar
-                    </div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        Erfasse mehr Daten für eine Wochenübersicht
-                    </div>
-                </div>
-            `;
+            this.drawEmptyState(ctx, container, '📅', 'Keine Wochendaten verfügbar');
             return;
         }
 
-        // Get the last 7 days of data
+        // Get weekly data
         const weekData = this.getWeeklyData(data);
         
         if (weekData.length === 0) {
-            contentDiv.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="text-4xl mb-2">📊</div>
-                    <div class="text-sm text-gray-600">
-                        Keine Wochendaten
-                    </div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        Erfasse mehr Daten für Wochenvergleich
-                    </div>
-                </div>
-            `;
+            this.drawEmptyState(ctx, container, '📊', 'Keine Wochendaten');
             return;
         }
 
-        // Calculate weekly averages and totals
-        const weeklyStats = this.calculateWeeklyStats(weekData);
+        // Prepare chart data
+        const chartData = this.prepareWeeklyChartData(weekData);
         
-        // Create weekly summary visualization
-        const summaryHTML = `
-            <div class="space-y-4">
-                <div class="text-sm font-medium mb-4">
-                    Wöchentliche Zusammenfassung (${weekData.length} Tage)
-                </div>
-                
-                <!-- Weekly Stats Grid -->
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-base-200 p-3 rounded-lg text-center">
-                        <div class="text-xs text-gray-600">Ø Schritte</div>
-                        <div class="text-lg font-semibold text-primary">
-                            ${weeklyStats.avgSteps.toLocaleString('de-DE')}
-                        </div>
-                    </div>
-                    <div class="bg-base-200 p-3 rounded-lg text-center">
-                        <div class="text-xs text-gray-600">Ø Wasser</div>
-                        <div class="text-lg font-semibold text-info">
-                            ${weeklyStats.avgWater}L
-                        </div>
-                    </div>
-                    <div class="bg-base-200 p-3 rounded-lg text-center">
-                        <div class="text-xs text-gray-600">Ø Schlaf</div>
-                        <div class="text-lg font-semibold text-success">
-                            ${weeklyStats.avgSleep}h
-                        </div>
-                    </div>
-                    <div class="bg-base-200 p-3 rounded-lg text-center">
-                        <div class="text-xs text-gray-600">Aktivitäten</div>
-                        <div class="text-lg font-semibold text-warning">
-                            ${weeklyStats.totalEntries}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Weekly Trends -->
-                <div class="bg-base-200 p-4 rounded-lg">
-                    <h4 class="text-sm font-medium mb-3">📈 Wochentrends</h4>
-                    <div class="space-y-2">
-                        ${this.generateWeeklyTrendBars(weeklyStats)}
-                    </div>
-                </div>
-
-                <!-- Weekly Insights -->
-                <div class="bg-base-200 p-4 rounded-lg">
-                    <h4 class="text-sm font-medium mb-3">💡 Erkenntnisse</h4>
-                    <div class="space-y-2 text-xs">
-                        ${this.generateWeeklyInsights(weeklyStats)}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        contentDiv.innerHTML = summaryHTML;
+        // Get current chart type from dropdown or default to bar
+        const chartType = this.getCurrentChartType() || 'bar';
+        
+        // Render appropriate chart
+        switch (chartType) {
+            case 'bar':
+                this.drawBarChart(ctx, container, chartData);
+                break;
+            case 'pie':
+                this.drawPieChart(ctx, container, chartData);
+                break;
+            case 'area':
+                this.drawAreaChart(ctx, container, chartData);
+                break;
+            default:
+                this.drawBarChart(ctx, container, chartData);
+        }
+        
+        // Add chart info below canvas
+        this.addChartInfo(parentContainer, chartData);
+        
         console.log('✅ Weekly summary chart updated successfully');
 
     } catch (error) {
         console.error('❌ Error updating weekly summary chart:', error);
-        const contentDiv = parentContainer.querySelector('.weekly-summary-content') || 
-                          parentContainer.querySelector('.h-64');
-        if (contentDiv) {
-            contentDiv.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="text-error mb-2">⚠️</div>
-                    <div class="text-sm text-error">
-                        Fehler beim Laden der Wochenzusammenfassung
-                    </div>
-                </div>
-            `;
-        }
+        const ctx = container.getContext('2d');
+        this.drawEmptyState(ctx, container, '⚠️', 'Fehler beim Laden der Charts');
     }
 }
 
 /**
- * Get weekly data (last 7 days)
+ * Prepare weekly chart data
  */
-getWeeklyData(allData) {
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+prepareWeeklyChartData(weekData) {
+    const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    const last7Days = [];
+    const today = new Date();
     
-    return allData.filter(entry => {
-        if (!entry.date) return false;
+    // Get last 7 days
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+        const dayData = weekData.find(d => {
+            if (!d.date) return false;
+            const entryDate = new Date(d.date);
+            return entryDate.toDateString() === date.toDateString();
+        });
         
-        let entryDate;
-        if (typeof entry.date === 'string') {
-            entryDate = new Date(entry.date.split('T')[0]);
-        } else if (entry.date instanceof Date) {
-            entryDate = entry.date;
-        } else {
-            return false;
-        }
-        
-        return entryDate >= oneWeekAgo && entryDate <= now;
-    });
-}
-
-/**
- * Calculate weekly statistics
- */
-calculateWeeklyStats(weekData) {
-    if (weekData.length === 0) {
-        return {
-            avgSteps: 0,
-            avgWater: 0,
-            avgSleep: 0,
-            totalEntries: 0,
-            bestDay: null,
-            improvement: null
-        };
+        last7Days.push({
+            day: days[date.getDay()],
+            date: date,
+            steps: dayData?.steps || 0,
+            water: dayData?.waterIntake || 0,
+            sleep: dayData?.sleepHours || 0,
+            weight: dayData?.weight || 0
+        });
     }
-
-    const totals = weekData.reduce((acc, entry) => {
-        acc.steps += entry.steps || 0;
-        acc.water += entry.waterIntake || 0;
-        acc.sleep += entry.sleepHours || 0;
-        acc.entries += 1;
-        return acc;
-    }, { steps: 0, water: 0, sleep: 0, entries: 0 });
-
+    
     return {
-        avgSteps: Math.round(totals.steps / weekData.length),
-        avgWater: Math.round((totals.water / weekData.length) * 10) / 10,
-        avgSleep: Math.round((totals.sleep / weekData.length) * 10) / 10,
-        totalEntries: totals.entries,
-        bestDay: this.findBestDay(weekData),
-        improvement: this.calculateImprovement(weekData)
+        labels: last7Days.map(d => d.day),
+        datasets: {
+            steps: last7Days.map(d => d.steps),
+            water: last7Days.map(d => d.water),
+            sleep: last7Days.map(d => d.sleep),
+            weight: last7Days.map(d => d.weight)
+        },
+        totals: {
+            steps: last7Days.reduce((sum, d) => sum + d.steps, 0),
+            water: Math.round(last7Days.reduce((sum, d) => sum + d.water, 0) * 10) / 10,
+            sleep: Math.round(last7Days.reduce((sum, d) => sum + d.sleep, 0) * 10) / 10,
+            entries: last7Days.filter(d => d.steps > 0 || d.water > 0 || d.sleep > 0).length
+        }
     };
 }
 
 /**
- * Generate weekly trend bars
+ * Draw bar chart
  */
-generateWeeklyTrendBars(stats) {
-    const trends = [
-        { label: 'Schritte-Ziel', value: Math.min((stats.avgSteps / 10000) * 100, 100), color: 'bg-primary' },
-        { label: 'Wasser-Ziel', value: Math.min((stats.avgWater / 2.0) * 100, 100), color: 'bg-info' },
-        { label: 'Schlaf-Ziel', value: Math.min((stats.avgSleep / 8) * 100, 100), color: 'bg-success' }
+drawBarChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    
+    // Clear and set up
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Find max value for scaling
+    const maxSteps = Math.max(...data.datasets.steps, 10000);
+    const barWidth = chartWidth / data.labels.length - 10;
+    
+    // Draw bars
+    data.datasets.steps.forEach((steps, i) => {
+        const barHeight = (steps / maxSteps) * chartHeight;
+        const x = margin.left + i * (chartWidth / data.labels.length) + 5;
+        const y = margin.top + chartHeight - barHeight;
+        
+        // Bar
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        // Value on top
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(steps.toLocaleString(), x + barWidth/2, y - 5);
+        
+        // Day label
+        ctx.fillText(data.labels[i], x + barWidth/2, height - 10);
+    });
+    
+    // Title
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Schritte pro Tag', width/2, 15);
+}
+
+/**
+ * Draw pie chart
+ */
+drawPieChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2 - 40;
+    
+    // Clear and set up
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Calculate percentages
+    const total = data.totals.steps + (data.totals.water * 1000) + (data.totals.sleep * 100);
+    const segments = [
+        { label: 'Schritte', value: data.totals.steps, color: '#3b82f6' },
+        { label: 'Wasser', value: data.totals.water * 1000, color: '#06b6d4' },
+        { label: 'Schlaf', value: data.totals.sleep * 100, color: '#10b981' }
     ];
-
-    return trends.map(trend => `
-        <div class="flex items-center justify-between text-xs">
-            <span class="w-20">${trend.label}</span>
-            <div class="flex-1 mx-2 bg-base-300 rounded-full h-2">
-                <div class="${trend.color} h-2 rounded-full transition-all" 
-                     style="width: ${trend.value}%"></div>
-            </div>
-            <span class="w-8">${Math.round(trend.value)}%</span>
-        </div>
-    `).join('');
-}
-
-/**
- * Generate weekly insights
- */
-generateWeeklyInsights(stats) {
-    const insights = [];
     
-    if (stats.avgSteps >= 8000) {
-        insights.push('🚶‍♂️ Tolle Aktivität diese Woche!');
-    }
+    let currentAngle = -Math.PI / 2;
     
-    if (stats.avgWater >= 1.8) {
-        insights.push('💧 Gute Hydration beibehalten');
-    }
+    // Draw segments
+    segments.forEach((segment, i) => {
+        const sliceAngle = (segment.value / total) * 2 * Math.PI;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = segment.color;
+        ctx.fill();
+        
+        // Label
+        const labelAngle = currentAngle + sliceAngle / 2;
+        const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+        const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        const percentage = Math.round((segment.value / total) * 100);
+        ctx.fillText(`${percentage}%`, labelX, labelY);
+        
+        currentAngle += sliceAngle;
+    });
     
-    if (stats.avgSleep >= 7) {
-        insights.push('😴 Ausreichend Schlaf diese Woche');
-    }
+    // Title
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Wöchentliche Verteilung', centerX, 15);
     
-    if (stats.totalEntries >= 5) {
-        insights.push('📊 Konsistente Datenerfassung');
-    }
-
-    if (insights.length === 0) {
-        insights.push('💪 Weiter so - jeder Schritt zählt!');
-    }
-    
-    return insights.map(insight => `
-        <div class="flex items-center gap-2">
-            <span>${insight}</span>
-        </div>
-    `).join('');
-}
-
-/**
- * Find best performing day
- */
-findBestDay(weekData) {
-    if (weekData.length === 0) return null;
-    
-    return weekData.reduce((best, current) => {
-        const currentScore = (current.steps || 0) + (current.waterIntake || 0) * 1000 + (current.sleepHours || 0) * 100;
-        const bestScore = (best.steps || 0) + (best.waterIntake || 0) * 1000 + (best.sleepHours || 0) * 100;
-        return currentScore > bestScore ? current : best;
+    // Legend
+    segments.forEach((segment, i) => {
+        const y = height - 60 + i * 15;
+        ctx.fillStyle = segment.color;
+        ctx.fillRect(20, y, 10, 10);
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(segment.label, 35, y + 8);
     });
 }
 
 /**
- * Calculate improvement trend
+ * Draw area chart
  */
-calculateImprovement(weekData) {
-    if (weekData.length < 3) return null;
+drawAreaChart(ctx, canvas, data) {
+    const { width, height } = canvas;
+    const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
     
-    const firstHalf = weekData.slice(0, Math.floor(weekData.length / 2));
-    const secondHalf = weekData.slice(Math.floor(weekData.length / 2));
+    // Clear and set up
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
     
-    const firstAvg = firstHalf.reduce((sum, entry) => sum + (entry.steps || 0), 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, entry) => sum + (entry.steps || 0), 0) / secondHalf.length;
+    // Find max value for scaling
+    const maxSteps = Math.max(...data.datasets.steps, 10000);
+    const stepX = chartWidth / (data.labels.length - 1);
     
-    return ((secondAvg - firstAvg) / firstAvg) * 100;
+    // Create path
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top + chartHeight);
+    
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        if (i === 0) {
+            ctx.lineTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.closePath();
+    
+    // Fill area
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+    ctx.fill();
+    
+    // Draw line
+    ctx.beginPath();
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Add points and labels
+    data.datasets.steps.forEach((steps, i) => {
+        const x = margin.left + i * stepX;
+        const y = margin.top + chartHeight - (steps / maxSteps) * chartHeight;
+        
+        // Point
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        
+        // Day label
+        ctx.fillStyle = '#374151';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(data.labels[i], x, height - 10);
+    });
+    
+    // Title
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Schritte-Trend', width/2, 15);
+}
+
+/**
+ * Draw empty state
+ */
+drawEmptyState(ctx, canvas, icon, message) {
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, width/2, height/2 - 10);
+    
+    ctx.font = '12px sans-serif';
+    ctx.fillText(message, width/2, height/2 + 15);
+}
+
+/**
+ * Add chart info below canvas
+ */
+addChartInfo(parentContainer, data) {
+    let infoDiv = parentContainer.querySelector('.chart-info');
+    if (!infoDiv) {
+        infoDiv = document.createElement('div');
+        infoDiv.className = 'chart-info mt-4';
+        parentContainer.appendChild(infoDiv);
+    }
+    
+    infoDiv.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-base-200 p-2 rounded text-center">
+                <div class="text-xs text-gray-600">Gesamt Schritte</div>
+                <div class="font-semibold text-primary">${data.totals.steps.toLocaleString()}</div>
+            </div>
+            <div class="bg-base-200 p-2 rounded text-center">
+                <div class="text-xs text-gray-600">Gesamt Wasser</div>
+                <div class="font-semibold text-info">${data.totals.water}L</div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Get current chart type from dropdown
+ */
+getCurrentChartType() {
+    const dropdown = document.querySelector('#analytics select') || 
+                    document.querySelector('[id*="chart-type"]') || 
+                    document.querySelector('select');
+    return dropdown?.value || 'bar';
 }
 
 /** Get goal comparison text */

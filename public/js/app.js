@@ -2347,557 +2347,590 @@ showView(viewName) {
     }
 }
 
-    /** Show today's overview with comprehensive inline optimizations */
+    /** Show today's overview with enhanced UI */
 async showTodayView() {
     console.log('📊 Showing optimized today view...');
     
     try {
-        // Enhanced loading state with animation
-        const progressLoading = document.getElementById('progress-loading');
-        const progressContent = document.getElementById('progress-content');
+        // Show loading state with enhanced animation
+        this.showEnhancedLoadingState();
         
-        if (progressLoading && progressContent) {
-            progressContent.style.opacity = '0.5';
-            progressContent.style.transform = 'scale(0.98)';
-            progressContent.style.transition = 'all 0.3s ease';
-            
-            progressLoading.classList.remove('hidden');
-            progressLoading.innerHTML = `
-                <div class="flex items-center justify-center py-12">
-                    <div class="flex flex-col items-center gap-4">
-                        <div class="loading loading-ring loading-lg text-primary"></div>
-                        <div class="text-primary font-medium animate-pulse">Optimiere deine Daten...</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Get comprehensive health data
+        // Get all health data
         const allData = await this.healthTracker.getAllHealthData();
         const todayData = this.healthTracker.getTodayData(allData);
         const weekData = this.healthTracker.getWeekData(allData);
         
         // Update today's date with enhanced formatting
-        const todayDateEl = document.getElementById('today-date');
-        if (todayDateEl) {
-            const today = new Date();
-            const options = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            };
-            
-            const formattedDate = today.toLocaleDateString('de-DE', options);
-            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-            
-            todayDateEl.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="font-medium">${formattedDate}</span>
-                    <div class="badge badge-ghost badge-sm">Tag ${dayOfYear}</div>
-                </div>
-            `;
-        }
+        this.updateTodayDate();
         
-        // Enhanced stats with smooth counter animations
-        const stats = [
-            {
-                id: 'today-steps-display',
-                progressId: 'today-steps-progress',
-                value: todayData.steps || 0,
-                goal: this.healthTracker.goals.stepsGoal,
-                format: (val) => val.toLocaleString(),
-                color: 'primary',
-                icon: 'footprints'
-            },
-            {
-                id: 'today-water-display',
-                progressId: 'today-water-progress',
-                value: todayData.waterIntake || 0,
-                goal: this.healthTracker.goals.waterGoal,
-                format: (val) => `${val}L`,
-                color: 'info',
-                icon: 'droplets'
-            },
-            {
-                id: 'today-sleep-display',
-                progressId: 'today-sleep-progress',
-                value: todayData.sleepHours || 0,
-                goal: this.healthTracker.goals.sleepGoal,
-                format: (val) => `${val}h`,
-                color: 'accent',
-                icon: 'moon'
-            },
-            {
-                id: 'today-weight-display',
-                progressId: null,
-                value: todayData.weight || 0,
-                goal: null,
-                format: (val) => val ? `${val}kg` : '—',
-                color: 'secondary',
-                icon: 'scale'
-            }
-        ];
+        // Enhanced stats updates with animations
+        await this.updateTodayStatsWithAnimations(todayData);
         
-        // Animate stats with staggered timing and enhanced effects
-        for (let i = 0; i < stats.length; i++) {
-            setTimeout(() => {
-                const stat = stats[i];
-                const element = document.getElementById(stat.id);
-                const progressElement = stat.progressId ? document.getElementById(stat.progressId) : null;
-                
-                if (element) {
-                    // Add loading animation
-                    element.style.transform = 'scale(1.1)';
-                    element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    element.classList.add('animate-pulse');
-                    
-                    setTimeout(() => {
-                        // Counter animation
-                        const startValue = 0;
-                        const targetValue = stat.value;
-                        const duration = 800;
-                        const startTime = performance.now();
-                        
-                        const animateCounter = (currentTime) => {
-                            const elapsed = currentTime - startTime;
-                            const progress = Math.min(elapsed / duration, 1);
-                            const easeOut = 1 - Math.pow(1 - progress, 3);
-                            const currentValue = startValue + (targetValue - startValue) * easeOut;
-                            
-                            element.textContent = stat.format(Math.round(currentValue * 10) / 10);
-                            
-                            if (progress < 1) {
-                                requestAnimationFrame(animateCounter);
-                            }
-                        };
-                        
-                        requestAnimationFrame(animateCounter);
-                        
-                        // Remove loading state
-                        element.classList.remove('animate-pulse');
-                        element.style.transform = 'scale(1)';
-                        
-                        // Update progress bar with animation
-                        if (progressElement && stat.goal) {
-                            const progress = Math.min((stat.value / stat.goal) * 100, 100);
-                            progressElement.style.width = '0%';
-                            progressElement.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1)';
-                            
-                            setTimeout(() => {
-                                progressElement.style.width = `${progress}%`;
-                                
-                                // Achievement glow effect
-                                if (progress >= 100) {
-                                    setTimeout(() => {
-                                        progressElement.style.animation = 'pulse 0.5s ease-in-out';
-                                        element.parentElement.classList.add('ring-2', 'ring-success', 'ring-opacity-50');
-                                        setTimeout(() => {
-                                            progressElement.style.animation = '';
-                                            element.parentElement.classList.remove('ring-2', 'ring-success', 'ring-opacity-50');
-                                        }, 2000);
-                                    }, 1000);
-                                }
-                            }, 100);
-                        }
-                    }, 300);
-                }
-            }, i * 150);
-        }
+        // Update weekly trends with enhanced visuals
+        await this.updateWeeklyTrendsEnhanced(weekData, allData);
         
-        // Enhanced weekly trends with comparison analytics
-        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
+        // Update quick stats with smooth animations
+        await this.updateQuickStatsEnhanced(allData);
         
-        // Calculate previous week data for comparison
-        const lastWeekStart = new Date();
-        lastWeekStart.setDate(lastWeekStart.getDate() - 14);
-        const lastWeekEnd = new Date();
-        lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
+        // Add interactive elements and tooltips
+        this.enhanceInteractiveElements();
         
-        const previousWeekData = allData.filter(entry => {
-            const date = new Date(entry.date);
-            return date >= lastWeekStart && date < lastWeekEnd;
-        });
-        const previousAvg = this.healthTracker.calculateWeeklyAverages(previousWeekData);
+        // Add completion rate calculation and visual feedback
+        this.updateCompletionRateEnhanced(todayData);
         
-        const trends = [
-            {
-                id: 'week-avg-steps',
-                trendId: 'week-steps-trend',
-                current: weeklyAvg.steps,
-                previous: previousAvg.steps,
-                format: (val) => val.toLocaleString(),
-                icon: 'footprints'
-            },
-            {
-                id: 'week-avg-water',
-                trendId: 'week-water-trend',
-                current: weeklyAvg.water,
-                previous: previousAvg.water,
-                format: (val) => `${val}L`,
-                icon: 'droplets'
-            },
-            {
-                id: 'week-avg-sleep',
-                trendId: 'week-sleep-trend',
-                current: weeklyAvg.sleep,
-                previous: previousAvg.sleep,
-                format: (val) => `${val}h`,
-                icon: 'moon'
-            }
-        ];
+        // Show today's notes if available
+        this.updateTodayNotesEnhanced(todayData);
         
-        // Animate trends with enhanced comparisons
-        trends.forEach((trend, index) => {
-            setTimeout(() => {
-                const element = document.getElementById(trend.id);
-                const trendElement = document.getElementById(trend.trendId);
-                
-                if (element) {
-                    element.style.transform = 'scale(1.05)';
-                    element.style.transition = 'all 0.3s ease';
-                    
-                    setTimeout(() => {
-                        // Counter animation for trends
-                        const startValue = 0;
-                        const duration = 600;
-                        const startTime = performance.now();
-                        
-                        const animateTrend = (currentTime) => {
-                            const elapsed = currentTime - startTime;
-                            const progress = Math.min(elapsed / duration, 1);
-                            const currentValue = startValue + (trend.current - startValue) * progress;
-                            
-                            element.textContent = trend.format(Math.round(currentValue * 10) / 10);
-                            
-                            if (progress < 1) {
-                                requestAnimationFrame(animateTrend);
-                            }
-                        };
-                        
-                        requestAnimationFrame(animateTrend);
-                        element.style.transform = 'scale(1)';
-                    }, 100);
-                }
-                
-                // Enhanced trend comparison
-                if (trendElement && trend.previous > 0) {
-                    const change = ((trend.current - trend.previous) / trend.previous) * 100;
-                    const changeText = change > 0 ? `+${Math.round(change)}%` : `${Math.round(change)}%`;
-                    const trendIcon = change > 0 ? '📈' : change < 0 ? '📉' : '➡️';
-                    const trendColor = change > 0 ? 'text-success' : change < 0 ? 'text-error' : 'text-base-content';
-                    
-                    trendElement.innerHTML = `
-                        <span class="${trendColor} font-medium">${trendIcon} ${changeText}</span>
-                    `;
-                    
-                    trendElement.style.opacity = '0';
-                    trendElement.style.transform = 'translateY(10px)';
-                    trendElement.style.transition = 'all 0.3s ease';
-                    
-                    setTimeout(() => {
-                        trendElement.style.opacity = '1';
-                        trendElement.style.transform = 'translateY(0)';
-                    }, 200);
-                }
-            }, index * 200);
-        });
+        // Add progress animations
+        this.animateProgressBars(todayData);
         
-        // Enhanced quick stats with streak calculation and achievements
-        let currentStreak = 0;
-        const today = new Date();
+        // Hide loading state
+        this.hideLoadingState();
         
-        // Calculate current streak
-        for (let i = 0; i < 365; i++) {
-            const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
-            const dateStr = checkDate.toISOString().split('T')[0];
-            
-            const hasEntry = allData.some(entry => {
-                const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
-                return entryDate === dateStr;
-            });
-            
-            if (hasEntry) {
-                currentStreak++;
-            } else {
-                break;
-            }
-        }
-        
-        // Calculate weekly goals achieved
-        let weeklyGoalsAchieved = 0;
-        weekData.forEach(entry => {
-            let dailyGoals = 0;
-            let dailyAchieved = 0;
-            
-            if (this.healthTracker.goals.stepsGoal) {
-                dailyGoals++;
-                if (entry.steps >= this.healthTracker.goals.stepsGoal) dailyAchieved++;
-            }
-            
-            if (this.healthTracker.goals.waterGoal) {
-                dailyGoals++;
-                if (entry.waterIntake >= this.healthTracker.goals.waterGoal) dailyAchieved++;
-            }
-            
-            if (this.healthTracker.goals.sleepGoal) {
-                dailyGoals++;
-                if (entry.sleepHours >= this.healthTracker.goals.sleepGoal) dailyAchieved++;
-            }
-            
-            if (dailyGoals > 0 && dailyAchieved === dailyGoals) {
-                weeklyGoalsAchieved++;
-            }
-        });
-        
-        const quickStats = [
-            { 
-                id: 'current-streak', 
-                value: currentStreak, 
-                format: (val) => val.toString(),
-                isSpecial: currentStreak >= 7
-            },
-            { 
-                id: 'weekly-goals-achieved', 
-                value: weeklyGoalsAchieved, 
-                format: (val) => val.toString(),
-                isSpecial: weeklyGoalsAchieved >= 5
-            },
-            { 
-                id: 'total-entries', 
-                value: allData.length, 
-                format: (val) => val.toLocaleString(),
-                isSpecial: allData.length >= 50
-            }
-        ];
-        
-        // Animate quick stats with special effects
-        quickStats.forEach((stat, index) => {
-            setTimeout(() => {
-                const element = document.getElementById(stat.id);
-                if (element) {
-                    // Special sparkle effect for impressive values
-                    if (stat.isSpecial) {
-                        element.parentElement.classList.add('animate-pulse');
-                        setTimeout(() => {
-                            element.parentElement.classList.remove('animate-pulse');
-                        }, 1000);
-                    }
-                    
-                    // Counter animation
-                    const startValue = 0;
-                    const duration = 700;
-                    const startTime = performance.now();
-                    
-                    const animateQuickStat = (currentTime) => {
-                        const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        const currentValue = startValue + (stat.value - startValue) * progress;
-                        
-                        element.textContent = stat.format(Math.round(currentValue));
-                        
-                        if (progress < 1) {
-                            requestAnimationFrame(animateQuickStat);
-                        }
-                    };
-                    
-                    requestAnimationFrame(animateQuickStat);
-                }
-            }, index * 100);
-        });
-        
-        // Enhanced completion rate with visual feedback
-        const completionRateEl = document.getElementById('today-completion-rate');
-        if (completionRateEl) {
-            let completed = 0;
-            let total = 0;
-            
-            if (this.healthTracker.goals.stepsGoal) {
-                total++;
-                if (todayData.steps >= this.healthTracker.goals.stepsGoal) completed++;
-            }
-            
-            if (this.healthTracker.goals.waterGoal) {
-                total++;
-                if (todayData.waterIntake >= this.healthTracker.goals.waterGoal) completed++;
-            }
-            
-            if (this.healthTracker.goals.sleepGoal) {
-                total++;
-                if (todayData.sleepHours >= this.healthTracker.goals.sleepGoal) completed++;
-            }
-            
-            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-            
-            // Animate completion rate
-            const startRate = 0;
-            const duration = 1000;
-            const startTime = performance.now();
-            
-            const animateRate = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const currentRate = Math.round(startRate + (rate - startRate) * progress);
-                
-                completionRateEl.textContent = `${currentRate}%`;
-                
-                // Dynamic badge color
-                const badge = completionRateEl.parentElement;
-                badge.className = 'badge badge-lg';
-                if (currentRate >= 80) {
-                    badge.classList.add('badge-success');
-                } else if (currentRate >= 50) {
-                    badge.classList.add('badge-warning');
-                } else {
-                    badge.classList.add('badge-error');
-                }
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateRate);
-                } else if (rate === 100) {
-                    // Celebration effect
-                    badge.classList.add('animate-bounce');
-                    setTimeout(() => {
-                        badge.classList.remove('animate-bounce');
-                    }, 1000);
-                }
-            };
-            
-            requestAnimationFrame(animateRate);
-        }
-        
-        // Enhanced notes display with fade animation
-        const notesSection = document.getElementById('today-notes-section');
-        const notesContent = document.getElementById('today-notes-content');
-        
-        if (todayData.notes && todayData.notes.trim()) {
-            if (notesSection && notesContent) {
-                notesContent.textContent = todayData.notes;
-                notesSection.classList.remove('hidden');
-                
-                notesSection.style.opacity = '0';
-                notesSection.style.transform = 'translateY(20px)';
-                notesSection.style.transition = 'all 0.5s ease';
-                
-                setTimeout(() => {
-                    notesSection.style.opacity = '1';
-                    notesSection.style.transform = 'translateY(0)';
-                }, 300);
-            }
-        } else if (notesSection) {
-            notesSection.classList.add('hidden');
-        }
-        
-        // Weight trend calculation and display
-        const weightTrendEl = document.getElementById('weight-trend');
-        if (weightTrendEl && todayData.weight) {
-            const recentWeightData = allData
-                .filter(entry => entry.weight && entry.weight > 0)
-                .slice(-7)
-                .map(entry => entry.weight);
-            
-            if (recentWeightData.length >= 2) {
-                const oldestWeight = recentWeightData[0];
-                const latestWeight = recentWeightData[recentWeightData.length - 1];
-                const weightChange = latestWeight - oldestWeight;
-                
-                if (Math.abs(weightChange) < 0.1) {
-                    weightTrendEl.textContent = '→';
-                    weightTrendEl.className = 'text-base-content';
-                } else if (weightChange > 0) {
-                    weightTrendEl.textContent = '↗️';
-                    weightTrendEl.className = 'text-warning';
-                } else {
-                    weightTrendEl.textContent = '↘️';
-                    weightTrendEl.className = 'text-success';
-                }
-            }
-        }
-        
-        // Enhanced interactive elements
-        document.querySelectorAll('.stat').forEach(statCard => {
-            if (!statCard.dataset.interactiveAdded) {
-                statCard.style.cursor = 'pointer';
-                statCard.dataset.interactiveAdded = 'true';
-                
-                statCard.addEventListener('mouseenter', () => {
-                    statCard.style.transform = 'translateY(-2px)';
-                    statCard.style.transition = 'all 0.2s ease';
-                    statCard.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
-                });
-                
-                statCard.addEventListener('mouseleave', () => {
-                    statCard.style.transform = 'translateY(0)';
-                    statCard.style.boxShadow = '';
-                });
-                
-                statCard.addEventListener('click', () => {
-                    statCard.style.transform = 'scale(0.98)';
-                    setTimeout(() => {
-                        statCard.style.transform = 'translateY(-2px)';
-                    }, 100);
-                });
-            }
-        });
-        
-        // Enhanced progress bar tooltips
-        document.querySelectorAll('.progress').forEach(progressBar => {
-            const parentStat = progressBar.closest('.stat');
-            if (parentStat && !progressBar.dataset.tooltipAdded) {
-                const statTitle = parentStat.querySelector('.stat-title')?.textContent;
-                const statValue = parentStat.querySelector('.stat-value')?.textContent;
-                
-                progressBar.setAttribute('title', `${statTitle}: ${statValue}`);
-                progressBar.style.cursor = 'help';
-                progressBar.dataset.tooltipAdded = 'true';
-            }
-        });
-        
-        // Hide loading state with smooth transition
-        setTimeout(() => {
-            if (progressLoading) {
-                progressLoading.classList.add('hidden');
-            }
-            
-            if (progressContent) {
-                progressContent.style.opacity = '1';
-                progressContent.style.transform = 'scale(1)';
-            }
-        }, 1500);
-        
-        console.log('✅ Today view optimized and displayed successfully');
+        console.log('✅ Today view optimized and displayed');
         
     } catch (error) {
-        console.error('❌ Error showing optimized today view:', error);
+        console.error('❌ Error showing today view:', error);
+        this.showErrorState();
+    }
+}
+
+/** Enhanced loading state with modern animation */
+showEnhancedLoadingState() {
+    const progressLoading = document.getElementById('progress-loading');
+    const progressContent = document.getElementById('progress-content');
+    
+    if (progressLoading && progressContent) {
+        // Add smooth transition
+        progressContent.style.opacity = '0.5';
+        progressContent.style.transform = 'scale(0.98)';
+        progressContent.style.transition = 'all 0.3s ease';
         
-        // Enhanced error state
-        const progressContent = document.getElementById('progress-content');
-        if (progressContent) {
-            progressContent.innerHTML = `
-                <div class="alert alert-error shadow-lg">
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="alert-circle" class="w-6 h-6 flex-shrink-0"></i>
-                        <div class="flex-1">
-                            <h3 class="font-bold">Fehler beim Laden der Daten</h3>
-                            <div class="text-sm mt-1 opacity-80">
-                                Bitte versuche es später erneut oder aktualisiere die Seite.
-                                <br><small class="opacity-60">Fehler: ${error.message}</small>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-ghost" onclick="this.closest('.alert').remove(); healthTracker.progressHub.showView('overview')">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                            Erneut versuchen
-                        </button>
-                    </div>
+        progressLoading.classList.remove('hidden');
+        progressLoading.innerHTML = `
+            <div class="flex items-center justify-center py-12">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="loading loading-ring loading-lg text-primary"></div>
+                    <div class="text-primary font-medium animate-pulse">Optimiere deine Daten...</div>
                 </div>
-            `;
+            </div>
+        `;
+    }
+}
+
+/** Update today's date with enhanced formatting */
+updateTodayDate() {
+    const todayDateEl = document.getElementById('today-date');
+    if (todayDateEl) {
+        const today = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        
+        const formattedDate = today.toLocaleDateString('de-DE', options);
+        const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+        
+        todayDateEl.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="font-medium">${formattedDate}</span>
+                <div class="badge badge-ghost badge-sm">Tag ${dayOfYear}</div>
+            </div>
+        `;
+    }
+}
+
+/** Update today's stats with smooth animations */
+async updateTodayStatsWithAnimations(todayData) {
+    const stats = [
+        {
+            id: 'today-steps-display',
+            progressId: 'today-steps-progress',
+            value: todayData.steps || 0,
+            goal: this.healthTracker.goals.stepsGoal,
+            format: (val) => val.toLocaleString(),
+            color: 'primary'
+        },
+        {
+            id: 'today-water-display',
+            progressId: 'today-water-progress',
+            value: todayData.waterIntake || 0,
+            goal: this.healthTracker.goals.waterGoal,
+            format: (val) => `${val}L`,
+            color: 'info'
+        },
+        {
+            id: 'today-sleep-display',
+            progressId: 'today-sleep-progress',
+            value: todayData.sleepHours || 0,
+            goal: this.healthTracker.goals.sleepGoal,
+            format: (val) => `${val}h`,
+            color: 'accent'
+        },
+        {
+            id: 'today-weight-display',
+            progressId: null,
+            value: todayData.weight || 0,
+            goal: null,
+            format: (val) => val ? `${val}kg` : '—',
+            color: 'secondary'
+        }
+    ];
+    
+    // Animate each stat with staggered timing
+    for (let i = 0; i < stats.length; i++) {
+        setTimeout(() => {
+            this.animateStatUpdate(stats[i]);
+        }, i * 150);
+    }
+}
+
+/** Animate individual stat update */
+animateStatUpdate(stat) {
+    const element = document.getElementById(stat.id);
+    const progressElement = stat.progressId ? document.getElementById(stat.progressId) : null;
+    
+    if (element) {
+        // Add loading animation
+        element.style.transform = 'scale(1.1)';
+        element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        element.classList.add('animate-pulse');
+        
+        setTimeout(() => {
+            // Update value with counter animation
+            this.animateCounterTo(element, stat.value, stat.format);
             
-            // Reinitialize lucide icons for error state
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            // Remove loading state
+            element.classList.remove('animate-pulse');
+            element.style.transform = 'scale(1)';
+            
+            // Update progress bar if exists
+            if (progressElement && stat.goal) {
+                const progress = Math.min((stat.value / stat.goal) * 100, 100);
+                this.animateProgressBar(progressElement, progress);
             }
+            
+            // Add achievement glow if goal reached
+            if (stat.goal && stat.value >= stat.goal) {
+                element.parentElement.classList.add('ring-2', 'ring-success', 'ring-opacity-50');
+                setTimeout(() => {
+                    element.parentElement.classList.remove('ring-2', 'ring-success', 'ring-opacity-50');
+                }, 2000);
+            }
+        }, 300);
+    }
+}
+
+/** Animate counter to target value */
+animateCounterTo(element, targetValue, formatter) {
+    const startValue = 0;
+    const duration = 800;
+    const startTime = performance.now();
+    
+    const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = startValue + (targetValue - startValue) * easeOut;
+        
+        element.textContent = formatter(Math.round(currentValue * 10) / 10);
+        
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    };
+    
+    requestAnimationFrame(animate);
+}
+
+/** Animate progress bar to target percentage */
+animateProgressBar(progressElement, targetProgress) {
+    progressElement.style.width = '0%';
+    progressElement.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    setTimeout(() => {
+        progressElement.style.width = `${targetProgress}%`;
+        
+        // Add pulse effect when reaching 100%
+        if (targetProgress >= 100) {
+            setTimeout(() => {
+                progressElement.style.animation = 'pulse 0.5s ease-in-out';
+                setTimeout(() => {
+                    progressElement.style.animation = '';
+                }, 500);
+            }, 1000);
+        }
+    }, 100);
+}
+
+/** Update weekly trends with enhanced visuals */
+async updateWeeklyTrendsEnhanced(weekData, allData) {
+    const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
+    const previousWeekData = this.getPreviousWeekData(allData);
+    const previousAvg = this.healthTracker.calculateWeeklyAverages(previousWeekData);
+    
+    const trends = [
+        {
+            id: 'week-avg-steps',
+            trendId: 'week-steps-trend',
+            current: weeklyAvg.steps,
+            previous: previousAvg.steps,
+            format: (val) => val.toLocaleString()
+        },
+        {
+            id: 'week-avg-water',
+            trendId: 'week-water-trend',
+            current: weeklyAvg.water,
+            previous: previousAvg.water,
+            format: (val) => `${val}L`
+        },
+        {
+            id: 'week-avg-sleep',
+            trendId: 'week-sleep-trend',
+            current: weeklyAvg.sleep,
+            previous: previousAvg.sleep,
+            format: (val) => `${val}h`
+        }
+    ];
+    
+    trends.forEach((trend, index) => {
+        setTimeout(() => {
+            this.updateTrendWithAnimation(trend);
+        }, index * 200);
+    });
+}
+
+/** Update individual trend with animation and comparison */
+updateTrendWithAnimation(trend) {
+    const element = document.getElementById(trend.id);
+    const trendElement = document.getElementById(trend.trendId);
+    
+    if (element) {
+        // Animate value update
+        element.style.transform = 'scale(1.05)';
+        element.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            this.animateCounterTo(element, trend.current, trend.format);
+            element.style.transform = 'scale(1)';
+        }, 100);
+    }
+    
+    if (trendElement && trend.previous > 0) {
+        const change = ((trend.current - trend.previous) / trend.previous) * 100;
+        const changeText = change > 0 ? `+${Math.round(change)}%` : `${Math.round(change)}%`;
+        const trendIcon = change > 0 ? '📈' : change < 0 ? '📉' : '➡️';
+        const trendColor = change > 0 ? 'text-success' : change < 0 ? 'text-error' : 'text-base-content';
+        
+        trendElement.innerHTML = `
+            <span class="${trendColor} font-medium">${trendIcon} ${changeText}</span>
+        `;
+        
+        // Add animation
+        trendElement.style.opacity = '0';
+        trendElement.style.transform = 'translateY(10px)';
+        trendElement.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            trendElement.style.opacity = '1';
+            trendElement.style.transform = 'translateY(0)';
+        }, 200);
+    }
+}
+
+/** Update quick stats with enhanced animations */
+async updateQuickStatsEnhanced(allData) {
+    const currentStreak = this.calculateCurrentStreak(allData);
+    const weeklyGoalsAchieved = this.calculateWeeklyGoalsAchieved(allData);
+    const totalEntries = allData.length;
+    
+    const quickStats = [
+        { id: 'current-streak', value: currentStreak, format: (val) => val.toString() },
+        { id: 'weekly-goals-achieved', value: weeklyGoalsAchieved, format: (val) => val.toString() },
+        { id: 'total-entries', value: totalEntries, format: (val) => val.toLocaleString() }
+    ];
+    
+    quickStats.forEach((stat, index) => {
+        setTimeout(() => {
+            const element = document.getElementById(stat.id);
+            if (element) {
+                // Add sparkle effect for impressive values
+                if ((stat.id === 'current-streak' && stat.value >= 7) ||
+                    (stat.id === 'weekly-goals-achieved' && stat.value >= 5) ||
+                    (stat.id === 'total-entries' && stat.value >= 50)) {
+                    element.parentElement.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        element.parentElement.classList.remove('animate-pulse');
+                    }, 1000);
+                }
+                
+                this.animateCounterTo(element, stat.value, stat.format);
+            }
+        }, index * 100);
+    });
+}
+
+/** Enhanced completion rate calculation with visual feedback */
+updateCompletionRateEnhanced(todayData) {
+    const completionRateEl = document.getElementById('today-completion-rate');
+    if (!completionRateEl) return;
+    
+    let completed = 0;
+    let total = 0;
+    
+    // Check each goal
+    if (this.healthTracker.goals.stepsGoal) {
+        total++;
+        if (todayData.steps >= this.healthTracker.goals.stepsGoal) completed++;
+    }
+    
+    if (this.healthTracker.goals.waterGoal) {
+        total++;
+        if (todayData.waterIntake >= this.healthTracker.goals.waterGoal) completed++;
+    }
+    
+    if (this.healthTracker.goals.sleepGoal) {
+        total++;
+        if (todayData.sleepHours >= this.healthTracker.goals.sleepGoal) completed++;
+    }
+    
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    // Animate completion rate
+    const startRate = 0;
+    const duration = 1000;
+    const startTime = performance.now();
+    
+    const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentRate = Math.round(startRate + (rate - startRate) * progress);
+        
+        completionRateEl.textContent = `${currentRate}%`;
+        
+        // Update badge color based on completion rate
+        const badge = completionRateEl.parentElement;
+        badge.className = 'badge badge-lg';
+        if (currentRate >= 80) {
+            badge.classList.add('badge-success');
+        } else if (currentRate >= 50) {
+            badge.classList.add('badge-warning');
+        } else {
+            badge.classList.add('badge-error');
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else if (rate === 100) {
+            // Celebration effect for 100% completion
+            badge.classList.add('animate-bounce');
+            setTimeout(() => {
+                badge.classList.remove('animate-bounce');
+            }, 1000);
+        }
+    };
+    
+    requestAnimationFrame(animate);
+}
+
+/** Enhanced today's notes display */
+updateTodayNotesEnhanced(todayData) {
+    const notesSection = document.getElementById('today-notes-section');
+    const notesContent = document.getElementById('today-notes-content');
+    
+    if (todayData.notes && todayData.notes.trim()) {
+        if (notesSection && notesContent) {
+            notesContent.textContent = todayData.notes;
+            notesSection.classList.remove('hidden');
+            
+            // Add fade-in animation
+            notesSection.style.opacity = '0';
+            notesSection.style.transform = 'translateY(20px)';
+            notesSection.style.transition = 'all 0.5s ease';
+            
+            setTimeout(() => {
+                notesSection.style.opacity = '1';
+                notesSection.style.transform = 'translateY(0)';
+            }, 300);
+        }
+    } else if (notesSection) {
+        notesSection.classList.add('hidden');
+    }
+}
+
+/** Add enhanced interactive elements */
+enhanceInteractiveElements() {
+    // Add hover effects to stat cards
+    document.querySelectorAll('.stat').forEach(statCard => {
+        statCard.style.cursor = 'pointer';
+        
+        statCard.addEventListener('mouseenter', () => {
+            statCard.style.transform = 'translateY(-2px)';
+            statCard.style.transition = 'all 0.2s ease';
+            statCard.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+        });
+        
+        statCard.addEventListener('mouseleave', () => {
+            statCard.style.transform = 'translateY(0)';
+            statCard.style.boxShadow = '';
+        });
+        
+        // Add click feedback
+        statCard.addEventListener('click', () => {
+            statCard.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                statCard.style.transform = 'translateY(-2px)';
+            }, 100);
+        });
+    });
+    
+    // Add tooltips to progress bars
+    document.querySelectorAll('.progress').forEach(progressBar => {
+        const parentStat = progressBar.closest('.stat');
+        if (parentStat) {
+            const statTitle = parentStat.querySelector('.stat-title')?.textContent;
+            const statValue = parentStat.querySelector('.stat-value')?.textContent;
+            
+            progressBar.setAttribute('title', `${statTitle}: ${statValue}`);
+            progressBar.style.cursor = 'help';
+        }
+    });
+}
+
+/** Animate all progress bars in sequence */
+animateProgressBars(todayData) {
+    const progressBars = [
+        { 
+            id: 'today-steps-progress', 
+            value: todayData.steps || 0, 
+            goal: this.healthTracker.goals.stepsGoal 
+        },
+        { 
+            id: 'today-water-progress', 
+            value: todayData.waterIntake || 0, 
+            goal: this.healthTracker.goals.waterGoal 
+        },
+        { 
+            id: 'today-sleep-progress', 
+            value: todayData.sleepHours || 0, 
+            goal: this.healthTracker.goals.sleepGoal 
+        }
+    ];
+    
+    progressBars.forEach((bar, index) => {
+        setTimeout(() => {
+            const element = document.getElementById(bar.id);
+            if (element && bar.goal) {
+                const progress = Math.min((bar.value / bar.goal) * 100, 100);
+                this.animateProgressBar(element, progress);
+            }
+        }, 500 + (index * 200));
+    });
+}
+
+/** Hide loading state with smooth transition */
+hideLoadingState() {
+    const progressLoading = document.getElementById('progress-loading');
+    const progressContent = document.getElementById('progress-content');
+    
+    if (progressLoading) {
+        progressLoading.classList.add('hidden');
+    }
+    
+    if (progressContent) {
+        progressContent.style.opacity = '1';
+        progressContent.style.transform = 'scale(1)';
+    }
+}
+
+/** Show error state with user-friendly message */
+showErrorState() {
+    const progressContent = document.getElementById('progress-content');
+    if (progressContent) {
+        progressContent.innerHTML = `
+            <div class="alert alert-error">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                <div>
+                    <h3 class="font-bold">Fehler beim Laden der Daten</h3>
+                    <div class="text-xs">Bitte versuche es später erneut oder aktualisiere die Seite.</div>
+                </div>
+                <button class="btn btn-sm" onclick="this.closest('.alert').remove(); healthTracker.progressHub.showView('overview')">
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+    }
+}
+
+/** Helper methods */
+getPreviousWeekData(allData) {
+    const oneWeekAgo = new Date();
+    const twoWeeksAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    return allData.filter(entry => {
+        const entryDate = new Date(entry.date);
+        return entryDate >= twoWeeksAgo && entryDate < oneWeekAgo;
+    });
+}
+
+calculateCurrentStreak(allData) {
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 365; i++) {
+        const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        const hasEntry = allData.some(entry => {
+            const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
+            return entryDate === dateStr;
+        });
+        
+        if (hasEntry) {
+            streak++;
+        } else {
+            break;
         }
     }
+    
+    return streak;
+}
+
+calculateWeeklyGoalsAchieved(allData) {
+    const weekData = this.healthTracker.getWeekData(allData);
+    let goalsAchieved = 0;
+    
+    weekData.forEach(entry => {
+        let dailyGoals = 0;
+        let dailyAchieved = 0;
+        
+        if (this.healthTracker.goals.stepsGoal) {
+            dailyGoals++;
+            if (entry.steps >= this.healthTracker.goals.stepsGoal) dailyAchieved++;
+        }
+        
+        if (this.healthTracker.goals.waterGoal) {
+            dailyGoals++;
+            if (entry.waterIntake >= this.healthTracker.goals.waterGoal) dailyAchieved++;
+        }
+        
+        if (this.healthTracker.goals.sleepGoal) {
+            dailyGoals++;
+            if (entry.sleepHours >= this.healthTracker.goals.sleepGoal) dailyAchieved++;
+        }
+        
+        if (dailyGoals > 0 && dailyAchieved === dailyGoals) {
+            goalsAchieved++;
+        }
+    });
+    
+    return goalsAchieved;
 }
 
     /**

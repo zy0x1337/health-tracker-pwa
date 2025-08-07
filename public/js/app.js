@@ -4835,13 +4835,13 @@ async loadCompleteAnalyticsData() {
             period: periodData
         };
 
-        // **FIX: Korrekte Parameter für Chart-Updates**
+        // Korrekte Parameter für Chart-Updates
         await Promise.all([
             this.updateQuickStats(allData, periodData),
             this.updateTrendsChart(),
             this.updateHeatmapChart(),
-            this.updateCorrelationChart(periodData), // ✅ Übergebe periodData
-            this.updateWeeklySummaryChart(periodData), // ✅ Übergebe periodData
+            this.updateCorrelationChart(periodData),
+            this.updateWeeklySummaryChart(periodData),
             this.updateAnalyticsInsights(periodData),
             this.updateCorrelationInsights(periodData)
         ]);
@@ -5465,41 +5465,67 @@ calculateSimpleTrends(data) {
     }
 
     /**
- * Update correlation chart with proper error handling
+ * Update correlation chart - corrected for your HTML structure
  */
 async updateCorrelationChart(data) {
-    const container = document.getElementById('correlation-chart');
+    // Suche nach dem korrekten Container - dein HTML hat Canvas-Elemente
+    let container = document.getElementById('correlation-chart');
+    
     if (!container) {
         console.error('❌ Correlation chart container not found');
         return;
     }
 
+    // Da es ein Canvas ist, brauchen wir den Parent-Container
+    const parentContainer = container.closest('.card-body');
+    if (!parentContainer) {
+        console.error('❌ Parent container for correlation chart not found');
+        return;
+    }
+
     try {
+        // Verstecke das Canvas und erstelle stattdessen einen Content-Container
+        container.style.display = 'none';
+        
+        // Suche oder erstelle Content-Container
+        let contentDiv = parentContainer.querySelector('.correlation-content');
+        if (!contentDiv) {
+            contentDiv = document.createElement('div');
+            contentDiv.className = 'correlation-content h-64 overflow-y-auto';
+            container.parentNode.insertBefore(contentDiv, container.nextSibling);
+        }
+        
         // Clear previous content
-        container.innerHTML = '';
+        contentDiv.innerHTML = '';
         
         // Check if we have enough data
         if (!data || data.length < 3) {
-            container.innerHTML = `
+            contentDiv.innerHTML = `
                 <div class="text-center py-8">
-                    <div class="text-gray-500 mb-2">📊</div>
+                    <div class="text-4xl mb-2">📊</div>
                     <div class="text-sm text-gray-600">
                         Mindestens 3 Datenpunkte für Korrelationsanalyse erforderlich
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        Aktuell: ${data?.length || 0} Datenpunkte verfügbar
                     </div>
                 </div>
             `;
             return;
         }
 
-        // Calculate correlations
-        const correlations = this.calculateCorrelations(data);
+        // Calculate basic correlations
+        const correlations = this.calculateBasicCorrelations(data);
         
         if (correlations.length === 0) {
-            container.innerHTML = `
+            contentDiv.innerHTML = `
                 <div class="text-center py-8">
-                    <div class="text-gray-500 mb-2">📈</div>
+                    <div class="text-4xl mb-2">📈</div>
                     <div class="text-sm text-gray-600">
                         Keine signifikanten Korrelationen gefunden
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        Mehr Daten erforderlich für Analyse
                     </div>
                 </div>
             `;
@@ -5508,20 +5534,23 @@ async updateCorrelationChart(data) {
 
         // Create correlation visualization
         const chartHTML = correlations.map(corr => `
-            <div class="bg-base-200 p-4 rounded-lg mb-3">
+            <div class="bg-base-200 p-4 rounded-lg mb-3 hover:shadow-md transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <h4 class="font-semibold text-sm">${corr.metric1} ↔ ${corr.metric2}</h4>
-                    <div class="badge badge-ghost">${(corr.correlation * 100).toFixed(1)}%</div>
+                    <h4 class="font-semibold text-sm flex items-center gap-2">
+                        <span class="text-lg">${corr.icon}</span>
+                        ${corr.title}
+                    </h4>
+                    <div class="badge ${corr.badgeClass}">${corr.percentage}%</div>
                 </div>
                 <div class="w-full bg-base-300 rounded-full h-2 mb-2">
-                    <div class="bg-primary h-2 rounded-full" 
-                         style="width: ${Math.abs(corr.correlation) * 100}%"></div>
+                    <div class="bg-primary h-2 rounded-full transition-all" 
+                         style="width: ${Math.abs(corr.strength) * 100}%"></div>
                 </div>
                 <p class="text-xs text-gray-600">${corr.description}</p>
             </div>
         `).join('');
 
-        container.innerHTML = `
+        contentDiv.innerHTML = `
             <div class="space-y-3">
                 <div class="text-sm font-medium mb-4">Datenkorrelationen (${data.length} Tage)</div>
                 ${chartHTML}
@@ -5532,36 +5561,121 @@ async updateCorrelationChart(data) {
 
     } catch (error) {
         console.error('❌ Error updating correlation chart:', error);
-        container.innerHTML = `
-            <div class="text-center py-8">
-                <div class="text-error mb-2">⚠️</div>
-                <div class="text-sm text-error">
-                    Fehler beim Laden der Korrelationsanalyse
+        const contentDiv = parentContainer.querySelector('.correlation-content') || 
+                          parentContainer.querySelector('.h-64');
+        if (contentDiv) {
+            contentDiv.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-error mb-2">⚠️</div>
+                    <div class="text-sm text-error">
+                        Fehler beim Laden der Korrelationsanalyse
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 
+/**
+ * Calculate basic correlations from health data
+ */
+calculateBasicCorrelations(data) {
+    if (!data || data.length < 3) return [];
+    
+    const correlations = [];
+    
+    // Helper function to calculate correlation
+    const calculateCorrelation = (x, y) => {
+        const n = Math.min(x.length, y.length);
+        if (n < 2) return 0;
+        
+        const sumX = x.reduce((a, b) => a + b, 0);
+        const sumY = y.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+        const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+        const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+        
+        const numerator = n * sumXY - sumX * sumY;
+        const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+        
+        return denominator === 0 ? 0 : numerator / denominator;
+    };
+    
+    // Extract valid data arrays
+    const steps = data.map(d => d.steps || 0).filter(v => v > 0);
+    const water = data.map(d => d.waterIntake || 0).filter(v => v > 0);
+    const sleep = data.map(d => d.sleepHours || 0).filter(v => v > 0);
+    const weight = data.map(d => d.weight || 0).filter(v => v > 0);
+    
+    // Calculate correlations
+    if (steps.length >= 3 && sleep.length >= 3) {
+        const corr = calculateCorrelation(steps.slice(0, Math.min(steps.length, sleep.length)), 
+                                        sleep.slice(0, Math.min(steps.length, sleep.length)));
+        correlations.push({
+            title: 'Schritte ↔ Schlaf',
+            icon: '🚶‍♂️',
+            strength: corr,
+            percentage: Math.round(Math.abs(corr) * 100),
+            badgeClass: Math.abs(corr) > 0.6 ? 'badge-success' : Math.abs(corr) > 0.3 ? 'badge-warning' : 'badge-ghost',
+            description: corr > 0.3 ? 'Mehr Schritte = besserer Schlaf' : 'Schwache Korrelation erkannt'
+        });
+    }
+    
+    if (water.length >= 3 && steps.length >= 3) {
+        const corr = calculateCorrelation(water.slice(0, Math.min(water.length, steps.length)), 
+                                        steps.slice(0, Math.min(water.length, steps.length)));
+        correlations.push({
+            title: 'Wasser ↔ Aktivität',
+            icon: '💧',
+            strength: corr,
+            percentage: Math.round(Math.abs(corr) * 100),
+            badgeClass: Math.abs(corr) > 0.6 ? 'badge-info' : Math.abs(corr) > 0.3 ? 'badge-warning' : 'badge-ghost',
+            description: corr > 0.3 ? 'Mehr Trinken = mehr Aktivität' : 'Moderate Korrelation'
+        });
+    }
+    
+    return correlations.filter(c => Math.abs(c.strength) > 0.1);
+}
+
     /**
- * Update weekly summary chart with proper error handling and data visualization
+ * Update weekly summary chart - corrected for your HTML structure
  */
 async updateWeeklySummaryChart(data) {
-    const container = document.getElementById('weekly-summary-chart');
+    // Suche nach dem korrekten Container - dein HTML hat Canvas-Elemente
+    let container = document.getElementById('weekly-summary-chart');
+    
     if (!container) {
         console.error('❌ Weekly summary chart container not found');
         return;
     }
 
+    // Da es ein Canvas ist, brauchen wir den Parent-Container
+    const parentContainer = container.closest('.card-body');
+    if (!parentContainer) {
+        console.error('❌ Parent container for weekly summary chart not found');
+        return;
+    }
+
     try {
+        // Verstecke das Canvas und erstelle stattdessen einen Content-Container
+        container.style.display = 'none';
+        
+        // Suche oder erstelle Content-Container
+        let contentDiv = parentContainer.querySelector('.weekly-summary-content');
+        if (!contentDiv) {
+            contentDiv = document.createElement('div');
+            contentDiv.className = 'weekly-summary-content h-64 overflow-y-auto';
+            container.parentNode.insertBefore(contentDiv, container.nextSibling);
+        }
+        
         // Clear previous content
-        container.innerHTML = '';
+        contentDiv.innerHTML = '';
         
         // Check if we have enough data
         if (!data || data.length < 1) {
-            container.innerHTML = `
+            contentDiv.innerHTML = `
                 <div class="text-center py-8">
-                    <div class="text-gray-500 mb-2">📅</div>
+                    <div class="text-4xl mb-2">📅</div>
                     <div class="text-sm text-gray-600">
                         Keine Wochendaten verfügbar
                     </div>
@@ -5577,9 +5691,9 @@ async updateWeeklySummaryChart(data) {
         const weekData = this.getWeeklyData(data);
         
         if (weekData.length === 0) {
-            container.innerHTML = `
+            contentDiv.innerHTML = `
                 <div class="text-center py-8">
-                    <div class="text-gray-500 mb-2">📊</div>
+                    <div class="text-4xl mb-2">📊</div>
                     <div class="text-sm text-gray-600">
                         Keine Wochendaten
                     </div>
@@ -5647,19 +5761,23 @@ async updateWeeklySummaryChart(data) {
             </div>
         `;
 
-        container.innerHTML = summaryHTML;
+        contentDiv.innerHTML = summaryHTML;
         console.log('✅ Weekly summary chart updated successfully');
 
     } catch (error) {
         console.error('❌ Error updating weekly summary chart:', error);
-        container.innerHTML = `
-            <div class="text-center py-8">
-                <div class="text-error mb-2">⚠️</div>
-                <div class="text-sm text-error">
-                    Fehler beim Laden der Wochenzusammenfassung
+        const contentDiv = parentContainer.querySelector('.weekly-summary-content') || 
+                          parentContainer.querySelector('.h-64');
+        if (contentDiv) {
+            contentDiv.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-error mb-2">⚠️</div>
+                    <div class="text-sm text-error">
+                        Fehler beim Laden der Wochenzusammenfassung
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 

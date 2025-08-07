@@ -5005,8 +5005,6 @@ async loadCompleteAnalyticsData() {
             this.updateQuickStats(allData, periodData),
             this.updateTrendsChart(),
             this.updateHeatmapChart(),
-            // ❌ ENTFERNT: this.updateCorrelationChart(periodData),
-            // ❌ ENTFERNT: this.updateWeeklySummaryChart(periodData),
             this.updateAnalyticsInsights(periodData)
         ]);
 

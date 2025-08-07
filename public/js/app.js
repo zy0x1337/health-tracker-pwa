@@ -2286,39 +2286,64 @@ async loadViewData() {
         });
     }
 
-    /** Zeigt den gewünschten Tab-Inhalt an */
-showView(viewName = 'overview') {
+    /**
+ * Show specific view in progress hub
+ */
+showView(viewName) {
+    console.log('🔄 ProgressHub showView called:', viewName);
+    
     this.currentView = viewName;
-    console.log('🔄 ProgressHub -> showView:', viewName);
-
-    /* 1. Tabs umschalten */
-    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
-        tab.classList.toggle('tab-active', tab.id === `tab-${viewName}`);
+    
+    // Update tab states (DaisyUI tabs)
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    console.log('📊 Found tabs:', tabs.length);
+    
+    tabs.forEach(tab => {
+        tab.classList.remove('tab-active');
     });
+    
+    const activeTab = document.getElementById(`tab-${viewName}`);
+    console.log('🎯 Active tab element:', activeTab);
+    
+    if (activeTab) {
+        activeTab.classList.add('tab-active');
+    }
 
-    /* 2. Alle Views verstecken */
-    ['overview-view', 'weekly-view', 'goals-view', 'achievements-view'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    });
+    // Show appropriate content
+    const container = document.getElementById('progress-content');
+    console.log('📦 Progress content container:', container);
+    
+    if (!container) {
+        console.error('❌ progress-content Container nicht gefunden!');
+        return;
+    }
 
-    /* 3. Gewünschten View einblenden + Daten laden */
+    // Analytics view - trigger analytics engine
+        if (viewName === 'analytics') {
+            console.log('📊 Switching to analytics view - triggering analytics engine...');
+            setTimeout(() => {
+                if (this.healthTracker.analyticsEngine) {
+                    this.healthTracker.analyticsEngine.updateAllAnalytics();
+                }
+            }, 100);
+        }
+
     switch (viewName) {
-        case 'weekly':
-            document.getElementById('weekly-view')?.classList.remove('hidden');
-            this.populateWeeklyView?.();
+        case 'today':
+            console.log('📅 Showing today view');
+            this.showTodayView();
             break;
-        case 'goals':
-            document.getElementById('goals-view')?.classList.remove('hidden');
-            this.populateGoalsView?.();
+        case 'week':
+            console.log('📊 Showing week view');
+            this.showWeekView();
             break;
-        case 'achievements':
-            document.getElementById('achievements-view')?.classList.remove('hidden');
-            this.populateAchievementsView?.();
+        case 'analytics':
+            console.log('📈 Showing analytics view');
+            this.showAnalyticsView();
             break;
-        default: // 'overview'
-            document.getElementById('overview-view')?.classList.remove('hidden');
-            this.showTodayView?.();
+        default:
+            console.log('📅 Default to today view');
+            this.showTodayView();
     }
 }
 
@@ -4748,6 +4773,11 @@ class AnalyticsEngine {
         } else {
             await this.setup();
         }
+
+        // Default-View direkt nach Initialisierung anzeigen
+if (typeof this.showView === 'function') {
+    this.showView('overview');
+}
     }
 
     /** Setup analytics engine completely */
@@ -5296,62 +5326,223 @@ class AnalyticsEngine {
     }
 
     /** Update correlation chart */
-    async updateCorrelationChart() {
-        console.log('🔗 Updating correlation chart...');
-        
-        const canvas = document.getElementById('correlation-chart');
-        if (!canvas) {
-            console.warn('⚠️ Correlation chart canvas not found');
-            return;
-        }
+async updateCorrelationChart() {
+    console.log('🔗 Updating correlation chart...');
 
-        try {
-            // Show placeholder for now
-            const container = canvas.parentElement;
-            container.innerHTML = `
-                <div class="flex items-center justify-center h-64">
-                    <div class="text-center">
-                        <i data-lucide="git-branch" class="w-12 h-12 mx-auto text-secondary/30 mb-2"></i>
-                        <p class="text-secondary/70">Korrelationsanalyse läuft...</p>
+    const container = document.getElementById('correlation-insights');
+    if (!container) {
+        console.warn('⚠️ Correlation insights container not found');
+        return;
+    }
+
+    try {
+        const data = this.analyticsData?.period || [];
+        const correlations = this.calculateCorrelations(data);
+        
+        // Fill the container with correlation insights instead of a chart
+        container.innerHTML = correlations.length > 0 ? correlations.map(corr => `
+            <div class="bg-base-100 rounded-lg p-4 shadow-sm border border-base-300/50">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium flex items-center gap-2">
+                        <span class="text-lg">${corr.icon}</span>
+                        ${corr.title}
+                    </span>
+                    <div class="badge ${this.getCorrelationBadge(corr.strength)}">
+                        ${this.getCorrelationLabel(corr.strength)}
                     </div>
                 </div>
-            `;
+                <div class="w-full bg-base-300 rounded-full h-2 mb-2">
+                    <div class="${this.getCorrelationColor(corr.strength)} h-2 rounded-full transition-all duration-500" 
+                         style="width: ${Math.round(corr.strength * 100)}%"></div>
+                </div>
+                <p class="text-xs text-base-content/70">${corr.description}</p>
+            </div>
+        `).join('') : `
+            <div class="alert alert-info">
+                <span>📊</span>
+                <span>Sammle mehr Daten für Korrelationsanalyse (mindestens 5 Einträge benötigt)</span>
+            </div>
+        `;
 
-            console.log('✅ Correlation chart placeholder updated');
+        console.log('✅ Correlation insights updated');
 
-        } catch (error) {
-            console.error('❌ Correlation chart error:', error);
-        }
+    } catch (error) {
+        console.error('❌ Correlation chart error:', error);
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <span>❌ Korrelations-Fehler: ${error.message}</span>
+            </div>
+        `;
     }
+}
 
     /** Update weekly summary chart */
-    async updateWeeklySummaryChart() {
-        console.log('📅 Updating weekly summary chart...');
-        
-        const canvas = document.getElementById('weekly-summary-chart');
-        if (!canvas) {
-            console.warn('⚠️ Weekly summary chart canvas not found');
-            return;
-        }
+async updateWeeklySummaryChart() {
+    console.log('📅 Updating weekly summary chart...');
+    
+    // Use the actual existing ID from the HTML
+    const container = document.getElementById('weekly-summary-content');
+    if (!container) {
+        console.warn('⚠️ Weekly summary content container not found');
+        return;
+    }
 
-        try {
-            // Show placeholder for now
-            const container = canvas.parentElement;
+    try {
+        const allData = this.analyticsData?.all || await this.healthTracker.getAllHealthData();
+        const weekData = this.healthTracker.getWeekData(allData);
+        
+        if (weekData.length === 0) {
             container.innerHTML = `
-                <div class="flex items-center justify-center h-64">
+                <div class="flex items-center justify-center h-64 bg-base-200 rounded-lg">
                     <div class="text-center">
-                        <i data-lucide="calendar-days" class="w-12 h-12 mx-auto text-accent/30 mb-2"></i>
-                        <p class="text-accent/70">Wöchentliche Zusammenfassung wird erstellt...</p>
+                        <i data-lucide="calendar-days" class="w-12 h-12 mx-auto text-base-content/30 mb-2"></i>
+                        <p class="font-semibold">Keine Wochendaten</p>
+                        <p class="text-sm opacity-70">Erfasse mehr Daten für Wochenvergleich</p>
                     </div>
                 </div>
             `;
-
-            console.log('✅ Weekly summary chart placeholder updated');
-
-        } catch (error) {
-            console.error('❌ Weekly summary chart error:', error);
+            return;
         }
+
+        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
+        const weeklyStats = this.calculateDetailedWeeklyStats(weekData);
+        
+        container.innerHTML = `
+            <div class="space-y-6">
+                <!-- Weekly Overview Stats -->
+                <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200 w-full">
+                    <div class="stat">
+                        <div class="stat-figure text-primary">
+                            <i data-lucide="footprints" class="w-8 h-8"></i>
+                        </div>
+                        <div class="stat-title">Ø Schritte/Tag</div>
+                        <div class="stat-value text-primary">${weeklyAvg.steps.toLocaleString()}</div>
+                        <div class="stat-desc">${this.getGoalComparison('steps', weeklyAvg.steps)}</div>
+                    </div>
+                    
+                    <div class="stat">
+                        <div class="stat-figure text-info">
+                            <i data-lucide="droplets" class="w-8 h-8"></i>
+                        </div>
+                        <div class="stat-title">Ø Wasser/Tag</div>
+                        <div class="stat-value text-info">${weeklyAvg.water}L</div>
+                        <div class="stat-desc">${this.getGoalComparison('water', weeklyAvg.water)}</div>
+                    </div>
+                    
+                    <div class="stat">
+                        <div class="stat-figure text-accent">
+                            <i data-lucide="moon" class="w-8 h-8"></i>
+                        </div>
+                        <div class="stat-title">Ø Schlaf/Nacht</div>
+                        <div class="stat-value text-accent">${weeklyAvg.sleep}h</div>
+                        <div class="stat-desc">${this.getGoalComparison('sleep', weeklyAvg.sleep)}</div>
+                    </div>
+                </div>
+
+                <!-- Daily Breakdown -->
+                <div class="card bg-base-100 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Tägliche Aufschlüsselung</h4>
+                        <div class="space-y-3">
+                            ${weekData.slice(0, 7).map((entry, index) => {
+                                const entryDate = new Date(entry.date);
+                                const isToday = entryDate.toDateString() === new Date().toDateString();
+                                const dayName = entryDate.toLocaleDateString('de-DE', { 
+                                    weekday: 'long', 
+                                    day: '2-digit', 
+                                    month: '2-digit' 
+                                });
+                                
+                                return `
+                                    <div class="alert ${isToday ? 'alert-info' : 'alert-ghost'} flex justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="font-medium">${dayName}</div>
+                                            ${isToday ? '<div class="badge badge-primary">Heute</div>' : ''}
+                                        </div>
+                                        <div class="flex gap-2 text-sm">
+                                            ${entry.steps ? `<div class="badge badge-success">${entry.steps.toLocaleString()} Schritte</div>` : ''}
+                                            ${entry.waterIntake ? `<div class="badge badge-info">${entry.waterIntake}L</div>` : ''}
+                                            ${entry.sleepHours ? `<div class="badge badge-warning">${entry.sleepHours}h</div>` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Insights -->
+                <div class="card bg-gradient-to-br from-accent/5 to-primary/5 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Wöchentliche Erkenntnisse</h4>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="target" class="w-4 h-4 text-success"></i>
+                                    <span class="font-medium">Beste Kategorie</span>
+                                </div>
+                                <div class="text-lg font-bold text-success">${weeklyStats.bestCategory}</div>
+                                <div class="text-sm opacity-70">${weeklyStats.bestCategoryDesc}</div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="trending-up" class="w-4 h-4 text-info"></i>
+                                    <span class="font-medium">Verbesserungspotential</span>
+                                </div>
+                                <div class="text-lg font-bold text-info">${weeklyStats.improvementArea}</div>
+                                <div class="text-sm opacity-70">${weeklyStats.improvementDesc}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Reinitialize lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        console.log('✅ Weekly summary updated successfully');
+
+    } catch (error) {
+        console.error('❌ Weekly summary error:', error);
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <span>❌ Wöchentliche Zusammenfassung Fehler: ${error.message}</span>
+            </div>
+        `;
     }
+}
+
+/** Calculate detailed weekly statistics */
+calculateDetailedWeeklyStats(weekData) {
+    const goals = this.healthTracker?.goals || {};
+    
+    // Calculate goal achievement rates
+    const stepsRate = goals.stepsGoal ? 
+        weekData.filter(d => d.steps >= goals.stepsGoal).length / weekData.length * 100 : 0;
+    const waterRate = goals.waterGoal ? 
+        weekData.filter(d => d.waterIntake >= goals.waterGoal).length / weekData.length * 100 : 0;
+    const sleepRate = goals.sleepGoal ? 
+        weekData.filter(d => d.sleepHours >= goals.sleepGoal).length / weekData.length * 100 : 0;
+    
+    // Determine best and worst categories
+    const rates = [
+        { name: 'Schritte', rate: stepsRate, desc: 'Du erreichst dein Schrittziel regelmäßig' },
+        { name: 'Wasser', rate: waterRate, desc: 'Deine Hydration ist auf einem guten Niveau' },
+        { name: 'Schlaf', rate: sleepRate, desc: 'Du schläfst ausreichend und regelmäßig' }
+    ];
+    
+    rates.sort((a, b) => b.rate - a.rate);
+    
+    return {
+        bestCategory: rates[0].name,
+        bestCategoryDesc: rates[0].desc,
+        improvementArea: rates[rates.length - 1].name,
+        improvementDesc: `Hier gibt es noch Verbesserungspotential (${Math.round(rates[rates.length - 1].rate)}% erreicht)`
+    };
+}
 
     /** Update analytics insights */
     async updateAnalyticsInsights(data) {

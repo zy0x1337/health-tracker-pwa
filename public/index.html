@@ -657,10 +657,10 @@ function fallbackShowSettings() {
         Mehr
     </div>
     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
-        <li><a onclick="document.getElementById('goals-modal').scrollIntoView({behavior: 'smooth'})">
-            <i data-lucide="flag" class="w-4 h-4"></i>
-            Ziele anpassen
-        </a></li>
+        <li><a onclick="document.getElementById('edit-goals-btn').click()">
+    <i data-lucide="flag" class="w-4 h-4"></i>
+    Ziele anpassen
+</a></li>
         <li><a onclick="showInstallPrompt()">
             <i data-lucide="download" class="w-4 h-4"></i>
             App installieren
@@ -1244,7 +1244,7 @@ function fallbackShowSettings() {
                         </div>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-bold text-base-content">Ziele bearbeiten</h3>
+                        <h3 class="text-2xl font-bold text-base-content">Ziele anpassen</h3>
                         <p class="text-sm text-base-content/70">Setze deine persönlichen Gesundheitsziele</p>
                     </div>
                 </div>

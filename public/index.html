@@ -2073,6 +2073,41 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
      data-permissions-checked="false">
 </div>
 
+<!-- Install Button Debugging -->
+<div id="install-debug-panel" class="fixed bottom-4 right-4 bg-red-100 p-3 rounded-lg text-xs max-w-xs">
+  <div class="font-bold mb-1">🔧 Install Debug</div>
+  <div id="debug-manifest">Manifest: <span class="loading"></span></div>
+  <div id="debug-sw">SW: <span class="loading"></span></div>  
+  <div id="debug-https">HTTPS: <span class="loading"></span></div>
+  <div id="debug-icons">Icons: <span class="loading"></span></div>
+  <div id="debug-prompt">Prompt: <span class="loading"></span></div>
+  <button onclick="this.parentElement.remove()" class="btn btn-xs mt-1">❌</button>
+</div>
+
+<script>
+// Sofortige Install-Diagnose
+setTimeout(() => {
+  const debug = {
+    manifest: !!document.querySelector('link[rel="manifest"]'),
+    sw: 'serviceWorker' in navigator,
+    https: location.protocol === 'https:' || location.hostname === 'localhost',
+    icons: true, // Wird async geprüft
+    prompt: typeof deferredPrompt !== 'undefined' && !!deferredPrompt
+  };
+  
+  document.getElementById('debug-manifest').innerHTML = `Manifest: ${debug.manifest ? '✅' : '❌'}`;
+  document.getElementById('debug-sw').innerHTML = `SW: ${debug.sw ? '✅' : '❌'}`;
+  document.getElementById('debug-https').innerHTML = `HTTPS: ${debug.https ? '✅' : '❌'}`;
+  document.getElementById('debug-prompt').innerHTML = `Prompt: ${debug.prompt ? '✅' : '❌ (normal)'}`;
+  
+  // Icon-Test
+  const img = new Image();
+  img.onload = () => document.getElementById('debug-icons').innerHTML = 'Icons: ✅';
+  img.onerror = () => document.getElementById('debug-icons').innerHTML = 'Icons: ❌';
+  img.src = '/icons/icon-192x192.png';
+}, 1000);
+</script>
+
     <!-- JavaScript -->
     <script src="/js/app.js"></script>
     <script>

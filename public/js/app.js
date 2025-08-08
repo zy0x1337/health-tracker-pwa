@@ -2838,7 +2838,7 @@ showDataPrivacy() {
     document.body.appendChild(modal);
 }
 
-/** 
+/**
  * Zeige erweiterte App-Informationen mit verbesserter UX
  */
 showAbout() {
@@ -2881,10 +2881,10 @@ showAbout() {
                 <a class="tab" data-about-tab="tech">⚡ Technologie</a>
             </div>
             
-            <!-- Tab Content -->
-            <div class="tab-content">
+            <!-- Tab Content Container -->
+            <div class="tab-content min-h-[400px]">
                 <!-- Overview Tab -->
-                <div id="about-overview" class="tab-panel active">
+                <div id="about-overview" class="tab-panel block">
                     <div class="grid md:grid-cols-2 gap-6">
                         <div class="card bg-base-200">
                             <div class="card-body">
@@ -2952,11 +2952,18 @@ showAbout() {
                     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${this.generateFeatureCards()}
                     </div>
+                    <div class="mt-6 alert alert-info">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                        <div>
+                            <h4 class="font-semibold">Produktivitäts-Tipp</h4>
+                            <p class="text-sm">Nutze die Schnellerfassung (Quick Add) für eine effiziente tägliche Dateneingabe!</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Stats Tab -->
                 <div id="about-stats" class="tab-panel hidden">
-                    <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+                    <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
                         <div class="stat">
                             <div class="stat-figure text-primary">
                                 <i data-lucide="calendar-days" class="w-8 h-8"></i>
@@ -2986,7 +2993,7 @@ showAbout() {
                     </div>
                     
                     <!-- Speicher-Details -->
-                    <div class="mt-6 card bg-base-200">
+                    <div class="card bg-base-200">
                         <div class="card-body">
                             <h4 class="card-title flex items-center gap-2">
                                 <i data-lucide="hard-drive" class="w-5 h-5"></i>
@@ -3012,6 +3019,15 @@ showAbout() {
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Performance Metriken -->
+                    <div class="mt-4 alert alert-success">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                        <div>
+                            <h4 class="font-semibold">Performance</h4>
+                            <p class="text-sm">App läuft optimal mit ${appStats.totalEntries} Einträgen in ${appStats.storageSize} Speicher.</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Tech Tab -->
@@ -3027,7 +3043,7 @@ showAbout() {
                                 <div class="grid sm:grid-cols-2 gap-4">
                                     <div>
                                         <h5 class="font-semibold mb-2">Frontend</h5>
-                                        <div class="space-y-1">
+                                        <div class="flex flex-wrap gap-1">
                                             <div class="badge badge-outline">Vanilla JavaScript ES6+</div>
                                             <div class="badge badge-outline">HTML5 & CSS3</div>
                                             <div class="badge badge-outline">DaisyUI + Tailwind CSS</div>
@@ -3036,7 +3052,7 @@ showAbout() {
                                     </div>
                                     <div>
                                         <h5 class="font-semibold mb-2">Backend & Infrastruktur</h5>
-                                        <div class="space-y-1">
+                                        <div class="flex flex-wrap gap-1">
                                             <div class="badge badge-outline">Netlify Functions</div>
                                             <div class="badge badge-outline">MongoDB Atlas</div>
                                             <div class="badge badge-outline">Service Worker</div>
@@ -3087,12 +3103,42 @@ showAbout() {
                             </div>
                         </div>
                         
-                        <!-- Browser Support -->
+                        <!-- System Requirements -->
+                        <div class="card bg-base-200">
+                            <div class="card-body">
+                                <h4 class="card-title flex items-center gap-2">
+                                    <i data-lucide="monitor" class="w-5 h-5"></i>
+                                    System-Anforderungen
+                                </h4>
+                                <div class="grid sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <h5 class="font-semibold mb-2">Unterstützte Browser</h5>
+                                        <ul class="text-sm space-y-1">
+                                            <li>• Chrome/Chromium 80+</li>
+                                            <li>• Firefox 75+</li>
+                                            <li>• Safari 13+</li>
+                                            <li>• Edge 80+</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h5 class="font-semibold mb-2">Geräte</h5>
+                                        <ul class="text-sm space-y-1">
+                                            <li>• Desktop/Laptop</li>
+                                            <li>• Tablets</li>
+                                            <li>• Smartphones</li>
+                                            <li>• Touch-Geräte</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Browser Support Alert -->
                         <div class="alert alert-info">
                             <i data-lucide="info" class="w-5 h-5"></i>
                             <div>
                                 <h4 class="font-semibold">Browser-Kompatibilität</h4>
-                                <p class="text-sm">Optimiert für Chrome, Firefox, Safari und Edge. PWA-Installation in modernen Browsern verfügbar.</p>
+                                <p class="text-sm">Optimiert für moderne Browser mit PWA-Support. Installation als App möglich.</p>
                             </div>
                         </div>
                     </div>
@@ -3122,18 +3168,92 @@ showAbout() {
     
     document.body.appendChild(modal);
     
-    // Tab-Funktionalität aktivieren
-    this.initializeAboutTabsSimple(modal);
-    
-    // Icons initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
+    // Tab-Funktionalität aktivieren mit Delay für DOM-Aufbau
+    setTimeout(() => {
+        this.initializeAboutTabsImproved(modal);
+        
+        // Icons initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }, 50);
     
     // Haptic Feedback
     if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
         navigator.vibrate(10);
     }
+}
+
+/**
+ * VERBESSERTE Tab-Funktionalität für About Modal
+ */
+initializeAboutTabsImproved(modal) {
+    console.log('🔧 Initialisiere About Tabs (Improved)');
+    
+    const tabs = modal.querySelectorAll('[data-about-tab]');
+    const panels = modal.querySelectorAll('.tab-panel');
+    
+    if (tabs.length === 0 || panels.length === 0) {
+        console.warn('⚠️ Keine Tabs oder Panels gefunden');
+        return;
+    }
+    
+    console.log(`📊 Gefunden: ${tabs.length} Tabs, ${panels.length} Panels`);
+    
+    function showTab(tabName) {
+        console.log(`🔄 Wechsle zu Tab: ${tabName}`);
+        
+        // Alle Panels verstecken
+        panels.forEach(panel => {
+            panel.classList.add('hidden');
+            panel.classList.remove('block');
+        });
+        
+        // Alle Tabs deaktivieren
+        tabs.forEach(tab => {
+            tab.classList.remove('tab-active');
+        });
+        
+        // Ziel-Panel anzeigen
+        const targetPanel = modal.querySelector(`#about-${tabName}`);
+        const targetTab = modal.querySelector(`[data-about-tab="${tabName}"]`);
+        
+        if (targetPanel && targetTab) {
+            targetPanel.classList.remove('hidden');
+            targetPanel.classList.add('block');
+            targetTab.classList.add('tab-active');
+            
+            console.log(`✅ Tab ${tabName} aktiviert`);
+            
+            // Icons neu initialisieren für den angezeigten Panel
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 10);
+        } else {
+            console.error(`❌ Panel oder Tab für ${tabName} nicht gefunden`);
+        }
+    }
+    
+    // Event Listeners für Tabs
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabName = tab.dataset.aboutTab;
+            if (tabName) {
+                showTab(tabName);
+                
+                // Haptic Feedback
+                if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+                    navigator.vibrate(5);
+                }
+            }
+        });
+    });
+    
+    // Initialer Tab (Overview)
+    showTab('overview');
 }
 
 /**
@@ -3269,62 +3389,6 @@ getBuildInfo() {
         buildDate: new Date().toLocaleDateString('de-DE'),
         environment: window.location.hostname.includes('localhost') ? 'Development' : 'Production'
     };
-}
-
-/**
- * SIMPLE FALLBACK - Tab-Funktionalität ohne CSS-Klassen
- */
-initializeAboutTabsSimple(modal) {
-    console.log('🔧 FALLBACK: Simple About Tabs');
-    
-    const tabs = modal.querySelectorAll('[data-about-tab]');
-    
-    // Simple show/hide function
-    function showTab(tabName) {
-        console.log(`🔄 Zeige Tab: ${tabName}`);
-        
-        // Hide all panels
-        const allPanels = ['overview', 'features', 'stats', 'tech'];
-        allPanels.forEach(panelName => {
-            const panel = modal.querySelector(`#about-${panelName}`);
-            if (panel) {
-                panel.style.display = 'none';
-                panel.style.visibility = 'hidden';
-            }
-        });
-        
-        // Show target panel
-        const targetPanel = modal.querySelector(`#about-${tabName}`);
-        if (targetPanel) {
-            targetPanel.style.display = 'block';
-            targetPanel.style.visibility = 'visible';
-            console.log(`✅ Panel ${tabName} angezeigt`);
-        }
-        
-        // Update tab states
-        tabs.forEach(tab => {
-            if (tab.dataset.aboutTab === tabName) {
-                tab.style.backgroundColor = 'hsl(var(--p))';
-                tab.style.color = 'hsl(var(--pc))';
-                tab.classList.add('tab-active');
-            } else {
-                tab.style.backgroundColor = 'transparent';
-                tab.style.color = 'inherit';
-                tab.classList.remove('tab-active');
-            }
-        });
-    }
-    
-    // Setup event listeners
-    tabs.forEach(tab => {
-        tab.onclick = (e) => {
-            e.preventDefault();
-            showTab(tab.dataset.aboutTab);
-        };
-    });
-    
-    // Show overview initially
-    setTimeout(() => showTab('overview'), 10);
 }
 
 /**

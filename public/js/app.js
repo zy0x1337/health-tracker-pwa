@@ -64,6 +64,12 @@ class HealthTracker {
         // Setup periodic sync
         this.setupPeriodicSync();
 
+        // Einstellungen beim App-Start initialisieren
+        this.initializeSettings();
+
+        // Automatische Datenbereinigung starten
+        this.implementDataRetention();
+
         // Initialize Analytics Dashboard after components are ready
         setTimeout(() => {
             this.initializeAnalyticsEventListeners();
@@ -116,6 +122,35 @@ initializeComponents() {
     console.error('❌ ProgressHub Initial-Ladefehler:', e);
   }
 }, 250);
+}
+
+initializeSettings() {
+    console.log('⚙️ Initialisiere Einstellungen');
+    
+    // Theme aus localStorage laden
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Haptic Feedback testen falls aktiviert
+    const hapticEnabled = JSON.parse(localStorage.getItem('hapticFeedback') || 'false');
+    if (hapticEnabled && navigator.vibrate) {
+        // Kurze Vibration beim App-Start als Test
+        navigator.vibrate(30);
+    }
+    
+    // Datenretention prüfen
+    const lastRetentionCheck = localStorage.getItem('lastRetentionCheck');
+    const today = new Date().toDateString();
+    
+    if (lastRetentionCheck !== today) {
+        this.implementDataRetention();
+        localStorage.setItem('lastRetentionCheck', today);
+    }
+    
+    // Notification Permission Status prüfen
+    if ('Notification' in window && Notification.permission === 'default') {
+        console.log('🔔 Notification permission not yet requested');
+    }
 }
     
     /**
@@ -2421,10 +2456,48 @@ setQuietHours() {
     this.showToast(`🕐 Stille Stunden: ${start} - ${end}`, 'success');
 }
 
-toggleBiometricLock() {
+async toggleBiometricLock() {
     const enabled = !JSON.parse(localStorage.getItem('biometricLock') || 'false');
-    localStorage.setItem('biometricLock', enabled);
-    this.showToast(`🔐 Biometrische Entsperrung ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+    
+    if (enabled) {
+        // Überprüfen ob WebAuthn verfügbar ist
+        if (!window.PublicKeyCredential) {
+            this.showToast('⚠️ Biometrische Authentifizierung nicht unterstützt', 'warning');
+            return;
+        }
+        
+        try {
+            // Vereinfachte WebAuthn-Implementierung
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    rp: { name: "Health Tracker" },
+                    user: {
+                        id: new TextEncoder().encode("health-user"),
+                        name: "health-user",
+                        displayName: "Health Tracker User"
+                    },
+                    pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        userVerification: "required"
+                    }
+                }
+            });
+            
+            localStorage.setItem('biometricLock', 'true');
+            localStorage.setItem('biometricCredential', btoa(JSON.stringify(credential.id)));
+            this.showToast('🔐 Biometrische Entsperrung aktiviert', 'success');
+            
+        } catch (error) {
+            console.error('❌ Biometric setup failed:', error);
+            this.showToast('❌ Biometrische Einrichtung fehlgeschlagen', 'error');
+        }
+    } else {
+        localStorage.setItem('biometricLock', 'false');
+        localStorage.removeItem('biometricCredential');
+        this.showToast('🔓 Biometrische Entsperrung deaktiviert', 'info');
+    }
 }
 
 toggleLocalOnlyMode() {
@@ -2573,21 +2646,155 @@ toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    
+    // Theme auch für Charts anpassen
+    if (this.analyticsEngine) {
+        this.analyticsEngine.updateChartsTheme(newTheme);
+    }
+    
     console.log(`🌓 Theme gewechselt zu: ${newTheme}`);
+    this.showToast(`🌓 ${newTheme === 'dark' ? 'Dark' : 'Light'} Mode aktiviert`, 'success');
 }
 
 toggleNotifications() {
-    this.smartNotificationManager.isEnabled = !this.smartNotificationManager.isEnabled;
+    if (!this.smartNotificationManager) {
+        this.showToast('⚠️ Notification Manager nicht verfügbar', 'warning');
+        return;
+    }
+    
+    const wasEnabled = this.smartNotificationManager.isEnabled;
+    this.smartNotificationManager.isEnabled = !wasEnabled;
     localStorage.setItem('notificationsEnabled', this.smartNotificationManager.isEnabled);
+    
+    if (this.smartNotificationManager.isEnabled) {
+        // Berechtigung anfragen falls noch nicht erteilt
+        this.requestNotificationPermission();
+    }
+    
     this.showToast(`🔔 Benachrichtigungen ${this.smartNotificationManager.isEnabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
 }
 
 resetApp() {
-    if (confirm('⚠️ Möchtest du wirklich alle Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <h3 class="font-bold text-lg text-error mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6 inline mr-2"></i>
+                App zurücksetzen
+            </h3>
+            <div class="alert alert-warning mb-4">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                <div>
+                    <strong>Achtung!</strong>
+                    <p>Diese Aktion löscht alle deine Gesundheitsdaten, Ziele und Einstellungen unwiderruflich.</p>
+                </div>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label cursor-pointer">
+                    <span class="label-text">Ich verstehe, dass alle Daten gelöscht werden</span>
+                    <input type="checkbox" class="checkbox checkbox-error" id="confirm-reset">
+                </label>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-error" onclick="healthTracker.confirmReset()" id="confirm-reset-btn" disabled>
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                    Endgültig löschen
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Checkbox-Validation
+    const checkbox = modal.querySelector('#confirm-reset');
+    const button = modal.querySelector('#confirm-reset-btn');
+    checkbox.addEventListener('change', () => {
+        button.disabled = !checkbox.checked;
+    });
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+confirmReset() {
+    try {
+        // Alle Charts zerstören
+        if (this.analyticsEngine) {
+            this.analyticsEngine.destroyAllCharts();
+        }
+        
+        // LocalStorage komplett leeren
         localStorage.clear();
-        this.showToast('🔄 App wurde zurückgesetzt', 'info');
-        setTimeout(() => location.reload(), 1500);
+        
+        // Service Worker Cache leeren
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+            });
+        }
+        
+        this.showToast('🔄 App wird zurückgesetzt...', 'info');
+        
+        // Modal schließen und App neu laden
+        document.querySelector('.modal-open')?.remove();
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim App-Reset:', error);
+        this.showToast('❌ Fehler beim Zurücksetzen', 'error');
     }
+}
+
+async implementDataRetention() {
+    const retentionDays = localStorage.getItem('dataRetention');
+    if (!retentionDays || retentionDays === 'never') return;
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(retentionDays));
+    
+    try {
+        const healthData = JSON.parse(localStorage.getItem('healthData') || '{}');
+        let removedEntries = 0;
+        
+        Object.keys(healthData).forEach(date => {
+            if (new Date(date) < cutoffDate) {
+                delete healthData[date];
+                removedEntries++;
+            }
+        });
+        
+        if (removedEntries > 0) {
+            localStorage.setItem('healthData', JSON.stringify(healthData));
+            console.log(`🗑️ ${removedEntries} alte Einträge automatisch gelöscht`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Fehler bei automatischer Datenbereinigung:', error);
+    }
+}
+
+updateChartsTheme(theme) {
+    const isDark = theme === 'dark';
+    const textColor = isDark ? '#e5e7eb' : '#374151';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    
+    // Alle aktiven Charts aktualisieren
+    [this.currentTrendsChart, this.currentHeatmapChart, this.currentComparisonChart].forEach(chart => {
+        if (chart) {
+            chart.options.scales.x.title.color = textColor;
+            chart.options.scales.y.title.color = textColor;
+            chart.options.scales.x.grid.color = gridColor;
+            chart.options.scales.y.grid.color = gridColor;
+            chart.options.plugins.legend.labels.color = textColor;
+            chart.update('none');
+        }
+    });
 }
 }
 

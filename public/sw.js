@@ -11,8 +11,6 @@ const urlsToCache = [
     '/js/app.js',
     '/js/pwa.js',
     '/manifest.json',
-    '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
 ];
 
 // ==================================================================== 

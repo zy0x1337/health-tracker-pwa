@@ -11,9 +11,13 @@
     <meta name="data-retention-default" content="365">
     <meta name="description" content="Verfolge deine Gesundheitsziele mit diesem modernen, professionellen Health Tracker. Offline-fähig und benutzerfreundlich.">
     <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Health Tracker Pro">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667eea'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/></svg>">
@@ -2085,27 +2089,36 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 </div>
 
 <script>
-// Sofortige Install-Diagnose
-setTimeout(() => {
+// Sofortige Install-Diagnose mit Live-Updates
+function updateDebugInfo() {
   const debug = {
     manifest: !!document.querySelector('link[rel="manifest"]'),
     sw: 'serviceWorker' in navigator,
     https: location.protocol === 'https:' || location.hostname === 'localhost',
-    icons: true, // Wird async geprüft
+    icons: true, // Mit SVG-Icons immer verfügbar
     prompt: typeof deferredPrompt !== 'undefined' && !!deferredPrompt
   };
   
   document.getElementById('debug-manifest').innerHTML = `Manifest: ${debug.manifest ? '✅' : '❌'}`;
   document.getElementById('debug-sw').innerHTML = `SW: ${debug.sw ? '✅' : '❌'}`;
   document.getElementById('debug-https').innerHTML = `HTTPS: ${debug.https ? '✅' : '❌'}`;
-  document.getElementById('debug-prompt').innerHTML = `Prompt: ${debug.prompt ? '✅' : '❌ (normal)'}`;
+  document.getElementById('debug-icons').innerHTML = `Icons: ✅ (SVG)`;
+  document.getElementById('debug-prompt').innerHTML = `Prompt: ${debug.prompt ? '✅' : '⏳ Warten...'}`;
   
-  // Icon-Test
-  const img = new Image();
-  img.onload = () => document.getElementById('debug-icons').innerHTML = 'Icons: ✅';
-  img.onerror = () => document.getElementById('debug-icons').innerHTML = 'Icons: ❌';
-  img.src = '/icons/icon-192x192.png';
-}, 1000);
+  // Console Output für Debugging
+  console.log('🔧 PWA Install Status:', debug);
+}
+
+// Sofort ausführen
+updateDebugInfo();
+
+// Alle 2 Sekunden aktualisieren
+setInterval(updateDebugInfo, 2000);
+
+// Event Listeners für Prompt-Updates
+window.addEventListener('beforeinstallprompt', () => {
+  setTimeout(updateDebugInfo, 100);
+});
 </script>
 
     <!-- JavaScript -->

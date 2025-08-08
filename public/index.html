@@ -2234,47 +2234,247 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 </div>
 
     <!-- JavaScript -->
-    <script src="/js/app.js"></script>
-    <script>
-// === STARTUP INITIALIZATION ===
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 App startup initialization');
-    
-    // Startup Loader anzeigen
-    const loader = document.getElementById('startup-loader');
-    const initStatus = document.getElementById('settings-init-status');
-    
-    // Theme sofort laden (vor Health Tracker Init)
+    <!-- ===================================== -->
+<!-- OPTIMIERTE SCRIPT-REIHENFOLGE        -->
+<!-- ===================================== -->
+
+<!-- 1. KRITISCHER INLINE CODE - Sofort ausgeführt -->
+<script>
+// === CRITICAL PATH INIT (vor allem anderen) ===
+const appStartTime = performance.now();
+
+// Theme sofort setzen (verhindert FOUC - Flash of Unstyled Content)
+(function() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Theme icon vorbereiten
+    const themeIcon = document.querySelector('#theme-toggle i');
+    if (themeIcon) {
+        themeIcon.setAttribute('data-lucide', savedTheme === 'light' ? 'moon' : 'sun');
+    }
+    
+    console.log('🎨 Theme geladen in', Math.round(performance.now() - appStartTime), 'ms');
+})();
+
+// Startup Status-Tracking
+const initStatus = document.getElementById('settings-init-status');
+if (initStatus) {
     initStatus.setAttribute('data-theme-loaded', 'true');
     
-    // Retention Check Status setzen
+    // Retention Check Status
     const lastCheck = localStorage.getItem('lastRetentionCheck');
     const today = new Date().toDateString();
     initStatus.setAttribute('data-retention-checked', lastCheck === today);
     
-    // Permission Status prüfen
+    // Permission Status
     if ('Notification' in window) {
         initStatus.setAttribute('data-permissions-checked', Notification.permission !== 'default');
     }
+}
+
+// Error Boundary für Settings (früh definieren)
+window.addEventListener('error', function(e) {
+    if (e.error && e.error.message.includes('settings')) {
+        console.error('⚠️ Settings Error:', e.error);
+        if (typeof healthTracker !== 'undefined' && healthTracker.applyFallbackSettings) {
+            healthTracker.applyFallbackSettings();
+        }
+    }
+});
+</script>
+
+<!-- 2. EXTERNE DEPENDENCIES - Async laden -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js" 
+        async 
+        onload="window.lucideLoaded = true; console.log('📦 Lucide Icons geladen');">
+</script>
+
+<!-- 3. HAUPTAPPLIKATION - Defer für optimale Performance -->
+<script src="/js/app.js" defer></script>
+
+<!-- 4. DOM-READY OPTIMIZED - Läuft nach DOM + Scripts -->
+<script defer>
+document.addEventListener('DOMContentLoaded', function() {
+    const domReadyTime = performance.now();
+    console.log('🚀 DOM Ready nach', Math.round(domReadyTime - appStartTime), 'ms');
     
-    // Startup Loader nach kurzer Zeit ausblenden
-    setTimeout(() => {
-        if (loader) {
+    // === STARTUP LOADER MANAGEMENT ===
+    const loader = document.getElementById('startup-loader');
+    if (loader) {
+        // Loader sofort ausblenden wenn alles geladen
+        const hideLoader = () => {
             loader.style.opacity = '0';
             loader.style.transition = 'opacity 0.3s ease';
             setTimeout(() => loader.remove(), 300);
-        }
-    }, 1000);
-});
-
-// === SETTINGS VALIDATION HELPER ===
-function validateSettingsInput(inputElement, validationRules) {
-    const value = inputElement.value;
-    const isValid = validationRules.test ? validationRules.test(value) : true;
+        };
+        
+        // Loader nach max. 1s ausblenden, auch wenn noch nicht alles geladen
+        setTimeout(hideLoader, 1000);
+    }
     
-    // Visual Feedback
+    // === FORM INITIALIZATION ===
+    const dateInput = document.querySelector('input[name="date"]');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // === ICONS INITIALIZATION (nur wenn Lucide verfügbar) ===
+    const initializeIcons = () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+            console.log('✨ Icons initialisiert');
+        } else if (window.lucideLoaded === undefined) {
+            // Retry nach 100ms wenn Lucide noch lädt
+            setTimeout(initializeIcons, 100);
+        }
+    };
+    
+    initializeIcons();
+    
+    // === THEME TOGGLE SETUP ===
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            // Theme sofort anwenden
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Icon update
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', newTheme === 'light' ? 'moon' : 'sun');
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+            
+            // Haptic Feedback
+            if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+                navigator.vibrate(10);
+            }
+            
+            console.log('🎨 Theme gewechselt zu:', newTheme);
+        });
+    }
+    
+    console.log('⚡ Theme Toggle initialisiert nach', Math.round(performance.now() - domReadyTime), 'ms');
+});
+</script>
+
+<!-- 5. HEALTH TRACKER INITIALIZATION - Nach DOM und App.js -->
+<script defer>
+window.addEventListener('load', function() {
+    const loadTime = performance.now();
+    console.log('🎯 Window Load nach', Math.round(loadTime - appStartTime), 'ms');
+    
+    // Health Tracker erst initialisieren wenn alles bereit ist
+    if (typeof HealthTracker !== 'undefined') {
+        try {
+            window.healthTracker = new HealthTracker();
+            console.log('✅ Health Tracker initialisiert nach', Math.round(performance.now() - loadTime), 'ms');
+        } catch (error) {
+            console.error('❌ Health Tracker Init Fehler:', error);
+            
+            // Fallback: Retry nach kurzer Zeit
+            setTimeout(() => {
+                try {
+                    window.healthTracker = new HealthTracker();
+                    console.log('🔄 Health Tracker Retry erfolgreich');
+                } catch (retryError) {
+                    console.error('❌ Health Tracker Retry fehlgeschlagen:', retryError);
+                }
+            }, 1000);
+        }
+    } else {
+        console.warn('⚠️ HealthTracker Klasse nicht gefunden - Retry...');
+        
+        // Retry-Logic für langsame Verbindungen
+        let retryCount = 0;
+        const maxRetries = 5;
+        
+        const retryInit = () => {
+            if (typeof HealthTracker !== 'undefined') {
+                window.healthTracker = new HealthTracker();
+                console.log('🔄 Health Tracker nach', retryCount, 'Retry(s) initialisiert');
+            } else if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(retryInit, 500 * retryCount); // Progressive Delay
+            } else {
+                console.error('❌ Health Tracker konnte nicht geladen werden');
+            }
+        };
+        
+        retryInit();
+    }
+});
+</script>
+
+<!-- 6. PERFORMANCE-OPTIMIZED SCROLL & INTERACTION HANDLERS -->
+<script defer>
+// === OPTIMIZED SCROLL BEHAVIOR ===
+let ticking = false;
+let lastScrollY = 0;
+
+function updateNavbarOnScroll() {
+    const navbar = document.querySelector('.navbar');
+    const currentScrollY = window.scrollY;
+    
+    if (navbar) {
+        // Scrolled state
+        navbar.classList.toggle('scrolled', currentScrollY > 50);
+        
+        // Mobile auto-hide
+        if (window.innerWidth <= 768) {
+            const shouldHide = currentScrollY > lastScrollY && currentScrollY > 200;
+            navbar.style.transform = shouldHide ? 'translateY(-100%)' : 'translateY(0)';
+        }
+    }
+    
+    lastScrollY = currentScrollY;
+    ticking = false;
+}
+
+// Throttled scroll listener für bessere Performance
+window.addEventListener('scroll', () => {
+    if (!ticking) {
+        requestAnimationFrame(updateNavbarOnScroll);
+        ticking = true;
+    }
+}, { passive: true });
+
+// === OPTIMIZED CLICK HANDLERS ===
+// Event Delegation für bessere Performance
+document.addEventListener('click', function(e) {
+    // Haptic feedback für Buttons
+    if (e.target.closest('.btn')) {
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            navigator.vibrate(10);
+        }
+    }
+    
+    // Settings Input Validation
+    if (e.target.matches('input[data-settings]')) {
+        // Debounced validation
+        clearTimeout(e.target.validationTimeout);
+        e.target.validationTimeout = setTimeout(() => {
+            validateSettingsInput(e.target, { test: value => value.length > 0 });
+        }, 300);
+    }
+}, { passive: false });
+
+// === SETTINGS VALIDATION HELPER (globale Funktion) ===
+window.validateSettingsInput = function(inputElement, validationRules = {}) {
+    const value = inputElement.value;
+    const isValid = validationRules.test ? validationRules.test(value) : value.length > 0;
+    
+    // Optimized class handling
     if (isValid) {
         inputElement.classList.remove('input-error');
         inputElement.classList.add('input-success');
@@ -2284,105 +2484,56 @@ function validateSettingsInput(inputElement, validationRules) {
     }
     
     return isValid;
+};
+
+// Performance-Log
+console.log('⚡ Event Handlers initialisiert nach', Math.round(performance.now() - appStartTime), 'ms');
+</script>
+
+<!-- 7. PROGRESSIVE ENHANCEMENT - Optional Features -->
+<script defer>
+// Nur laden wenn erweiterte Features aktiviert sind
+document.addEventListener('DOMContentLoaded', () => {
+    // Chart.js nur bei Analytics-Nutzung
+    if (localStorage.getItem('advancedAnalytics') === 'true') {
+        const chartScript = document.createElement('script');
+        chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        chartScript.defer = true;
+        chartScript.onload = () => console.log('📊 Chart.js lazy loaded');
+        document.head.appendChild(chartScript);
+    }
+    
+    // Service Worker Registration (non-blocking)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('🔧 Service Worker registriert:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Service Worker Registration fehlgeschlagen:', error);
+            });
+    }
+});
+</script>
+
+<!-- 8. DEVELOPMENT HELPERS (nur in Dev-Mode) -->
+<script defer>
+if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+    // Performance Monitoring
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const totalTime = Math.round(performance.now() - appStartTime);
+            console.log(`
+🚀 PERFORMANCE SUMMARY:
+━━━━━━━━━━━━━━━━━━━━━━━━━
+⏱️  Total Load Time: ${totalTime}ms
+🎯  Target: <2000ms
+📊  Status: ${totalTime < 2000 ? '✅ GOOD' : '⚠️ NEEDS OPTIMIZATION'}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+            `);
+        }, 100);
+    });
 }
-
-// === ERROR BOUNDARY FÜR EINSTELLUNGEN ===
-window.addEventListener('error', function(e) {
-    if (e.error && e.error.message.includes('settings')) {
-        console.error('⚠️ Settings Error:', e.error);
-        
-        // Fallback Settings anwenden
-        if (typeof healthTracker !== 'undefined' && healthTracker.applyFallbackSettings) {
-            healthTracker.applyFallbackSettings();
-        }
-    }
-});
 </script>
-<!-- Navbar Scroll Behavior Script -->
-<script>
-// Navbar scroll behavior
-let lastScrollY = 0;
-const navbar = document.querySelector('.navbar');
-
-window.addEventListener('scroll', () => {
-    const currentScrollY = window.scrollY;
-    
-    if (navbar) {
-        if (currentScrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-        
-        // Auto-hide navbar on scroll down (mobile)
-        if (window.innerWidth <= 768) {
-            if (currentScrollY > lastScrollY && currentScrollY > 200) {
-                navbar.style.transform = 'translateY(-100%)';
-            } else {
-                navbar.style.transform = 'translateY(0)';
-            }
-        }
-    }
-    
-    lastScrollY = currentScrollY;
-}, { passive: true });
-
-// Enhanced click handlers with haptic feedback
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.btn')) {
-        // Haptic feedback für unterstützte Geräte
-        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-            navigator.vibrate(10);
-        }
-    }
-});
-</script>
-    <script>
-        // Initialize Lucide Icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-
-        // Set current date as default
-        document.addEventListener('DOMContentLoaded', function() {
-            const dateInput = document.querySelector('input[name="date"]');
-            if (dateInput) {
-                dateInput.value = new Date().toISOString().split('T')[0];
-            }
-
-            // Theme Toggle
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.addEventListener('click', function() {
-                    const html = document.documentElement;
-                    const currentTheme = html.getAttribute('data-theme');
-                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                    html.setAttribute('data-theme', newTheme);
-                    localStorage.setItem('theme', newTheme);
-                    
-                    // Update icon
-                    const icon = themeToggle.querySelector('i');
-                    icon.setAttribute('data-lucide', newTheme === 'light' ? 'moon' : 'sun');
-                    lucide.createIcons();
-                });
-            }
-
-            // Load saved theme
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                document.documentElement.setAttribute('data-theme', savedTheme);
-                const themeIcon = document.querySelector('#theme-toggle i');
-                if (themeIcon) {
-                    themeIcon.setAttribute('data-lucide', savedTheme === 'light' ? 'moon' : 'sun');
-                    lucide.createIcons();
-                }
-            }
-
-            // Initialize Health Tracker
-            if (typeof HealthTracker !== 'undefined') {
-                window.healthTracker = new HealthTracker();
-            }
-        });
-    </script>
 </body>
 </html>

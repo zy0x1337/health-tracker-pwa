@@ -2056,13 +2056,20 @@ showSettings() {
         const modal = document.createElement('div');
         modal.className = 'modal modal-open';
         modal.innerHTML = `
-            <div class="modal-box max-w-2xl">
+            <div class="modal-box max-w-3xl">
                 <h3 class="font-bold text-lg mb-4">
                     <i data-lucide="settings" class="w-6 h-6 inline mr-2"></i>
                     Einstellungen
                 </h3>
                 
-                <div class="space-y-4">
+                <div class="tabs tabs-bordered mb-6">
+                    <a class="tab tab-active" onclick="this.parentNode.querySelector('.tab-active').classList.remove('tab-active'); this.classList.add('tab-active'); document.getElementById('general-settings').style.display='block'; document.getElementById('privacy-settings').style.display='none'; document.getElementById('notification-settings').style.display='none';">Allgemein</a>
+                    <a class="tab" onclick="this.parentNode.querySelector('.tab-active').classList.remove('tab-active'); this.classList.add('tab-active'); document.getElementById('notification-settings').style.display='block'; document.getElementById('general-settings').style.display='none'; document.getElementById('privacy-settings').style.display='none';">Benachrichtigungen</a>
+                    <a class="tab" onclick="this.parentNode.querySelector('.tab-active').classList.remove('tab-active'); this.classList.add('tab-active'); document.getElementById('privacy-settings').style.display='block'; document.getElementById('general-settings').style.display='none'; document.getElementById('notification-settings').style.display='none';">Privatsphäre</a>
+                </div>
+
+                <!-- Allgemeine Einstellungen -->
+                <div id="general-settings" class="space-y-4">
                     <div class="form-control">
                         <label class="label cursor-pointer">
                             <span class="label-text flex items-center">
@@ -2078,12 +2085,24 @@ showSettings() {
                     <div class="form-control">
                         <label class="label cursor-pointer">
                             <span class="label-text flex items-center">
-                                <i data-lucide="bell" class="w-4 h-4 mr-2"></i>
-                                Push-Benachrichtigungen
+                                <i data-lucide="vibrate" class="w-4 h-4 mr-2"></i>
+                                Haptic Feedback aktivieren
                             </span> 
-                            <input type="checkbox" class="toggle toggle-primary" id="notifications-toggle" 
-                                ${this.smartNotificationManager?.isEnabled ? 'checked' : ''} 
-                                onchange="healthTracker.toggleNotifications()">
+                            <input type="checkbox" class="toggle toggle-primary" id="haptic-toggle" 
+                                ${localStorage.getItem('hapticFeedback') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleHapticFeedback()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="gauge" class="w-4 h-4 mr-2"></i>
+                                Erweiterte Analytics aktivieren
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="analytics-toggle" 
+                                ${localStorage.getItem('advancedAnalytics') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleAnalytics()">
                         </label>
                     </div>
 
@@ -2094,41 +2113,409 @@ showSettings() {
                                 Sprache
                             </span>
                         </label>
-                        <select class="select select-bordered w-full">
-                            <option selected>Deutsch</option>
-                            <option disabled>English (Coming soon)</option>
+                        <select class="select select-bordered" id="language-select" onchange="healthTracker.changeLanguage(this.value)">
+                            <option value="de" selected>Deutsch</option>
+                            <option value="en" disabled>English (Coming soon)</option>
+                            <option value="es" disabled>Español (Coming soon)</option>
                         </select>
                     </div>
 
-                    <div class="divider"></div>
-                    
-                    <button class="btn btn-error btn-outline w-full" onclick="healthTracker.resetApp()">
-                        <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2"></i>
-                        App zurücksetzen
-                    </button>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+                                Datumsformat
+                            </span>
+                        </label>
+                        <select class="select select-bordered" id="date-format" onchange="healthTracker.changeDateFormat(this.value)">
+                            <option value="DD.MM.YYYY">TT.MM.JJJJ (08.08.2025)</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (08/08/2025)</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (2025-08-08)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="ruler" class="w-4 h-4 mr-2"></i>
+                                Einheitensystem
+                            </span>
+                        </label>
+                        <select class="select select-bordered" id="unit-system" onchange="healthTracker.changeUnitSystem(this.value)">
+                            <option value="metric">Metrisch (kg, km, °C)</option>
+                            <option value="imperial">Imperial (lbs, mi, °F)</option>
+                        </select>
+                    </div>
                 </div>
 
+                <!-- Benachrichtigungs-Einstellungen -->
+                <div id="notification-settings" style="display:none" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="bell" class="w-4 h-4 mr-2"></i>
+                                Push-Benachrichtigungen
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="notifications-toggle" 
+                                ${this.smartNotificationManager?.isEnabled ? 'checked' : ''} 
+                                onchange="healthTracker.toggleNotifications()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="droplets" class="w-4 h-4 mr-2"></i>
+                                Wassererinnerungen
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="water-reminders" 
+                                ${localStorage.getItem('waterReminders') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleWaterReminders()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="footprints" class="w-4 h-4 mr-2"></i>
+                                Aktivitätserinnerungen
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="activity-reminders" 
+                                ${localStorage.getItem('activityReminders') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleActivityReminders()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="moon" class="w-4 h-4 mr-2"></i>
+                                Schlafenserinnerungen
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="sleep-reminders" 
+                                ${localStorage.getItem('sleepReminders') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleSleepReminders()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="clock" class="w-4 h-4 mr-2"></i>
+                                Erinnerungsintervall
+                            </span>
+                        </label>
+                        <select class="select select-bordered" id="reminder-interval" onchange="healthTracker.changeReminderInterval(this.value)">
+                            <option value="30">Alle 30 Minuten</option>
+                            <option value="60" selected>Stündlich</option>
+                            <option value="120">Alle 2 Stunden</option>
+                            <option value="240">Alle 4 Stunden</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="volume-x" class="w-4 h-4 mr-2"></i>
+                                Stille Stunden aktivieren
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="quiet-hours" 
+                                ${localStorage.getItem('quietHours') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleQuietHours()">
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4" id="quiet-hours-times" ${localStorage.getItem('quietHours') !== 'true' ? 'style="display:none"' : ''}>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text-alt">Stille Stunden von</span>
+                            </label>
+                            <input type="time" class="input input-bordered input-sm" id="quiet-start" 
+                                value="${localStorage.getItem('quietStart') || '22:00'}" 
+                                onchange="healthTracker.setQuietHours()">
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text-alt">bis</span>
+                            </label>
+                            <input type="time" class="input input-bordered input-sm" id="quiet-end" 
+                                value="${localStorage.getItem('quietEnd') || '07:00'}" 
+                                onchange="healthTracker.setQuietHours()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privatsphäre-Einstellungen -->
+                <div id="privacy-settings" style="display:none" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="shield" class="w-4 h-4 mr-2"></i>
+                                Biometrische Entsperrung
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="biometric-lock" 
+                                ${localStorage.getItem('biometricLock') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleBiometricLock()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="wifi-off" class="w-4 h-4 mr-2"></i>
+                                Nur lokale Datenspeicherung
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="local-only" 
+                                ${localStorage.getItem('localOnlyMode') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleLocalOnlyMode()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="eye-off" class="w-4 h-4 mr-2"></i>
+                                Anonyme Nutzungsstatistiken
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="analytics-sharing" 
+                                ${localStorage.getItem('analyticsSharing') === 'true' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleAnalyticsSharing()">
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="clock" class="w-4 h-4 mr-2"></i>
+                                Automatische Datenbereinigung
+                            </span>
+                        </label>
+                        <select class="select select-bordered" id="data-retention" onchange="healthTracker.changeDataRetention(this.value)">
+                            <option value="never">Niemals löschen</option>
+                            <option value="365" selected>Nach 1 Jahr</option>
+                            <option value="180">Nach 6 Monaten</option>
+                            <option value="90">Nach 3 Monaten</option>
+                        </select>
+                    </div>
+
+                    <div class="divider">Daten-Management</div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button class="btn btn-outline btn-info" onclick="healthTracker.exportData()">
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Daten exportieren
+                        </button>
+                        <button class="btn btn-outline btn-warning" onclick="healthTracker.showDataUsage()">
+                            <i data-lucide="hard-drive" class="w-4 h-4 mr-2"></i>
+                            Speicherverbrauch
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+                
+                <button class="btn btn-error btn-outline w-full" onclick="healthTracker.resetApp()">
+                    <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2"></i>
+                    App komplett zurücksetzen
+                </button>
+
                 <div class="modal-action">
-                    <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+                    <button class="btn" onclick="healthTracker.closeSettings()">Schließen</button>
                 </div>
             </div>
-            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+            <div class="modal-backdrop" onclick="healthTracker.closeSettings()"></div>
         `;
-        
+
         document.body.appendChild(modal);
         
         // Lucide Icons für das Modal neu initialisieren
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-        
+
     } catch (error) {
         console.error('❌ Fehler beim Öffnen der Einstellungen:', error);
         this.showToast('❌ Fehler beim Öffnen der Einstellungen', 'error');
     }
 }
 
-// === HILFSMETHODEN FÜR MEHR-MENÜ ===
+closeSettings() {
+    const modal = document.querySelector('.modal-open');
+    if (modal) modal.remove();
+}
+
+toggleHapticFeedback() {
+    const enabled = !JSON.parse(localStorage.getItem('hapticFeedback') || 'false');
+    localStorage.setItem('hapticFeedback', enabled);
+    
+    if (enabled && navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+    
+    this.showToast(`📳 Haptic Feedback ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+toggleAnalytics() {
+    const enabled = !JSON.parse(localStorage.getItem('advancedAnalytics') || 'false');
+    localStorage.setItem('advancedAnalytics', enabled);
+    this.showToast(`📊 Erweiterte Analytics ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+changeLanguage(lang) {
+    localStorage.setItem('language', lang);
+    this.showToast('🌍 Sprache wird beim nächsten Start angewendet', 'info');
+}
+
+changeDateFormat(format) {
+    localStorage.setItem('dateFormat', format);
+    this.showToast(`📅 Datumsformat auf ${format} geändert`, 'success');
+}
+
+changeUnitSystem(system) {
+    localStorage.setItem('unitSystem', system);
+    this.showToast(`📏 Einheitensystem auf ${system === 'metric' ? 'Metrisch' : 'Imperial'} geändert`, 'success');
+}
+
+toggleWaterReminders() {
+    const enabled = !JSON.parse(localStorage.getItem('waterReminders') || 'false');
+    localStorage.setItem('waterReminders', enabled);
+    this.showToast(`💧 Wassererinnerungen ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+toggleActivityReminders() {
+    const enabled = !JSON.parse(localStorage.getItem('activityReminders') || 'false');
+    localStorage.setItem('activityReminders', enabled);
+    this.showToast(`👟 Aktivitätserinnerungen ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+toggleSleepReminders() {
+    const enabled = !JSON.parse(localStorage.getItem('sleepReminders') || 'false');
+    localStorage.setItem('sleepReminders', enabled);
+    this.showToast(`😴 Schlafenserinnerungen ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+changeReminderInterval(minutes) {
+    localStorage.setItem('reminderInterval', minutes);
+    this.showToast(`⏰ Erinnerungsintervall auf ${minutes} Minuten geändert`, 'success');
+}
+
+toggleQuietHours() {
+    const enabled = !JSON.parse(localStorage.getItem('quietHours') || 'false');
+    localStorage.setItem('quietHours', enabled);
+    
+    const timesDiv = document.getElementById('quiet-hours-times');
+    if (timesDiv) {
+        timesDiv.style.display = enabled ? 'grid' : 'none';
+    }
+    
+    this.showToast(`🔇 Stille Stunden ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+setQuietHours() {
+    const start = document.getElementById('quiet-start')?.value || '22:00';
+    const end = document.getElementById('quiet-end')?.value || '07:00';
+    
+    localStorage.setItem('quietStart', start);
+    localStorage.setItem('quietEnd', end);
+    
+    this.showToast(`🕐 Stille Stunden: ${start} - ${end}`, 'success');
+}
+
+toggleBiometricLock() {
+    const enabled = !JSON.parse(localStorage.getItem('biometricLock') || 'false');
+    localStorage.setItem('biometricLock', enabled);
+    this.showToast(`🔐 Biometrische Entsperrung ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+toggleLocalOnlyMode() {
+    const enabled = !JSON.parse(localStorage.getItem('localOnlyMode') || 'false');
+    localStorage.setItem('localOnlyMode', enabled);
+    this.showToast(`📱 ${enabled ? 'Nur lokale' : 'Cloud-'} Speicherung aktiviert`, 'info');
+}
+
+toggleAnalyticsSharing() {
+    const enabled = !JSON.parse(localStorage.getItem('analyticsSharing') || 'false');
+    localStorage.setItem('analyticsSharing', enabled);
+    this.showToast(`📈 Anonyme Statistiken ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+changeDataRetention(days) {
+    localStorage.setItem('dataRetention', days);
+    const text = days === 'never' ? 'niemals löschen' : `nach ${days} Tagen löschen`;
+    this.showToast(`🗂️ Datenbereinigung: ${text}`, 'success');
+}
+
+showDataUsage() {
+    try {
+        const usage = this.calculateStorageUsage();
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3 class="font-bold text-lg mb-4">
+                    <i data-lucide="hard-drive" class="w-6 h-6 inline mr-2"></i>
+                    Speicherverbrauch
+                </h3>
+                <div class="stats stats-vertical w-full">
+                    <div class="stat">
+                        <div class="stat-title">Gesundheitsdaten</div>
+                        <div class="stat-value text-sm">${usage.healthData} KB</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Ziele & Einstellungen</div>
+                        <div class="stat-value text-sm">${usage.settings} KB</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Cache & Temporäre Daten</div>
+                        <div class="stat-value text-sm">${usage.cache} KB</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Gesamt</div>
+                        <div class="stat-value text-primary">${usage.total} KB</div>
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button class="btn btn-outline btn-warning" onclick="healthTracker.clearCache()">Cache leeren</button>
+                    <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (error) {
+        console.error('❌ Fehler beim Anzeigen der Speichernutzung:', error);
+    }
+}
+
+calculateStorageUsage() {
+    const healthData = JSON.stringify(localStorage.getItem('healthData') || '{}').length / 1024;
+    const settings = JSON.stringify({
+        goals: localStorage.getItem('goals'),
+        theme: localStorage.getItem('theme'),
+        notifications: localStorage.getItem('notificationsEnabled')
+    }).length / 1024;
+    const cache = 50; // Geschätzte Cache-Größe
+
+    return {
+        healthData: Math.round(healthData * 10) / 10,
+        settings: Math.round(settings * 10) / 10,
+        cache: cache,
+        total: Math.round((healthData + settings + cache) * 10) / 10
+    };
+}
+
+clearCache() {
+    // Service Worker Cache leeren (falls verfügbar)
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+        });
+    }
+    
+    this.showToast('🧹 Cache geleert', 'success');
+    setTimeout(() => location.reload(), 1000);
+}
+
 async exportData() {
     try {
         const data = {

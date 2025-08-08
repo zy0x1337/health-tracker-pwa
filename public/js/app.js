@@ -3643,11 +3643,11 @@ getStorageOptimizationTips(storageDetails) {
 /**
  * Erweiterte Cache-Bereinigung
  */
-clearAppCache() {
+async clearAppCache() {
     try {
         console.log('🧹 Starte Cache-Bereinigung...');
         
-        // Temporäre Daten löschen
+        // Temporäre localStorage Keys entfernen
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -3664,21 +3664,17 @@ clearAppCache() {
         keysToRemove.forEach(key => localStorage.removeItem(key));
         
         // In-Memory Cache leeren
-        if (this.cache) {
+        if (this.cache && typeof this.cache.clear === 'function') {
             this.cache.clear();
         }
         
         console.log(`✅ Cache bereinigt - ${keysToRemove.length} Einträge entfernt`);
-        this.showToast(`🧹 Cache bereinigt - ${keysToRemove.length} Einträge entfernt`, 'success');
         
-        // Speicher neu berechnen nach Bereinigung
-        setTimeout(() => {
-            this.showDataUsage();
-        }, 500);
+        return keysToRemove.length;
         
     } catch (error) {
         console.error('❌ Fehler beim Cache-Leeren:', error);
-        this.showToast('❌ Cache konnte nicht bereinigt werden', 'error');
+        return 0;
     }
 }
 
@@ -3747,18 +3743,6 @@ showDataCleanup() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-}
-
-clearCache() {
-    // Service Worker Cache leeren (falls verfügbar)
-    if ('caches' in window) {
-        caches.keys().then(names => {
-            names.forEach(name => caches.delete(name));
-        });
-    }
-    
-    this.showToast('🧹 Cache geleert', 'success');
-    setTimeout(() => location.reload(), 1000);
 }
 
 async exportData() {
@@ -4324,16 +4308,26 @@ updateChartsTheme(theme) {
     });
 }
 
+/**
+ * Zeige erweiterte Datenbereinigung-Modal
+ */
 showDataCleanupModal() {
     console.log('🧹 Datenbereinigung-Modal wird geöffnet');
     
     try {
-        // Aktuelle Speichernutzung berechnen
-        const usage = this.calculateStorageUsage();
+        // Prüfe ob bereits ein Modal existiert
+        const existingModal = document.querySelector('.data-cleanup-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const appStats = this.getAppStats();
+        const storageDetails = this.getStorageDetails();
+        
         const retentionDays = localStorage.getItem('dataRetention') || '365';
         
         const modal = document.createElement('div');
-        modal.className = 'modal modal-open';
+        modal.className = 'modal modal-open data-cleanup-modal';
         modal.innerHTML = `
             <div class="modal-box max-w-2xl">
                 <h3 class="font-bold text-lg mb-4">
@@ -4351,19 +4345,26 @@ showDataCleanupModal() {
                     </div>
                 </div>
 
+                <!-- Aktuelle Speicher-Statistiken -->
                 <div class="stats stats-vertical w-full mb-4">
                     <div class="stat">
                         <div class="stat-title">Aktueller Speicherverbrauch</div>
-                        <div class="stat-value text-sm">${usage.total} KB</div>
+                        <div class="stat-value text-sm">${appStats.storageSize}</div>
                         <div class="stat-desc">Gesamt genutzter Speicher</div>
                     </div>
                     <div class="stat">
                         <div class="stat-title">Gesundheitsdaten</div>
-                        <div class="stat-value text-sm">${usage.healthData} KB</div>
-                        <div class="stat-desc">Tracking-Daten</div>
+                        <div class="stat-value text-sm">${appStats.healthDataSize}</div>
+                        <div class="stat-desc">Tracking-Daten (${appStats.totalEntries} Einträge)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Verwendungsgrad</div>
+                        <div class="stat-value text-sm">${storageDetails.usagePercentage}%</div>
+                        <div class="stat-desc">von 5MB verfügbarer Speicher</div>
                     </div>
                 </div>
 
+                <!-- Bereinigungs-Optionen -->
                 <div class="form-control mb-4">
                     <label class="label">
                         <span class="label-text">Daten älter als:</span>
@@ -4383,9 +4384,42 @@ showDataCleanupModal() {
                     </label>
                 </div>
 
+                <!-- Erweiterte Bereinigungsoptionen -->
+                <div class="collapse collapse-arrow bg-base-200 mb-4">
+                    <input type="checkbox" /> 
+                    <div class="collapse-title text-sm font-medium">
+                        Erweiterte Optionen
+                    </div>
+                    <div class="collapse-content text-sm">
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                <span class="label-text">Unvollständige Einträge entfernen</span>
+                                <input type="checkbox" class="checkbox" id="cleanup-incomplete">
+                            </label>
+                        </div>
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                <span class="label-text">Backup vor Bereinigung erstellen</span>
+                                <input type="checkbox" class="checkbox" id="cleanup-backup" checked>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warnung bei hohem Speicherverbrauch -->
+                ${storageDetails.isHighUsage ? `
+                    <div class="alert alert-warning mb-4">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        <div>
+                            <strong>Hoher Speicherverbrauch!</strong>
+                            <p class="text-sm">Deine App verwendet ${storageDetails.usagePercentage}% des verfügbaren Speichers. Eine Bereinigung wird empfohlen.</p>
+                        </div>
+                    </div>
+                ` : ''}
+
                 <div class="modal-action">
                     <button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button>
-                    <button class="btn btn-primary" onclick="healthTracker.executeDataCleanup()">
+                    <button class="btn btn-primary" onclick="healthTracker?.executeDataCleanup?.(); this.closest('.modal').remove();">
                         <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
                         Bereinigung starten
                     </button>
@@ -4406,47 +4440,77 @@ showDataCleanupModal() {
     }
 }
 
-executeDataCleanup() {
+/**
+ * Führe Datenbereinigung basierend auf Benutzerauswahl durch
+ */
+async executeDataCleanup() {
     try {
-        const period = parseInt(document.getElementById('cleanup-period').value);
-        const includeCache = document.getElementById('cleanup-cache').checked;
+        console.log('🧹 Starte Datenbereinigung...');
         
-        console.log(`🧹 Starte Datenbereinigung: ${period} Tage, Cache: ${includeCache}`);
+        const period = parseInt(document.getElementById('cleanup-period')?.value) || 90;
+        const cleanCache = document.getElementById('cleanup-cache')?.checked || false;
+        const cleanIncomplete = document.getElementById('cleanup-incomplete')?.checked || false;
+        const createBackup = document.getElementById('cleanup-backup')?.checked || false;
         
+        let cleanedItems = 0;
+        
+        // Backup erstellen falls gewünscht
+        if (createBackup) {
+            await this.exportAppData();
+            this.showToast('💾 Backup erstellt', 'info', 2000);
+        }
+        
+        // Alte Daten bereinigen
+        const healthData = JSON.parse(localStorage.getItem('healthData') || '[]');
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - period);
         
-        const healthData = JSON.parse(localStorage.getItem('healthData') || '{}');
-        let removedEntries = 0;
-        
-        // Alte Gesundheitsdaten entfernen
-        Object.keys(healthData).forEach(date => {
-            if (new Date(date) < cutoffDate) {
-                delete healthData[date];
-                removedEntries++;
+        const filteredData = healthData.filter(entry => {
+            if (!entry.date) return true;
+            
+            let entryDate;
+            if (typeof entry.date === 'string') {
+                entryDate = new Date(entry.date.split('T')[0]);
+            } else {
+                entryDate = new Date(entry.date);
             }
+            
+            const shouldKeep = entryDate >= cutoffDate;
+            if (!shouldKeep) cleanedItems++;
+            return shouldKeep;
         });
         
-        localStorage.setItem('healthData', JSON.stringify(healthData));
+        localStorage.setItem('healthData', JSON.stringify(filteredData));
         
-        // Cache leeren falls gewählt
-        if (includeCache) {
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                });
-            }
+        // Unvollständige Einträge bereinigen
+        if (cleanIncomplete) {
+            const completeEntries = filteredData.filter(entry => {
+                const hasData = entry.weight || entry.steps || entry.waterIntake || entry.sleepHours;
+                const hasNotes = entry.notes && entry.notes.trim().length > 5;
+                return hasData || hasNotes;
+            });
+            
+            cleanedItems += filteredData.length - completeEntries.length;
+            localStorage.setItem('healthData', JSON.stringify(completeEntries));
         }
         
-        // Erfolgsmeldung anzeigen
-        this.showDataCleanupResult(removedEntries, cutoffDate, includeCache);
+        // Cache bereinigen
+        if (cleanCache) {
+            await this.clearAppCache();
+        }
         
-        // Modal schließen
-        document.querySelector('.modal-open').remove();
+        // Erfolg melden
+        this.showToast(`🧹 Bereinigung abgeschlossen! ${cleanedItems} Einträge entfernt`, 'success');
+        
+        // Komponenten aktualisieren
+        this.cache?.clear?.();
+        await this.refreshAllComponents();
+        
+        console.log(`✅ Datenbereinigung abgeschlossen - ${cleanedItems} Einträge entfernt`);
         
     } catch (error) {
-        console.error('❌ Fehler bei Datenbereinigung:', error);
-        this.showToast('❌ Fehler bei der Bereinigung', 'error');
+        console.error('❌ Fehler bei der Datenbereinigung:', error);
+        this.showToast('❌ Bereinigung fehlgeschlagen', 'error');
     }
 }
 

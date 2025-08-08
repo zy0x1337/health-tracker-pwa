@@ -4033,710 +4033,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// === ENTERPRISE PERFORMANCE ENGINE ===
-class PerformanceEngine {
-    constructor(healthTracker) {
-        this.healthTracker = healthTracker;
-        this.metrics = new Map();
-        this.observers = new Map();
-        this.optimizations = new Set();
-        this.performanceScore = 100;
-        this.realTimeMetrics = {
-            fps: 60,
-            memoryUsage: 0,
-            domNodes: 0,
-            networkLatency: 0,
-            paintTiming: {},
-            userInteraction: []
-        };
-        
-        this.init();
-    }
-
-    init() {
-        console.log('⚡ Enterprise Performance Engine initialisiert');
-        
-        // Core Web Vitals Monitoring
-        this.initCoreWebVitals();
-        
-        // Memory & CPU Monitoring
-        this.initResourceMonitoring();
-        
-        // User Experience Monitoring
-        this.initUXMonitoring();
-        
-        // Network Performance Monitoring
-        this.initNetworkMonitoring();
-        
-        // Auto-Optimization System
-        this.initAutoOptimization();
-        
-        // Performance Dashboard
-        this.createPerformanceDashboard();
-        
-        // Real-time Performance Tracking
-        this.startRealTimeMonitoring();
-    }
-
-    // === ADVANCED SERVICE WORKER INTEGRATION ===
-async initAdvancedServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            console.log('🔧 Advanced Service Worker wird registriert');
-            
-            const registration = await navigator.serviceWorker.register('/sw.js', {
-                scope: '/',
-                updateViaCache: 'none'
-            });
-            
-            // Service Worker Update Handling
-            registration.addEventListener('updatefound', () => {
-                console.log('🔄 Service Worker Update gefunden');
-                this.handleServiceWorkerUpdate(registration);
-            });
-            
-            // Background Sync Registration
-            if ('sync' in registration) {
-                this.setupBackgroundSync(registration);
-            }
-            
-            // Push Notifications Setup
-            if ('pushManager' in registration) {
-                await this.setupAdvancedPushNotifications(registration);
-            }
-            
-            // Service Worker Communication
-            this.setupServiceWorkerCommunication();
-            
-            // Periodic Background Sync (if supported)
-            if ('periodicSync' in registration) {
-                await this.setupPeriodicSync(registration);
-            }
-            
-            console.log('✅ Advanced Service Worker erfolgreich initialisiert');
-            
-        } catch (error) {
-            console.error('❌ Service Worker Registrierung fehlgeschlagen:', error);
-        }
-    } else {
-        console.warn('⚠️ Service Worker nicht unterstützt');
-    }
-}
-
-setupBackgroundSync(registration) {
-    // Queue data for background sync when offline
-    window.addEventListener('online', () => {
-        console.log('🌐 Verbindung wiederhergestellt - Background Sync wird ausgelöst');
-        registration.sync.register('health-data-sync');
-        registration.sync.register('analytics-sync');
-        registration.sync.register('goals-sync');
-    });
-    
-    // Register sync when data changes
-    this.onDataChange = (data) => {
-        if (!navigator.onLine) {
-            console.log('📴 Offline - Daten für Background Sync vorgemerkt');
-            this.queueForBackgroundSync(data);
-        }
-    };
-}
-
-async setupAdvancedPushNotifications(registration) {
-    try {
-        console.log('🔔 Advanced Push Notifications werden eingerichtet');
-        
-        // Request notification permission
-        const permission = await Notification.requestPermission();
-        
-        if (permission === 'granted') {
-            // Subscribe to push notifications with advanced options
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: this.getVAPIDPublicKey()
-            });
-            
-            // Send subscription to server
-            await this.sendSubscriptionToServer(subscription);
-            
-            // Setup intelligent notification scheduling
-            this.setupIntelligentNotifications(registration);
-            
-            console.log('✅ Push Notifications erfolgreich eingerichtet');
-            
-        } else {
-            console.warn('⚠️ Push Notifications Berechtigung verweigert');
-        }
-        
-    } catch (error) {
-        console.error('❌ Push Notifications Setup fehlgeschlagen:', error);
-    }
-}
-
-setupIntelligentNotifications(registration) {
-    // Context-aware notifications based on user behavior
-    const scheduleIntelligentReminder = (type, context) => {
-        const now = new Date();
-        const optimalTime = this.calculateOptimalNotificationTime(type, context);
-        
-        if (optimalTime > now) {
-            setTimeout(() => {
-                this.sendContextualNotification(type, context);
-            }, optimalTime - now);
-        }
-    };
-    
-    // Schedule based on user patterns
-    const userPatterns = this.analyzeUserBehavior();
-    
-    if (userPatterns.waterIntakePattern) {
-        scheduleIntelligentReminder('water', userPatterns.waterIntakePattern);
-    }
-    
-    if (userPatterns.exercisePattern) {
-        scheduleIntelligentReminder('exercise', userPatterns.exercisePattern);
-    }
-}
-
-setupServiceWorkerCommunication() {
-    // Listen for messages from Service Worker
-    navigator.serviceWorker.addEventListener('message', event => {
-        const { type, data } = event.data;
-        
-        switch (type) {
-            case 'SYNC_COMPLETE':
-                console.log('✅ Background Sync abgeschlossen:', data);
-                this.showToast(`📡 ${data.synced} Einträge synchronisiert`, 'success');
-                break;
-                
-            case 'PERFORMANCE_METRICS':
-                if (this.performanceEngine) {
-                    this.performanceEngine.updateServiceWorkerMetrics(data.metrics);
-                }
-                break;
-                
-            case 'SELF_HEALING_COMPLETE':
-                console.log('🔧 Service Worker Self-Healing abgeschlossen');
-                this.showToast('🔧 App automatisch repariert', 'info');
-                break;
-                
-            default:
-                console.log('SW Message:', type, data);
-        }
-    });
-    
-    // Send messages to Service Worker
-    this.sendMessageToSW = (message) => {
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage(message);
-        }
-    };
-}
-
-async setupPeriodicSync(registration) {
-    try {
-        // Register periodic background sync (Chrome 80+)
-        await registration.periodicSync.register('health-data-backup', {
-            minInterval: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        
-        console.log('🔄 Periodic Background Sync registriert');
-        
-    } catch (error) {
-        console.warn('⚠️ Periodic Sync nicht unterstützt:', error);
-    }
-}
-
-    // === CORE WEB VITALS MONITORING ===
-    initCoreWebVitals() {
-        // Largest Contentful Paint (LCP)
-        const lcpObserver = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                this.metrics.set('LCP', Math.round(entry.startTime));
-                this.updatePerformanceScore('LCP', entry.startTime);
-            }
-        });
-        
-        try {
-            lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-            this.observers.set('LCP', lcpObserver);
-        } catch (e) {
-            console.warn('LCP monitoring nicht unterstützt');
-        }
-
-        // First Input Delay (FID) & Interaction to Next Paint (INP)
-        const responsiveObserver = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                if (entry.name === 'first-input') {
-                    const fid = entry.processingStart - entry.startTime;
-                    this.metrics.set('FID', Math.round(fid));
-                    this.updatePerformanceScore('FID', fid);
-                }
-                
-                // INP calculation
-                if (entry.interactionId) {
-                    const duration = entry.duration;
-                    this.metrics.set('INP', Math.round(duration));
-                    this.updatePerformanceScore('INP', duration);
-                }
-            }
-        });
-        
-        try {
-            responsiveObserver.observe({ type: 'event', buffered: true });
-            responsiveObserver.observe({ type: 'first-input', buffered: true });
-            this.observers.set('RESPONSIVE', responsiveObserver);
-        } catch (e) {
-            console.warn('Responsiveness monitoring nicht unterstützt');
-        }
-
-        // Cumulative Layout Shift (CLS)
-        let clsValue = 0;
-        const clsObserver = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                if (!entry.hadRecentInput) {
-                    clsValue += entry.value;
-                    this.metrics.set('CLS', Math.round(clsValue * 1000) / 1000);
-                    this.updatePerformanceScore('CLS', clsValue);
-                }
-            }
-        });
-        
-        try {
-            clsObserver.observe({ type: 'layout-shift', buffered: true });
-            this.observers.set('CLS', clsObserver);
-        } catch (e) {
-            console.warn('CLS monitoring nicht unterstützt');
-        }
-    }
-
-    // === MEMORY & CPU MONITORING ===
-    initResourceMonitoring() {
-        if ('memory' in performance) {
-            setInterval(() => {
-                const memory = performance.memory;
-                this.realTimeMetrics.memoryUsage = {
-                    used: Math.round(memory.usedJSHeapSize / 1048576), // MB
-                    total: Math.round(memory.totalJSHeapSize / 1048576), // MB
-                    limit: Math.round(memory.jsHeapSizeLimit / 1048576) // MB
-                };
-                
-                // Memory leak detection
-                this.detectMemoryLeaks();
-            }, 5000);
-        }
-
-        // DOM Node Monitoring
-        const domObserver = new MutationObserver(() => {
-            this.realTimeMetrics.domNodes = document.querySelectorAll('*').length;
-            this.optimizeDOMIfNeeded();
-        });
-        
-        domObserver.observe(document, { 
-            childList: true, 
-            subtree: true,
-            throttle: 1000 
-        });
-        this.observers.set('DOM', domObserver);
-
-        // FPS Monitoring
-        this.monitorFPS();
-    }
-
-    // === UX MONITORING ===
-    initUXMonitoring() {
-        // Time to Interactive
-        this.measureTTI();
-        
-        // User Interaction Tracking
-        const interactionTypes = ['click', 'keydown', 'scroll', 'touchstart'];
-        interactionTypes.forEach(type => {
-            document.addEventListener(type, (e) => {
-                const timestamp = performance.now();
-                this.realTimeMetrics.userInteraction.push({
-                    type,
-                    timestamp,
-                    target: e.target.tagName,
-                    responseTime: this.measureResponseTime(e)
-                });
-                
-                // Keep only last 50 interactions
-                if (this.realTimeMetrics.userInteraction.length > 50) {
-                    this.realTimeMetrics.userInteraction.shift();
-                }
-            }, { passive: true });
-        });
-
-        // Viewport stability monitoring
-        this.monitorViewportStability();
-    }
-
-    // === NETWORK MONITORING ===
-    initNetworkMonitoring() {
-        if ('connection' in navigator) {
-            const updateConnection = () => {
-                const conn = navigator.connection;
-                this.realTimeMetrics.networkLatency = conn.rtt || 0;
-                this.realTimeMetrics.connectionType = conn.effectiveType;
-                this.realTimeMetrics.downlink = conn.downlink;
-                
-                this.optimizeForConnection();
-            };
-            
-            navigator.connection.addEventListener('change', updateConnection);
-            updateConnection();
-        }
-
-        // Resource loading performance
-        const resourceObserver = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                if (entry.initiatorType && entry.duration > 100) {
-                    console.warn(`⚡ Slow resource: ${entry.name} (${Math.round(entry.duration)}ms)`);
-                    this.optimizeSlowResource(entry);
-                }
-            }
-        });
-        
-        try {
-            resourceObserver.observe({ entryTypes: ['resource'] });
-            this.observers.set('RESOURCE', resourceObserver);
-        } catch (e) {
-            console.warn('Resource monitoring nicht unterstützt');
-        }
-    }
-
-    // === AUTO-OPTIMIZATION SYSTEM ===
-    initAutoOptimization() {
-        // Adaptive loading basierend auf device capabilities
-        this.implementAdaptiveLoading();
-        
-        // Intelligent prefetching
-        this.implementIntelligentPrefetching();
-        
-        // Dynamic compression
-        this.implementDynamicCompression();
-        
-        // Lazy loading optimization
-        this.optimizeLazyLoading();
-        
-        // Critical resource prioritization
-        this.prioritizeCriticalResources();
-    }
-
-    // === PERFORMANCE SCORE CALCULATION ===
-    updatePerformanceScore(metric, value) {
-        const thresholds = {
-            'LCP': { good: 2500, poor: 4000 },
-            'FID': { good: 100, poor: 300 },
-            'INP': { good: 200, poor: 500 },
-            'CLS': { good: 0.1, poor: 0.25 }
-        };
-        
-        const threshold = thresholds[metric];
-        if (!threshold) return;
-        
-        let score;
-        if (value <= threshold.good) {
-            score = 100;
-        } else if (value <= threshold.poor) {
-            score = Math.round(100 - ((value - threshold.good) / (threshold.poor - threshold.good)) * 40);
-        } else {
-            score = Math.max(0, 60 - Math.round((value - threshold.poor) / threshold.poor * 60));
-        }
-        
-        this.metrics.set(`${metric}_score`, score);
-        this.calculateOverallPerformanceScore();
-    }
-
-    calculateOverallPerformanceScore() {
-        const scores = [
-            this.metrics.get('LCP_score') || 100,
-            this.metrics.get('FID_score') || 100,
-            this.metrics.get('INP_score') || 100,
-            this.metrics.get('CLS_score') || 100
-        ];
-        
-        this.performanceScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        
-        // Performance grade
-        let grade, color;
-        if (this.performanceScore >= 90) {
-            grade = 'A'; color = 'success';
-        } else if (this.performanceScore >= 80) {
-            grade = 'B'; color = 'info';
-        } else if (this.performanceScore >= 70) {
-            grade = 'C'; color = 'warning';
-        } else {
-            grade = 'F'; color = 'error';
-        }
-        
-        this.performanceGrade = { grade, color, score: this.performanceScore };
-        
-        // Auto-optimize if performance is poor
-        if (this.performanceScore < 70) {
-            this.triggerAutoOptimization();
-        }
-    }
-
-    // === INTELLIGENT OPTIMIZATIONS ===
-    implementAdaptiveLoading() {
-        const deviceMemory = navigator.deviceMemory || 4;
-        const connectionSpeed = navigator.connection?.effectiveType || '4g';
-        
-        // Adaptive strategy based on device capabilities
-        if (deviceMemory < 2 || connectionSpeed === 'slow-2g' || connectionSpeed === '2g') {
-            this.enableLightMode();
-        } else if (deviceMemory >= 8 && connectionSpeed === '4g') {
-            this.enableHighPerformanceMode();
-        }
-    }
-
-    implementIntelligentPrefetching() {
-        // Predict user behavior and prefetch likely resources
-        const userBehavior = this.analyzeUserBehavior();
-        
-        if (userBehavior.likelyNextPage) {
-            this.prefetchResource(userBehavior.likelyNextPage);
-        }
-        
-        // Prefetch critical analytics data during idle time
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => {
-                this.prefetchAnalyticsData();
-            });
-        }
-    }
-
-    // === REAL-TIME MONITORING ===
-    startRealTimeMonitoring() {
-        setInterval(() => {
-            this.updatePerformanceDashboard();
-        }, 1000);
-        
-        // Performance anomaly detection
-        setInterval(() => {
-            this.detectPerformanceAnomalies();
-        }, 5000);
-    }
-
-    // === PERFORMANCE DASHBOARD ===
-    createPerformanceDashboard() {
-        if (localStorage.getItem('devMode') !== 'true') return;
-        
-        const dashboard = document.createElement('div');
-        dashboard.id = 'performance-dashboard';
-        dashboard.className = 'fixed bottom-4 right-4 z-50 bg-base-100 rounded-lg shadow-2xl border border-base-300 p-4 max-w-sm';
-        dashboard.innerHTML = `
-            <div class="flex items-center justify-between mb-3">
-                <h4 class="font-bold text-sm flex items-center gap-2">
-                    <i data-lucide="zap" class="w-4 h-4"></i>
-                    Performance
-                </h4>
-                <div class="badge badge-${this.performanceGrade?.color || 'info'} badge-sm">
-                    ${this.performanceGrade?.grade || 'A'} ${this.performanceScore}
-                </div>
-            </div>
-            
-            <div class="space-y-2 text-xs">
-                <div class="flex justify-between">
-                    <span>LCP:</span>
-                    <span class="font-mono">${this.metrics.get('LCP') || '—'}ms</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>FID:</span>
-                    <span class="font-mono">${this.metrics.get('FID') || '—'}ms</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>CLS:</span>
-                    <span class="font-mono">${this.metrics.get('CLS') || '—'}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>Memory:</span>
-                    <span class="font-mono">${this.realTimeMetrics.memoryUsage?.used || '—'}MB</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>FPS:</span>
-                    <span class="font-mono">${Math.round(this.realTimeMetrics.fps)}fps</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>DOM:</span>
-                    <span class="font-mono">${this.realTimeMetrics.domNodes || '—'}</span>
-                </div>
-            </div>
-            
-            <div class="mt-3 pt-2 border-t border-base-300">
-                <div class="text-xs text-base-content/60">
-                    Active Optimizations: ${this.optimizations.size}
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(dashboard);
-        
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-
-    updatePerformanceDashboard() {
-        const dashboard = document.getElementById('performance-dashboard');
-        if (!dashboard) return;
-        
-        // Update dashboard values
-        const elements = {
-            lcp: dashboard.querySelector('.flex:nth-child(1) span:last-child'),
-            fid: dashboard.querySelector('.flex:nth-child(2) span:last-child'),
-            cls: dashboard.querySelector('.flex:nth-child(3) span:last-child'),
-            memory: dashboard.querySelector('.flex:nth-child(4) span:last-child'),
-            fps: dashboard.querySelector('.flex:nth-child(5) span:last-child'),
-            dom: dashboard.querySelector('.flex:nth-child(6) span:last-child')
-        };
-        
-        if (elements.lcp) elements.lcp.textContent = `${this.metrics.get('LCP') || '—'}ms`;
-        if (elements.fid) elements.fid.textContent = `${this.metrics.get('FID') || '—'}ms`;
-        if (elements.cls) elements.cls.textContent = `${this.metrics.get('CLS') || '—'}`;
-        if (elements.memory) elements.memory.textContent = `${this.realTimeMetrics.memoryUsage?.used || '—'}MB`;
-        if (elements.fps) elements.fps.textContent = `${Math.round(this.realTimeMetrics.fps)}fps`;
-        if (elements.dom) elements.dom.textContent = `${this.realTimeMetrics.domNodes || '—'}`;
-    }
-
-    // === FPS MONITORING ===
-    monitorFPS() {
-        let lastTime = performance.now();
-        let frameCount = 0;
-        
-        const measureFPS = () => {
-            frameCount++;
-            const currentTime = performance.now();
-            
-            if (currentTime >= lastTime + 1000) {
-                this.realTimeMetrics.fps = frameCount;
-                frameCount = 0;
-                lastTime = currentTime;
-                
-                // Trigger optimization if FPS drops below 45
-                if (this.realTimeMetrics.fps < 45) {
-                    this.optimizeForLowFPS();
-                }
-            }
-            
-            requestAnimationFrame(measureFPS);
-        };
-        
-        requestAnimationFrame(measureFPS);
-    }
-
-    // === OPTIMIZATION TRIGGERS ===
-    triggerAutoOptimization() {
-        console.log('🔧 Auto-Optimization wird ausgeführt');
-        
-        // Reduce animations
-        this.reduceAnimations();
-        
-        // Optimize images
-        this.optimizeImages();
-        
-        // Defer non-critical scripts
-        this.deferNonCriticalScripts();
-        
-        // Enable performance mode
-        this.enablePerformanceMode();
-        
-        this.optimizations.add('auto-optimization');
-    }
-
-    enablePerformanceMode() {
-        document.body.classList.add('performance-mode');
-        
-        // Reduce chart update frequency
-        if (this.healthTracker.analyticsEngine) {
-            this.healthTracker.analyticsEngine.setUpdateInterval(5000);
-        }
-        
-        // Reduce notification frequency
-        if (this.healthTracker.smartNotificationManager) {
-            this.healthTracker.smartNotificationManager.setLowPerformanceMode(true);
-        }
-        
-        this.optimizations.add('performance-mode');
-        console.log('⚡ Performance Mode aktiviert');
-    }
-
-    // === CLEANUP ===
-    destroy() {
-        this.observers.forEach(observer => observer.disconnect());
-        this.observers.clear();
-        
-        const dashboard = document.getElementById('performance-dashboard');
-        if (dashboard) dashboard.remove();
-        
-        console.log('🧹 Performance Engine bereinigt');
-    }
-}
-
-// === ADVANCED PERFORMANCE UTILITIES ===
-class PerformanceUtils {
-    // Critical Resource Preloader
-    static preloadCriticalResources() {
-        const criticalResources = [
-            '/css/styles.css',
-            '/js/chart.min.js',
-            '/js/lucide.min.js'
-        ];
-        
-        criticalResources.forEach(resource => {
-            const link = document.createElement('link');
-            link.rel = 'preload';
-            link.as = resource.endsWith('.css') ? 'style' : 'script';
-            link.href = resource;
-            document.head.appendChild(link);
-        });
-    }
-    
-    // Intelligent Image Loading
-    static optimizeImages() {
-        const images = document.querySelectorAll('img[data-src]');
-        const imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.removeAttribute('data-src');
-                    imageObserver.unobserve(img);
-                }
-            });
-        }, { rootMargin: '50px' });
-        
-        images.forEach(img => imageObserver.observe(img));
-    }
-    
-    // Service Worker Performance Optimization
-    static optimizeServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data && event.data.type === 'PERFORMANCE_METRICS') {
-                    console.log('📊 SW Performance:', event.data.metrics);
-                }
-            });
-        }
-    }
-    
-    // Bundle Splitting Simulator
-    static loadModuleOnDemand(moduleName) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = `/js/modules/${moduleName}.js`;
-            script.onload = () => resolve(window[moduleName]);
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-}
-
-// Initialize Performance Utilities
-PerformanceUtils.preloadCriticalResources();
-PerformanceUtils.optimizeImages();
-PerformanceUtils.optimizeServiceWorker();
-
 // ====================================================================
 // SMART NOTIFICATION MANAGER
 // ====================================================================
@@ -9078,8 +8374,110 @@ function showInstallPrompt() {
     }
 }
 
-// PWA Installation Status prüfen
+// === PWA INSTALL VERBESSERUNGEN ===
+
+// Install Button Status Tracking
+let installButtonVisible = false;
+
+// Verbesserte Install Prompt Verfügbarkeit
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('📱 PWA Install Prompt verfügbar');
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Install-Button in der UI anzeigen
+    const installHint = document.querySelector('.install-available');
+    if (installHint) {
+        installHint.classList.remove('hidden');
+        installButtonVisible = true;
+    }
+    
+    // Custom Install Button aktivieren falls vorhanden
+    const customInstallBtn = document.getElementById('custom-install-btn');
+    if (customInstallBtn) {
+        customInstallBtn.style.display = 'block';
+        customInstallBtn.onclick = showInstallPrompt;
+    }
+    
+    // Install Hint in Navigation hinzufügen
+    addInstallHintToNav();
+});
+
+// Install Hint zur Navigation hinzufügen
+function addInstallHintToNav() {
+    const nav = document.querySelector('.navbar') || document.querySelector('nav');
+    if (nav && !document.getElementById('nav-install-hint')) {
+        const installHint = document.createElement('div');
+        installHint.id = 'nav-install-hint';
+        installHint.className = 'badge badge-primary badge-sm cursor-pointer animate-pulse';
+        installHint.innerHTML = '📱 Installieren';
+        installHint.onclick = showInstallPrompt;
+        nav.appendChild(installHint);
+    }
+}
+
+// PWA Install Check beim App-Start
+function checkPWAInstallability() {
+    // Prüfe ob bereits installiert
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('✅ PWA bereits installiert (Standalone Mode)');
+        return;
+    }
+    
+    // Prüfe Browser-Support
+    if ('serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window) {
+        console.log('🔧 Browser unterstützt PWA Installation');
+        
+        // Zeige Install-Hinweis nach 30 Sekunden falls kein Prompt erschien
+        setTimeout(() => {
+            if (!deferredPrompt && !installButtonVisible) {
+                showManualInstallGuide();
+            }
+        }, 30000);
+    }
+}
+
+// Manuelle Installationsanleitung anzeigen
+function showManualInstallGuide() {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-end z-50';
+    toast.innerHTML = `
+        <div class="alert alert-info cursor-pointer" onclick="showInstallPrompt()">
+            <div>
+                <span class="text-sm font-medium">📱 App installieren?</span>
+                <div class="text-xs opacity-75">Für bessere Performance</div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove nach 10 Sekunden
+    setTimeout(() => {
+        toast.remove();
+    }, 10000);
+}
+
+// PWA Installation Tracking
 window.addEventListener('appinstalled', (evt) => {
     console.log('✅ PWA erfolgreich installiert');
-    healthTracker.showToast('🎉 App erfolgreich installiert!', 'success');
+    
+    // Alle Install-Hints entfernen
+    const installHints = document.querySelectorAll('.install-available, #nav-install-hint, #custom-install-btn');
+    installHints.forEach(hint => hint.remove());
+    
+    // Success Toast
+    if (typeof healthTracker !== 'undefined' && healthTracker.showToast) {
+        healthTracker.showToast('🎉 App erfolgreich installiert!', 'success');
+    }
+    
+    // Analytics Event (falls verfügbar)
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'pwa_installed');
+    }
+});
+
+// Initialisierung beim App-Start
+document.addEventListener('DOMContentLoaded', () => {
+    checkPWAInstallability();
 });

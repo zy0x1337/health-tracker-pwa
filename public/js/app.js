@@ -82,39 +82,34 @@ class HealthTracker {
  * Initialize all component classes
  */
 initializeComponents() {
-    try {
-        // Initialize notification manager first (needed by other components)
-        this.notificationManager = new SmartNotificationManager(this);
-        
-        // Initialize other components
-        this.progressHub = new ProgressHub(this);
-        this.activityFeed = new ActivityFeed(this);
-        this.analyticsEngine = new AnalyticsEngine(this);
-        
-        console.log('📦 Alle Komponenten initialisiert');
-        
-        // Setup progress hub tabs AFTER initialization
-        setTimeout(() => {
-            this.setupProgressHubTabs();
-        }, 100);
-        
-    } catch (error) {
-        console.error('❌ Fehler bei Komponenteninitialisierung:', error);
-    }
+try {
+this.notificationManager = new SmartNotificationManager(this);
+this.progressHub = new ProgressHub(this);
+this.activityFeed = new ActivityFeed(this);
+this.analyticsEngine = new AnalyticsEngine(this);
+console.log('📦 Alle Komponenten initialisiert');
 
-    setTimeout(async () => {
-  try {
-    // Initiales Laden der ProgressHub-Daten sicherstellen
-    if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
-      await this.progressHub.loadViewData();
-      // Standard-View anzeigen, falls nicht gesetzt
-      if (!this.progressHub.currentView && typeof this.progressHub.showView === 'function') {
-        this.progressHub.showView('overview');
-      }
-    }
-  } catch (e) {
-    console.error('❌ ProgressHub Initial-Ladefehler:', e);
-  }
+text
+// Tabs binden, nachdem DOM bereit ist
+setTimeout(() => { this.setupProgressHubTabs(); }, 100);
+} catch (error) {
+console.error('❌ Fehler bei Komponenteninitialisierung:', error);
+}
+
+// Initiales Laden ohne erzwungenen View-Fallback
+setTimeout(async () => {
+try {
+if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+// Falls keine View gesetzt ist, z.B. 'overview' als Start definieren
+if (!this.progressHub.currentView) this.progressHub.currentView = 'overview';
+await this.progressHub.loadViewData(this.progressHub.currentView);
+if (typeof this.progressHub.showView === 'function') {
+this.progressHub.showView(this.progressHub.currentView);
+}
+}
+} catch (e) {
+console.error('❌ ProgressHub Initial-Ladefehler:', e);
+}
 }, 250);
 }
     
@@ -172,26 +167,30 @@ clone.addEventListener('click', async (e) => {
 e.preventDefault();
 if (!this.progressHub) return;
 
-  // 1) View setzen und richtige View-Methode aufrufen (ohne Fallback auf today)
+text
+  // 1) View festlegen
   this.progressHub.currentView = view;
+
+  // 2) Daten zur gewünschten View laden (Parameter nutzen!)
+  if (typeof this.progressHub.loadViewData === 'function') {
+    try {
+      await this.progressHub.loadViewData(view);
+    } catch (err) {
+      console.error('❌ ProgressHub Tab-Ladefehler:', err);
+    }
+  }
+
+  // 3) UI umschalten (nur Darstellung, keine Datenlogik)
   if (typeof this.progressHub.showView === 'function') {
     this.progressHub.showView(view);
   } else {
-    // Direkter Aufruf der existierenden View-Methoden, falls showView minimal ist
     if (view === 'today' && typeof this.progressHub.showTodayView === 'function') this.progressHub.showTodayView();
     if (view === 'week' && typeof this.progressHub.showWeeklyView === 'function') this.progressHub.showWeeklyView();
     if (view === 'goals' && typeof this.progressHub.showGoalsView === 'function') this.progressHub.showGoalsView();
     if (view === 'achievements' && typeof this.progressHub.showAchievementsView === 'function') this.progressHub.showAchievementsView();
   }
-
-  // 2) Daten für diese View laden (respektiert currentView)
-  if (typeof this.progressHub.loadViewData === 'function') {
-    try { await this.progressHub.loadViewData(); }
-    catch (err) { console.error('❌ ProgressHub Tab-Ladefehler:', err); }
-  }
 });
 };
-
 bind('tab-today', 'today');
 bind('tab-week', 'week');
 bind('tab-goals', 'goals');
@@ -880,31 +879,26 @@ getTodayData(allData) {
  * Refresh all components with new data
  */
 async refreshAllComponents() {
-  try {
-    this.cache?.delete?.('allHealthData');
-
-    await this.updateDashboardStats?.();
-    await this.updateHeroStats?.();
-
-    if (this.activityFeed && typeof this.activityFeed.load === 'function') {
-      await this.activityFeed.load();
-    }
-
-    if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
-      const viewToShow = this.progressHub.currentView || 'overview';
-      // erst View setzen, dann laden (wichtig für DOM-Container)
-      if (typeof this.progressHub.showView === 'function') {
-        this.progressHub.showView(viewToShow);
-      }
-      await this.progressHub.loadViewData();
-    }
-
-    if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
-      await this.analyticsEngine.updateAllAnalytics();
-    }
-  } catch (error) {
-    console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
-  }
+try {
+this.cache?.delete?.('allHealthData');
+await this.updateDashboardStats?.();
+await this.updateHeroStats?.();
+if (this.activityFeed && typeof this.activityFeed.load === 'function') {
+await this.activityFeed.load();
+}
+if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+const viewToShow = this.progressHub.currentView || 'overview';
+await this.progressHub.loadViewData(viewToShow);
+if (typeof this.progressHub.showView === 'function') {
+this.progressHub.showView(viewToShow);
+}
+}
+if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
+await this.analyticsEngine.updateAllAnalytics();
+}
+} catch (error) {
+console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
+}
 }
 
 /**

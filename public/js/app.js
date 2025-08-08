@@ -45,6 +45,9 @@ class HealthTracker {
     async initialize() {
     try {
         console.log('🚀 Health Tracker Pro wird initialisiert...');
+
+        // PWA Install Button Debugging
+        this.debugInstallState();
         
         // Load user goals first
         await this.loadUserGoals();
@@ -82,6 +85,24 @@ class HealthTracker {
         console.error('❌ Initialisierungsfehler:', error);
         this.showToast('⚠️ Initialisierung fehlgeschlagen - Offline-Modus aktiv', 'warning');
     }
+}
+
+debugInstallState() {
+    console.log('🔍 PWA Install Debug Info:');
+    console.log('- beforeinstallprompt support:', 'onbeforeinstallprompt' in window);
+    console.log('- Service Worker support:', 'serviceWorker' in navigator);
+    console.log('- Standalone mode:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('- User Agent:', navigator.userAgent);
+    console.log('- Current URL:', window.location.href);
+    
+    // Prüfe Manifest
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    console.log('- Manifest Link:', manifestLink ? manifestLink.href : 'NOT FOUND');
+    
+    // Prüfe Install Button Element
+    const installBtn = document.getElementById('install-btn');
+    console.log('- Install Button Element:', installBtn ? 'Found' : 'NOT FOUND');
+    console.log('- Install Button Hidden:', installBtn?.classList.contains('hidden'));
 }
     
     /**

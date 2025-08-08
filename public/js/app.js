@@ -6300,6 +6300,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
     console.log('📱 PWA Install Prompt verfügbar');
     e.preventDefault();
     deferredPrompt = e;
+    
+    // Install-Button in der UI anzeigen falls gewünscht
+    const installHint = document.querySelector('.install-available');
+    if (installHint) installHint.classList.remove('hidden');
 });
 
 function showInstallPrompt() {
@@ -6317,26 +6321,101 @@ function showInstallPrompt() {
             deferredPrompt = null;
         });
     } else {
-        // Fallback für bereits installierte PWA oder nicht unterstützte Browser
+        // Detaillierte Installationsanleitung für verschiedene Browser
+        const userAgent = navigator.userAgent.toLowerCase();
+        let instructions = '';
+        
+        if (userAgent.includes('chrome') && !userAgent.includes('edge')) {
+            instructions = `
+                <h4>Google Chrome:</h4>
+                <ul>
+                    <li>Klicke auf das <strong>⋮</strong> Menü (oben rechts)</li>
+                    <li>Wähle <strong>"App installieren..."</strong> oder <strong>"Zu Startbildschirm hinzufügen"</strong></li>
+                    <li>Alternativ: <strong>Strg+Shift+A</strong> (Windows) oder <strong>Cmd+Shift+A</strong> (Mac)</li>
+                </ul>
+            `;
+        } else if (userAgent.includes('edge')) {
+            instructions = `
+                <h4>Microsoft Edge:</h4>
+                <ul>
+                    <li>Klicke auf das <strong>⋯</strong> Menü (oben rechts)</li>
+                    <li>Wähle <strong>"Apps" → "Diese Seite als App installieren"</strong></li>
+                    <li>Oder verwende <strong>Strg+Shift+I</strong></li>
+                </ul>
+            `;
+        } else if (userAgent.includes('safari')) {
+            instructions = `
+                <h4>Safari (iPhone/iPad):</h4>
+                <ul>
+                    <li>Tippe auf das <strong>Teilen</strong>-Symbol 📤</li>
+                    <li>Scrolle nach unten und wähle <strong>"Zum Home-Bildschirm"</strong></li>
+                    <li>Tippe auf <strong>"Hinzufügen"</strong></li>
+                </ul>
+            `;
+        } else if (userAgent.includes('firefox')) {
+            instructions = `
+                <h4>Firefox:</h4>
+                <ul>
+                    <li>Klicke auf das <strong>≡</strong> Menü (oben rechts)</li>
+                    <li>Wähle <strong>"Diese Seite installieren"</strong></li>
+                    <li>Oder suche nach dem <strong>➕</strong> Symbol in der Adressleiste</li>
+                </ul>
+            `;
+        } else {
+            instructions = `
+                <h4>Allgemeine Anleitung:</h4>
+                <ul>
+                    <li>Suche in den <strong>Browser-Einstellungen</strong> nach "App installieren" oder "Startbildschirm"</li>
+                    <li>Oder erstelle ein <strong>Lesezeichen</strong> für schnellen Zugriff</li>
+                </ul>
+            `;
+        }
+        
         const modal = document.createElement('div');
         modal.className = 'modal modal-open';
         modal.innerHTML = `
-            <div class="modal-box">
+            <div class="modal-box max-w-2xl">
                 <h3 class="font-bold text-lg mb-4">📱 App Installation</h3>
-                <div class="prose max-w-none">
-                    <p>Diese App kann als PWA installiert werden:</p>
-                    <ul>
-                        <li><strong>Chrome/Edge:</strong> Klicke auf das Install-Symbol in der Adressleiste</li>
-                        <li><strong>Safari:</strong> Teilen → Zum Home-Bildschirm</li>
-                        <li><strong>Firefox:</strong> Menü → Diese Seite installieren</li>
-                    </ul>
-                    <p>Nach der Installation funktioniert die App offline und lädt schneller.</p>
+                <div class="alert alert-info mb-4">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                    <span>Der automatische Install-Button ist in diesem Browser nicht verfügbar.</span>
                 </div>
+                
+                <div class="prose max-w-none">
+                    <p>Du kannst diese Health Tracker App trotzdem installieren:</p>
+                    ${instructions}
+                    
+                    <div class="bg-base-200 p-4 rounded-lg mt-4">
+                        <h4>🚀 Vorteile der Installation:</h4>
+                        <ul>
+                            <li>✅ Funktioniert komplett offline</li>
+                            <li>⚡ Schnellere Ladezeiten</li>
+                            <li>🏠 Eigenes App-Icon auf dem Startbildschirm</li>
+                            <li>🔔 Push-Benachrichtigungen</li>
+                            <li>📱 Native App-Erfahrung</li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="modal-action">
-                    <button class="btn" onclick="this.closest('.modal').remove()">Verstanden</button>
+                    <button class="btn btn-primary" onclick="window.open(window.location.href, '_blank')">
+                        🔗 In neuem Tab öffnen
+                    </button>
+                    <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
+        
+        // Lucide Icons neu laden für das Modal
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 }
+
+// PWA Installation Status prüfen
+window.addEventListener('appinstalled', (evt) => {
+    console.log('✅ PWA erfolgreich installiert');
+    healthTracker.showToast('🎉 App erfolgreich installiert!', 'success');
+});

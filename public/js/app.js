@@ -1731,33 +1731,6 @@ initializeFormDefaults() {
     }
 }
 
-/**
-     * Initialize footer functionality
-     */
-    initializeFooter() {
-        // Update footer stats
-        this.updateFooterStats();
-        
-        // Update stats every 30 seconds
-        setInterval(() => this.updateFooterStats(), 30000);
-        
-        // Footer theme toggle
-        const footerThemeToggle = document.getElementById('footer-theme-toggle');
-        if (footerThemeToggle) {
-            footerThemeToggle.addEventListener('click', () => {
-                const mainThemeToggle = document.getElementById('theme-toggle');
-                if (mainThemeToggle) {
-                    mainThemeToggle.click();
-                }
-            });
-        }
-        
-        // Update connection status in footer
-        this.updateFooterConnectionStatus();
-        window.addEventListener('online', () => this.updateFooterConnectionStatus());
-        window.addEventListener('offline', () => this.updateFooterConnectionStatus());
-    }
-
     /**
      * Update footer statistics
      */
@@ -2659,19 +2632,147 @@ async importData() {
     }
 }
 
+// === THEME TOGGLE ===
 toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
+    const availableThemes = ['light', 'dark', 'emerald', 'cupcake', 'corporate'];
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const currentIndex = availableThemes.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % availableThemes.length;
+    const newTheme = availableThemes[nextIndex];
     
-    // Theme auch für Charts anpassen
-    if (this.analyticsEngine) {
-        this.analyticsEngine.updateChartsTheme(newTheme);
+    // Neue setTheme Methode verwenden
+    this.setTheme(newTheme);
+}
+
+// === THEME SETZEN ===
+setTheme(themeName) {
+    console.log(`🎨 Theme wird gesetzt auf: ${themeName}`);
+    
+    try {
+        // Theme anwenden
+        document.documentElement.setAttribute('data-theme', themeName);
+        localStorage.setItem('theme', themeName);
+        
+        // Charts aktualisieren falls Analytics Engine verfügbar
+        if (this.analyticsEngine && typeof this.analyticsEngine.updateChartsTheme === 'function') {
+            this.analyticsEngine.updateChartsTheme(themeName);
+        }
+        
+        // Theme-spezifische Styles anwenden
+        this.applyThemeSpecificStyles(themeName);
+        
+        // Select-Element in Einstellungen aktualisieren falls geöffnet
+        const themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+            themeSelector.value = themeName;
+        }
+        
+        // Success-Message
+        this.showToast(`🎨 ${this.getThemeDisplayName(themeName)} aktiviert`, 'success');
+        
+        console.log(`✅ Theme erfolgreich gesetzt: ${themeName}`);
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Setzen des Themes:', error);
+        this.showToast('❌ Fehler beim Theme-Wechsel', 'error');
+    }
+}
+
+// === THEME HILFSMETHODEN ===
+getThemeDisplayName(theme) {
+    const themeNames = {
+        'light': 'Hell',
+        'dark': 'Dunkel',
+        'cupcake': 'Cupcake',
+        'emerald': 'Emerald',
+        'corporate': 'Corporate',
+        'synthwave': 'Synthwave',
+        'retro': 'Retro',
+        'cyberpunk': 'Cyberpunk',
+        'valentine': 'Valentine',
+        'halloween': 'Halloween',
+        'garden': 'Garden',
+        'forest': 'Forest',
+        'aqua': 'Aqua',
+        'lofi': 'Lo-Fi',
+        'pastel': 'Pastel',
+        'fantasy': 'Fantasy',
+        'wireframe': 'Wireframe',
+        'black': 'Black',
+        'luxury': 'Luxury',
+        'dracula': 'Dracula',
+        'cmyk': 'CMYK',
+        'autumn': 'Autumn',
+        'business': 'Business',
+        'acid': 'Acid',
+        'lemonade': 'Lemonade',
+        'night': 'Night',
+        'coffee': 'Coffee',
+        'winter': 'Winter'
+    };
+    return themeNames[theme] || theme.charAt(0).toUpperCase() + theme.slice(1);
+}
+
+applyThemeSpecificStyles(theme) {
+    const body = document.body;
+    
+    // Alle Theme-Klassen entfernen
+    const themeClasses = ['theme-health', 'theme-medical', 'theme-wellness', 'theme-corporate', 'theme-dark', 'theme-retro'];
+    body.classList.remove(...themeClasses);
+    
+    // Theme-spezifische Klassen hinzufügen
+    switch(theme) {
+        case 'dark':
+        case 'dracula':
+        case 'night':
+        case 'black':
+            body.classList.add('theme-dark');
+            break;
+        case 'emerald':
+        case 'garden':
+        case 'forest':
+            body.classList.add('theme-wellness');
+            break;
+        case 'corporate':
+        case 'business':
+            body.classList.add('theme-corporate');
+            break;
+        case 'retro':
+        case 'synthwave':
+        case 'cyberpunk':
+            body.classList.add('theme-retro');
+            break;
+        default:
+            // Standard-Styles beibehalten
+            break;
     }
     
-    console.log(`🌓 Theme gewechselt zu: ${newTheme}`);
-    this.showToast(`🌓 ${newTheme === 'dark' ? 'Dark' : 'Light'} Mode aktiviert`, 'success');
+    // Smooth Transition für Theme-Wechsel
+    document.documentElement.style.transition = 'all 0.3s ease';
+    setTimeout(() => {
+        document.documentElement.style.transition = '';
+    }, 300);
+}
+
+getAvailableThemes() {
+    return [
+        { value: 'light', name: 'Hell', icon: '☀️', description: 'Klassisches helles Design' },
+        { value: 'dark', name: 'Dunkel', icon: '🌙', description: 'Augenschonendes dunkles Design' },
+        { value: 'cupcake', name: 'Cupcake', icon: '🧁', description: 'Freundliches rosa Design' },
+        { value: 'emerald', name: 'Emerald', icon: '💎', description: 'Beruhigendes grünes Design' },
+        { value: 'corporate', name: 'Corporate', icon: '💼', description: 'Professionelles Business-Design' },
+        { value: 'synthwave', name: 'Synthwave', icon: '🌆', description: 'Retro-futuristisches Design' },
+        { value: 'retro', name: 'Retro', icon: '📻', description: 'Nostalgisches Retro-Design' },
+        { value: 'cyberpunk', name: 'Cyberpunk', icon: '🤖', description: 'Futuristisches Neon-Design' },
+        { value: 'valentine', name: 'Valentine', icon: '💖', description: 'Romantisches rosa Design' },
+        { value: 'halloween', name: 'Halloween', icon: '🎃', description: 'Gruseliges Halloween-Design' },
+        { value: 'garden', name: 'Garden', icon: '🌻', description: 'Natürliches Garten-Design' },
+        { value: 'aqua', name: 'Aqua', icon: '🌊', description: 'Frisches Wasser-Design' },
+        { value: 'lofi', name: 'Lo-Fi', icon: '🎵', description: 'Entspanntes Lo-Fi Design' },
+        { value: 'dracula', name: 'Dracula', icon: '🧛', description: 'Elegantes dunkles Design' },
+        { value: 'autumn', name: 'Autumn', icon: '🍂', description: 'Warmes Herbst-Design' },
+        { value: 'coffee', name: 'Coffee', icon: '☕', description: 'Gemütliches Kaffee-Design' }
+    ];
 }
 
 toggleNotifications() {

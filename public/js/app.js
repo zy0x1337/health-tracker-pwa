@@ -2944,227 +2944,297 @@ showWeeklyView() {
 
 /** Show goals view with modern DaisyUI layout and live progress (self-contained) */
 showGoalsView() {
-const content = document.getElementById('progress-content');
-if (!content) return;
+  const content = document.getElementById('progress-content');
+  if (!content) return;
 
-// Tabs Zustand
-document.getElementById('tab-today')?.classList.remove('tab-active');
-document.getElementById('tab-week')?.classList.remove('tab-active');
-document.getElementById('tab-goals')?.classList.add('tab-active');
-document.getElementById('tab-achievements')?.classList.remove('tab-active');
-this.currentView = 'goals';
+  // Tabs Zustand
+  document.getElementById('tab-today')?.classList.remove('tab-active');
+  document.getElementById('tab-week')?.classList.remove('tab-active');
+  document.getElementById('tab-goals')?.classList.add('tab-active');
+  document.getElementById('tab-achievements')?.classList.remove('tab-active');
+  this.currentView = 'goals';
 
-// Layout
-content.innerHTML = `
-<div class="space-y-6">
-<div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
-<div class="card-body p-5 md:p-6">
-<div class="flex items-center justify-between gap-4">
-<div class="flex items-center gap-3">
-<i data-lucide="target" class="w-5 h-5 text-primary"></i>
-<div>
-<div class="text-sm text-base-content/70">Ziele</div>
-<div class="text-lg font-semibold">Aktuelle Zielübersicht</div>
-</div>
-</div>
-<button id="edit-goals-btn" class="btn btn-sm btn-primary">
-<i data-lucide="edit-3" class="w-4 h-4"></i>
-Bearbeiten
-</button>
-</div>
-</div>
-</div>
-
-text
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="goals-kpi-grid">
-    ${['steps','water','sleep','weight'].map(k => `
-      <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
-        <div class="card-body p-5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              ${k==='steps'?'<i data-lucide="footprints" class="w-4 h-4 text-primary"></i>':''}
-              ${k==='water'?'<i data-lucide="droplets" class="w-4 h-4 text-info"></i>':''}
-              ${k==='sleep'?'<i data-lucide="moon" class="w-4 h-4 text-warning"></i>':''}
-              ${k==='weight'?'<i data-lucide="scale" class="w-4 h-4 text-secondary"></i>':''}
-              <span class="text-sm text-base-content/70">${k==='steps'?'Schritte':k==='water'?'Wasser':k==='sleep'?'Schlaf':'Gewicht'}</span>
+  // Layout
+  content.innerHTML = `
+    <div class="space-y-6">
+      <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+        <div class="card-body p-5 md:p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <i data-lucide="target" class="w-5 h-5 text-primary"></i>
+              <div>
+                <div class="text-sm text-base-content/70">Ziele</div>
+                <div class="text-lg font-semibold">Aktuelle Zielübersicht</div>
+              </div>
             </div>
-            <div id="goal-${k}-target" class="badge badge-ghost text-xs">Ziel: —</div>
-          </div>
-          <div class="mt-2">
-            <div class="text-2xl font-bold ${k==='steps'?'text-primary':k==='water'?'text-info':k==='sleep'?'text-warning':'text-secondary'}" id="goal-${k}-current">—</div>
-            ${k!=='weight' ? `<progress id="goal-${k}-progress" class="progress ${k==='steps'?'progress-primary':k==='water'?'progress-info':'progress-warning'} w-full mt-3" value="0" max="100"></progress>` : ''}
+            <button id="edit-goals-btn" class="btn btn-sm btn-primary">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+              Bearbeiten
+            </button>
           </div>
         </div>
       </div>
-    `).join('')}
-  </div>
 
-  <div class="card bg-base-100 border border-base-300">
-    <div class="card-body p-5">
-      <h4 class="card-title text-base flex items-center gap-2">
-        <i data-lucide="lightbulb" class="w-4 h-4 text-accent"></i>
-        Empfehlungen
-      </h4>
-      <ul id="goals-insights" class="text-sm space-y-2"></ul>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="goals-kpi-grid">
+        ${['steps','water','sleep','weight'].map(k => `
+          <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+            <div class="card-body p-5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  ${k==='steps'?'<i data-lucide="footprints" class="w-4 h-4 text-primary"></i>':''}
+                  ${k==='water'?'<i data-lucide="droplets" class="w-4 h-4 text-info"></i>':''}
+                  ${k==='sleep'?'<i data-lucide="moon" class="w-4 h-4 text-warning"></i>':''}
+                  ${k==='weight'?'<i data-lucide="scale" class="w-4 h-4 text-secondary"></i>':''}
+                  <span class="text-sm text-base-content/70">
+                    ${k==='steps'?'Schritte':k==='water'?'Wasser':k==='sleep'?'Schlaf':'Gewicht'}
+                  </span>
+                </div>
+                <div id="goal-${k}-target" class="badge badge-ghost text-xs">Ziel: —</div>
+              </div>
+              <div class="mt-2">
+                <div class="text-2xl font-bold ${k==='steps'?'text-primary':k==='water'?'text-info':k==='sleep'?'text-warning':'text-secondary'}" id="goal-${k}-current">—</div>
+                ${k!=='weight' ? `<progress id="goal-${k}-progress" class="progress ${k==='steps'?'progress-primary':k==='water'?'progress-info':'progress-warning'} w-full mt-3" value="0" max="100"></progress>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-5">
+          <h4 class="card-title text-base flex items-center gap-2">
+            <i data-lucide="lightbulb" class="w-4 h-4 text-accent"></i>
+            Empfehlungen
+          </h4>
+          <ul id="goals-insights" class="text-sm space-y-2"></ul>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-`;
+  `;
 
-if (typeof lucide !== 'undefined') lucide.createIcons();
+  if (typeof window !== 'undefined' && window.lucide?.createIcons) {
+    window.lucide.createIcons();
+  }
 
-// Daten besorgen
-const goals = this.healthTracker?.goals || {};
-const allData = this.healthTracker?.cache?.get?.('allHealthData')?.data || [];
-const today = this.healthTracker?.getTodayData?.(allData) || {};
+  // Daten besorgen
+  const goals = this.healthTracker?.goals || {};
+  const allData = this.healthTracker?.cache?.get?.('allHealthData')?.data || [];
+  const today = this.healthTracker?.getTodayData?.(allData) || {};
 
-// Helpers
-const pct = (val, goal) => (!goal || goal <= 0) ? 0 : Math.max(0, Math.min(100, Math.round((val / goal) * 100)));
-const animateProgress = (el, target) => {
-if (!el) return;
-el.value = 0;
-const t = Math.max(0, Math.min(100, target));
-const step = () => { if (el.value >= t) return; el.value += Math.max(1, Math.round((t - el.value)/8)); requestAnimationFrame(step); };
-requestAnimationFrame(step);
-};
-const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  // Helpers
+  const pct = (val, goal) => (!goal || goal <= 0) ? 0 : Math.max(0, Math.min(100, Math.round((val / goal) * 100)));
+  const animateProgress = (el, target) => {
+    if (!el) return;
+    el.value = 0;
+    const t = Math.max(0, Math.min(100, Number.isFinite(target) ? target : 0));
+    const step = () => {
+      if (el.value >= t) return;
+      el.value += Math.max(1, Math.round((t - el.value)/8));
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const setText = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(txt);
+  };
 
-// Badges (Zielwerte)
-setText('goal-steps-target', Ziel: ${goals.stepsGoal || 10000});
-setText('goal-water-target', Ziel: ${goals.waterGoal || 2}L);
-setText('goal-sleep-target', Ziel: ${goals.sleepGoal || 8}h);
-setText('goal-weight-target', Letztes);
+  // Badges (Zielwerte)
+  setText('goal-steps-target', `Ziel: ${goals.stepsGoal ?? 10000}`);
+  setText('goal-water-target', `Ziel: ${goals.waterGoal ?? 2}L`);
+  setText('goal-sleep-target', `Ziel: ${goals.sleepGoal ?? 8}h`);
+  // Für Gewicht gibt es typischerweise kein "Progress", sondern letzten Wert anzeigen
+  setText('goal-weight-target', 'Letztes');
 
-// Current-Werte
-setText('goal-steps-current', (today.steps || 0).toLocaleString('de-DE'));
-setText('goal-water-current', ${Math.round((today.waterIntake || 0)*10)/10}L);
-setText('goal-sleep-current', ${Math.round((today.sleepHours || 0)*10)/10}h);
-setText('goal-weight-current', today.weight ? ${today.weight}kg : '—');
+  // Current-Werte
+  setText('goal-steps-current', (today.steps ?? 0).toLocaleString('de-DE'));
+  setText('goal-water-current', `${Math.round(((today.waterIntake ?? 0)*10))/10}L`);
+  setText('goal-sleep-current', `${Math.round(((today.sleepHours ?? 0)*10))/10}h`);
+  setText('goal-weight-current', (today.weight ?? null) !== null ? `${today.weight}kg` : '—');
 
-// Progress
-animateProgress(document.getElementById('goal-steps-progress'), pct(today.steps || 0, goals.stepsGoal || 10000));
-animateProgress(document.getElementById('goal-water-progress'), pct(today.waterIntake || 0, goals.waterGoal || 2));
-animateProgress(document.getElementById('goal-sleep-progress'), pct(today.sleepHours || 0, goals.sleepGoal || 8));
+  // Progress
+  animateProgress(
+    document.getElementById('goal-steps-progress'),
+    pct(today.steps ?? 0, goals.stepsGoal ?? 10000)
+  );
+  animateProgress(
+    document.getElementById('goal-water-progress'),
+    pct(today.waterIntake ?? 0, goals.waterGoal ?? 2)
+  );
+  animateProgress(
+    document.getElementById('goal-sleep-progress'),
+    pct(today.sleepHours ?? 0, goals.sleepGoal ?? 8)
+  );
 
-// Insights
-const insightsEl = document.getElementById('goals-insights');
-if (insightsEl) {
-const items = [];
-if (goals.stepsGoal) {
-const diff = (goals.stepsGoal - (today.steps || 0));
-items.push(diff <= 0 ? '✅ Schrittziel erreicht! Stark.' : 👟 Noch ${Math.max(0, diff).toLocaleString('de-DE')} Schritte bis zum Ziel.);
-}
-if (goals.waterGoal) {
-const diff = Math.max(0, (goals.waterGoal - (today.waterIntake || 0)));
-items.push(diff <= 0 ? '💧 Wasserziel erreicht – gut hydriert!' : 💧 Trinke noch ${Math.round(diff*10)/10}L für dein Ziel.);
-}
-if (goals.sleepGoal) {
-const diff = Math.max(0, (goals.sleepGoal - (today.sleepHours || 0)));
-items.push(diff <= 0 ? '😴 Schlafziel erreicht. Weiter so!' : 🌙 Plane noch ${Math.round(diff*10)/10}h Schlaf ein.);
-}
-insightsEl.innerHTML = items.map(i => <li class="flex items-start gap-2"><span class="opacity-60">–</span><span>${i}</span></li>).join('');
-}
+  // Insights
+  const insightsEl = document.getElementById('goals-insights');
+  if (insightsEl) {
+    const items = [];
 
-// Edit-Ziele Modal Hook (optional)
-document.getElementById('edit-goals-btn')?.addEventListener('click', () => {
-document.getElementById('goals-modal')?.showModal?.();
-});
+    if (goals.stepsGoal) {
+      const diff = (goals.stepsGoal - (today.steps ?? 0));
+      items.push(diff <= 0
+        ? '✅ Schrittziel erreicht! Stark.'
+        : `👟 Noch ${Math.max(0, diff).toLocaleString('de-DE')} Schritte bis zum Ziel.`);
+    }
+
+    if (goals.waterGoal) {
+      const diff = Math.max(0, (goals.waterGoal - (today.waterIntake ?? 0)));
+      items.push(diff <= 0
+        ? '💧 Wasserziel erreicht – gut hydriert!'
+        : `💧 Trinke noch ${Math.round(diff*10)/10}L für dein Ziel.`);
+    }
+
+    if (goals.sleepGoal) {
+      const diff = Math.max(0, (goals.sleepGoal - (today.sleepHours ?? 0)));
+      items.push(diff <= 0
+        ? '😴 Schlafziel erreicht. Weiter so!'
+        : `🌙 Plane noch ${Math.round(diff*10)/10}h Schlaf ein.`);
+    }
+
+    insightsEl.innerHTML = items
+      .map(i => `<li class="flex items-start gap-2"><span class="opacity-60">–</span><span>${i}</span></li>`)
+      .join('');
+  }
+
+  // Edit-Ziele Modal Hook (optional)
+  document.getElementById('edit-goals-btn')?.addEventListener('click', () => {
+    document.getElementById('goals-modal')?.showModal?.();
+  });
 }
 
 /** Show achievements view with modern DaisyUI layout and milestones (self-contained) */
 showAchievementsView() {
-const content = document.getElementById('progress-content');
-if (!content) return;
+  const content = document.getElementById('progress-content');
+  if (!content) return;
 
-// Tabs Zustand
-document.getElementById('tab-today')?.classList.remove('tab-active');
-document.getElementById('tab-week')?.classList.remove('tab-active');
-document.getElementById('tab-goals')?.classList.remove('tab-active');
-document.getElementById('tab-achievements')?.classList.add('tab-active');
-this.currentView = 'achievements';
+  // Tabs Zustand
+  document.getElementById('tab-today')?.classList.remove('tab-active');
+  document.getElementById('tab-week')?.classList.remove('tab-active');
+  document.getElementById('tab-goals')?.classList.remove('tab-active');
+  document.getElementById('tab-achievements')?.classList.add('tab-active');
+  this.currentView = 'achievements';
 
-// Layout
-content.innerHTML = `
-<div class="space-y-6">
-<div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
-<div class="card-body p-5 md:p-6">
-<div class="flex items-center justify-between gap-4">
-<div class="flex items-center gap-3">
-<i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
-<div>
-<div class="text-sm text-base-content/70">Erfolge</div>
-<div class="text-lg font-semibold">Meilensteine & Auszeichnungen</div>
-</div>
-</div>
-<div id="achievements-summary" class="badge badge-ghost text-xs">— Auszeichnungen</div>
-</div>
-</div>
-</div>
-
-text
-  <div id="achievements-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-  <div class="card bg-base-100 border border-base-300">
-    <div class="card-body p-5">
-      <h4 class="card-title text-base flex items-center gap-2">
-        <i data-lucide="flame" class="w-4 h-4 text-error"></i>
-        Aktueller Streak
-      </h4>
-      <div class="flex items-center gap-3">
-        <div class="stat">
-          <div class="stat-value text-error" id="achievements-streak">0</div>
-          <div class="stat-desc">Tage in Folge</div>
+  // Layout
+  content.innerHTML = `
+    <div class="space-y-6">
+      <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+        <div class="card-body p-5 md:p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
+              <div>
+                <div class="text-sm text-base-content/70">Erfolge</div>
+                <div class="text-lg font-semibold">Meilensteine & Auszeichnungen</div>
+              </div>
+            </div>
+            <div id="achievements-summary" class="badge badge-ghost text-xs">— Auszeichnungen</div>
+          </div>
         </div>
-        <div class="divider divider-horizontal"></div>
-        <div class="space-y-2 text-sm">
-          <div class="badge">7 Tage</div>
-          <div class="badge">14 Tage</div>
-          <div class="badge">30 Tage</div>
+      </div>
+
+      <div id="achievements-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-5">
+          <h4 class="card-title text-base flex items-center gap-2">
+            <i data-lucide="flame" class="w-4 h-4 text-error"></i>
+            Aktueller Streak
+          </h4>
+          <div class="flex items-center gap-3">
+            <div class="stat">
+              <div class="stat-value text-error" id="achievements-streak">0</div>
+              <div class="stat-desc">Tage in Folge</div>
+            </div>
+            <div class="divider divider-horizontal"></div>
+            <div class="space-y-2 text-sm">
+              <div class="badge">7 Tage</div>
+              <div class="badge">14 Tage</div>
+              <div class="badge">30 Tage</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-`;
+  `;
 
-if (typeof lucide !== 'undefined') lucide.createIcons();
+  if (typeof window !== 'undefined' && window.lucide?.createIcons) {
+    window.lucide.createIcons();
+  }
 
-// Daten aus generateAchievements nutzen
-const data = this.generateAchievements?.() || {
-unlocked: [],
-locked: [],
-longestStreak: 0,
-totalXP: 0
-};
+  // Daten aus generateAchievements nutzen
+  const data = this.generateAchievements?.() || {
+    unlocked: [],
+    locked: [],
+    longestStreak: 0,
+    totalXP: 0
+  };
 
-// Summary + Streak
-const summary = document.getElementById('achievements-summary');
-if (summary) summary.textContent = ${(data.unlocked || []).length} Auszeichnungen;
+  // Summary + Streak
+  const summary = document.getElementById('achievements-summary');
+  if (summary) summary.textContent = `${(data.unlocked || []).length} Auszeichnungen`;
 
-const streakEl = document.getElementById('achievements-streak');
-if (streakEl) {
-// Falls generateAchievements keinen Streak liefert, aus HealthTracker berechnen
-const allData = this.healthTracker?.cache?.get?.('allHealthData')?.data || [];
-const fallbackStreak = typeof this.healthTracker?.calculateCurrentStreak === 'function'
-? this.healthTracker.calculateCurrentStreak(allData)
-: 0;
-streakEl.textContent = ${data.longestStreak || fallbackStreak || 0};
-}
+  const streakEl = document.getElementById('achievements-streak');
+  if (streakEl) {
+    // Falls generateAchievements keinen Streak liefert, aus HealthTracker berechnen
+    const allData = this.healthTracker?.cache?.get?.('allHealthData')?.data || [];
+    const fallbackStreak = typeof this.healthTracker?.calculateCurrentStreak === 'function'
+      ? this.healthTracker.calculateCurrentStreak(allData)
+      : 0;
+    streakEl.textContent = `${data.longestStreak || fallbackStreak || 0}`;
+  }
 
-// Grid rendern
-const grid = document.getElementById('achievements-grid');
-if (!grid) return;
+  // Grid rendern
+  const grid = document.getElementById('achievements-grid');
+  if (!grid) return;
 
-const cardUnlocked = (a) => <div class="card bg-gradient-to-br from-success/10 to-primary/10 border border-success/20 shadow-sm"> <div class="card-body p-4"> <div class="flex items-start gap-3"> <div class="text-3xl">${a.icon || '🏆'}</div> <div class="flex-1"> <h5 class="font-bold text-success">${a.title}</h5> <p class="text-sm text-base-content/70 mb-2">${a.description || ''}</p> <div class="flex items-center gap-2"> <div class="badge badge-success badge-sm">${a.xp || 0} XP</div> ${a.unlockedDate ?<div class="badge badge-ghost badge-sm">${a.unlockedDate}</div>: ''} </div> </div> </div> </div> </div> ;
+  const cardUnlocked = (a) => `
+    <div class="card bg-gradient-to-br from-success/10 to-primary/10 border border-success/20 shadow-sm">
+      <div class="card-body p-4">
+        <div class="flex items-start gap-3">
+          <div class="text-3xl">${a.icon || '🏆'}</div>
+          <div class="flex-1">
+            <h5 class="font-bold text-success">${a.title}</h5>
+            <p class="text-sm text-base-content/70 mb-2">${a.description || ''}</p>
+            <div class="flex items-center gap-2">
+              <div class="badge badge-success badge-sm">${a.xp || 0} XP</div>
+              ${a.unlockedDate ? `<div class="badge badge-ghost badge-sm">${a.unlockedDate}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 
-const cardLocked = (a) => <div class="card bg-base-200 border border-base-300 shadow-sm opacity-60"> <div class="card-body p-4"> <div class="flex items-start gap-3"> <div class="text-3xl grayscale">${a.icon || '🔒'}</div> <div class="flex-1"> <h5 class="font-bold">${a.title}</h5> <p class="text-sm text-base-content/70 mb-2">${a.description || ''}</p> <div class="flex items-center gap-2"> <div class="badge badge-ghost badge-sm">${a.xp || 0} XP</div> <div class="badge badge-outline badge-sm">🔒 Gesperrt</div> </div> </div> </div> </div> </div> ;
+  const cardLocked = (a) => `
+    <div class="card bg-base-200 border border-base-300 shadow-sm opacity-60">
+      <div class="card-body p-4">
+        <div class="flex items-start gap-3">
+          <div class="text-3xl grayscale">${a.icon || '🔒'}</div>
+          <div class="flex-1">
+            <h5 class="font-bold">${a.title}</h5>
+            <p class="text-sm text-base-content/70 mb-2">${a.description || ''}</p>
+            <div class="flex items-center gap-2">
+              <div class="badge badge-ghost badge-sm">${a.xp || 0} XP</div>
+              <div class="badge badge-outline badge-sm">🔒 Gesperrt</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 
-const unlockedHTML = (data.unlocked || []).map(cardUnlocked).join('');
-const lockedHTML = (data.locked || []).slice(0, 4).map(cardLocked).join('');
+  const unlockedHTML = (data.unlocked || []).map(cardUnlocked).join('');
+  const lockedHTML = (data.locked || []).slice(0, 4).map(cardLocked).join('');
 
-grid.innerHTML = ${unlockedHTML || '<div class="text-sm text-base-content/70">Noch keine Auszeichnungen freigeschaltet.</div>'} ${lockedHTML ?<div class="sm:col-span-2 lg:col-span-3">${lockedHTML}</div>: ''} ;
+  grid.innerHTML = `
+    ${unlockedHTML || '<div class="text-sm text-base-content/70">Noch keine Auszeichnungen freigeschaltet.</div>'}
+    ${lockedHTML ? `<div class="sm:col-span-2 lg:col-span-3">${lockedHTML}</div>` : ''}
+  `;
 
-if (typeof lucide !== 'undefined') lucide.createIcons();
+  if (typeof window !== 'undefined' && window.lucide?.createIcons) {
+    window.lucide.createIcons();
+  }
 }
 
 /** Generate achievements based on user data */

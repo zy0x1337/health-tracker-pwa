@@ -456,6 +456,66 @@ function fallbackShowSettings() {
     0% { box-shadow: 0 0 5px currentColor; }
     100% { box-shadow: 0 0 30px currentColor, 0 0 40px currentColor; }
 }
+
+/* Perfektionierte Theme-Transitions */
+:root {
+    --theme-transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body, .card, .btn, .input, .select, .textarea, .modal-box {
+    transition: var(--theme-transition);
+}
+
+/* Theme-spezifische Performance-Optimierungen */
+.theme-animation-neon * {
+    will-change: box-shadow, filter;
+}
+
+.theme-animation-luxury * {
+    will-change: background, border-color;
+}
+
+/* Accessibility-Verbesserungen für Themes */
+[data-theme*="dark"] {
+    filter: contrast(var(--accessibility-contrast, 1)) brightness(var(--accessibility-brightness, 1));
+}
+
+/* Theme-Kategorien CSS */
+.theme-nature {
+    --nature-primary: oklch(65% 0.25 145);
+    --nature-accent: oklch(75% 0.2 120);
+}
+
+.theme-neon {
+    --neon-glow: 0 0 20px currentColor;
+    --neon-animation: neonPulse 2s infinite alternate;
+}
+
+.theme-luxury {
+    --luxury-gradient: linear-gradient(135deg, oklch(95% 0.02 80), oklch(98% 0.01 60));
+    --luxury-border: 1px solid oklch(85% 0.05 80);
+}
+
+/* Responsive Theme Adjustments */
+@media (max-width: 768px) {
+    :root {
+        --theme-transition: all 0.3s ease;
+    }
+    
+    .theme-animation-neon .btn:hover {
+        animation: none; /* Reduce animations on mobile */
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --theme-transition: none;
+    }
+    
+    .theme-animation-neon .btn:hover {
+        animation: none;
+    }
+}
     </style>
 </head>
 

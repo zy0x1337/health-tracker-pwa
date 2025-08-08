@@ -127,9 +127,25 @@ initializeComponents() {
 initializeSettings() {
     console.log('⚙️ Initialisiere Einstellungen');
     
-    // Theme aus localStorage laden
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    // Theme aus localStorage laden mit Fallback-System
+    const savedTheme = localStorage.getItem('theme') || this.detectPreferredTheme();
+    this.setTheme(savedTheme);
+    
+    // Theme-Change Event Listener
+    window.addEventListener('themeChanged', (e) => {
+        console.log(`🎨 Theme geändert: ${e.detail.theme}`);
+        this.onThemeChanged(e.detail);
+    });
+    
+    // System Theme Change Detection
+    if (window.matchMedia) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme-preference-override')) {
+                this.setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    }
     
     // Haptic Feedback testen falls aktiviert
     const hapticEnabled = JSON.parse(localStorage.getItem('hapticFeedback') || 'false');
@@ -2649,32 +2665,66 @@ setTheme(themeName) {
     console.log(`🎨 Theme wird gesetzt auf: ${themeName}`);
     
     try {
+        // Validierung: Theme existiert
+        const availableThemes = this.getAvailableThemes();
+        const themeExists = availableThemes.some(theme => theme.value === themeName);
+        
+        if (!themeExists) {
+            console.warn(`⚠️ Theme '${themeName}' nicht verfügbar, fallback zu 'light'`);
+            themeName = 'light';
+        }
+
+        // Smooth transition vorbereiten
+        document.documentElement.style.transition = 'background-color 0.4s ease, color 0.4s ease';
+        
         // Theme anwenden
         document.documentElement.setAttribute('data-theme', themeName);
         localStorage.setItem('theme', themeName);
         
+        // Meta-Theme-Color für PWA anpassen
+        this.updateMetaThemeColor(themeName);
+        
         // Charts aktualisieren falls Analytics Engine verfügbar
         if (this.analyticsEngine && typeof this.analyticsEngine.updateChartsTheme === 'function') {
-            this.analyticsEngine.updateChartsTheme(themeName);
+            setTimeout(() => {
+                this.analyticsEngine.updateChartsTheme(themeName);
+            }, 200);
         }
         
         // Theme-spezifische Styles anwenden
         this.applyThemeSpecificStyles(themeName);
         
-        // Select-Element in Einstellungen aktualisieren falls geöffnet
-        const themeSelector = document.getElementById('theme-selector');
-        if (themeSelector) {
-            themeSelector.value = themeName;
+        // UI-Elemente aktualisieren
+        this.updateThemeSelectors(themeName);
+        
+        // Haptic Feedback
+        if (JSON.parse(localStorage.getItem('hapticFeedback') || 'false') && navigator.vibrate) {
+            navigator.vibrate(50);
         }
         
-        // Success-Message
-        this.showToast(`🎨 ${this.getThemeDisplayName(themeName)} aktiviert`, 'success');
+        // Success-Message mit Theme-Icon
+        const themeObj = availableThemes.find(t => t.value === themeName);
+        this.showToast(`${themeObj.icon} ${themeObj.name} aktiviert`, 'success');
+        
+        // Theme-Change Event für andere Komponenten
+        window.dispatchEvent(new CustomEvent('themeChanged', { 
+            detail: { theme: themeName, themeData: themeObj }
+        }));
         
         console.log(`✅ Theme erfolgreich gesetzt: ${themeName}`);
         
     } catch (error) {
         console.error('❌ Fehler beim Setzen des Themes:', error);
         this.showToast('❌ Fehler beim Theme-Wechsel', 'error');
+        
+        // Fallback zu default Theme
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+    } finally {
+        // Transition nach Abschluss entfernen
+        setTimeout(() => {
+            document.documentElement.style.transition = '';
+        }, 400);
     }
 }
 
@@ -2716,54 +2766,235 @@ getThemeDisplayName(theme) {
 applyThemeSpecificStyles(theme) {
     const body = document.body;
     
-    // Alle Theme-Klassen entfernen
-    const themeClasses = [
-        'theme-health', 'theme-medical', 'theme-wellness', 'theme-corporate', 
-        'theme-dark', 'theme-retro', 'theme-neon', 'theme-nature', 'theme-luxury'
-    ];
-    body.classList.remove(...themeClasses);
+    // Performance: Batch DOM updates
+    requestAnimationFrame(() => {
+        // Alle Theme-Klassen entfernen
+        const themeClasses = [
+            'theme-light', 'theme-dark', 'theme-nature', 'theme-corporate', 
+            'theme-retro', 'theme-neon', 'theme-luxury', 'theme-minimal',
+            'theme-warm', 'theme-cool', 'theme-vibrant', 'theme-muted'
+        ];
+        body.classList.remove(...themeClasses);
+        
+        // CSS Custom Properties für Theme-spezifische Werte
+        const root = document.documentElement;
+        
+        // Theme-Kategorisierung und entsprechende Klassen/Properties
+        const themeConfig = this.getThemeConfiguration(theme);
+        
+        // Theme-Kategorie-Klasse hinzufügen
+        if (themeConfig.category) {
+            body.classList.add(`theme-${themeConfig.category}`);
+        }
+        
+        // Custom Properties setzen
+        Object.entries(themeConfig.properties).forEach(([property, value]) => {
+            root.style.setProperty(`--theme-${property}`, value);
+        });
+        
+        // Spezielle Animationen für bestimmte Themes
+        this.applyThemeAnimations(theme, themeConfig);
+        
+        // Accessibility-Anpassungen
+        this.adjustAccessibilityForTheme(theme);
+    });
+}
+
+getThemeConfiguration(theme) {
+    const configurations = {
+        'light': {
+            category: 'light',
+            properties: {
+                'shadow-opacity': '0.1',
+                'border-opacity': '0.2',
+                'animation-speed': '0.3s',
+                'glass-effect': 'none'
+            }
+        },
+        'dark': {
+            category: 'dark',
+            properties: {
+                'shadow-opacity': '0.3',
+                'border-opacity': '0.1',
+                'animation-speed': '0.4s',
+                'glass-effect': 'blur(10px)'
+            }
+        },
+        'emerald': {
+            category: 'nature',
+            properties: {
+                'shadow-opacity': '0.15',
+                'border-opacity': '0.15',
+                'animation-speed': '0.5s',
+                'glass-effect': 'none'
+            }
+        },
+        'cyberpunk': {
+            category: 'neon',
+            properties: {
+                'shadow-opacity': '0.4',
+                'border-opacity': '0.3',
+                'animation-speed': '0.2s',
+                'glass-effect': 'blur(5px)'
+            }
+        },
+        'luxury': {
+            category: 'luxury',
+            properties: {
+                'shadow-opacity': '0.2',
+                'border-opacity': '0.25',
+                'animation-speed': '0.6s',
+                'glass-effect': 'blur(8px)'
+            }
+        },
+        'corporate': {
+            category: 'corporate',
+            properties: {
+                'shadow-opacity': '0.08',
+                'border-opacity': '0.12',
+                'animation-speed': '0.25s',
+                'glass-effect': 'none'
+            }
+        }
+    };
     
-    // Theme-spezifische Klassen hinzufügen
-    switch(theme) {
-        case 'dark':
-        case 'dracula':
-        case 'night':
-        case 'black':
-            body.classList.add('theme-dark');
-            break;
-        case 'emerald':
-        case 'garden':
-        case 'forest':
-            body.classList.add('theme-nature');
-            break;
-        case 'corporate':
-        case 'business':
-            body.classList.add('theme-corporate');
-            break;
-        case 'retro':
-        case 'synthwave':
-        case 'cyberpunk':
-            body.classList.add('theme-retro');
-            break;
-        case 'luxury':
-        case 'valentine':
-            body.classList.add('theme-luxury');
-            break;
-        case 'halloween':
-        case 'acid':
-        case 'cyberpunk':
-            body.classList.add('theme-neon');
-            break;
-        default:
-            // Standard-Styles beibehalten
-            break;
+    return configurations[theme] || configurations['light'];
+}
+
+applyThemeAnimations(theme, config) {
+    const animationClass = `theme-animation-${config.category}`;
+    
+    // Bestehende Animation-Klassen entfernen
+    document.body.classList.remove(
+        'theme-animation-light', 'theme-animation-dark', 'theme-animation-nature',
+        'theme-animation-neon', 'theme-animation-luxury', 'theme-animation-corporate'
+    );
+    
+    // Neue Animation-Klasse hinzufügen
+    document.body.classList.add(animationClass);
+    
+    // Spezielle Effekte für bestimmte Themes
+    if (theme === 'cyberpunk' || theme === 'synthwave') {
+        this.enableNeonEffects();
+    } else {
+        this.disableNeonEffects();
+    }
+}
+
+adjustAccessibilityForTheme(theme) {
+    const root = document.documentElement;
+    
+    // Kontrast-Anpassungen für bessere Lesbarkeit
+    const contrastAdjustments = {
+        'black': { contrast: '1.2', brightness: '1.1' },
+        'dark': { contrast: '1.1', brightness: '1.05' },
+        'halloween': { contrast: '1.3', brightness: '1.2' },
+        'cyberpunk': { contrast: '1.25', brightness: '1.1' }
+    };
+    
+    const adjustment = contrastAdjustments[theme];
+    if (adjustment) {
+        root.style.setProperty('--accessibility-contrast', adjustment.contrast);
+        root.style.setProperty('--accessibility-brightness', adjustment.brightness);
+    } else {
+        root.style.removeProperty('--accessibility-contrast');
+        root.style.removeProperty('--accessibility-brightness');
+    }
+}
+
+updateMetaThemeColor(theme) {
+    // PWA Theme-Color Meta-Tag für Statusbar anpassen
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.name = 'theme-color';
+        document.head.appendChild(metaThemeColor);
     }
     
-    // Smooth Transition für Theme-Wechsel
-    document.documentElement.style.transition = 'all 0.3s ease';
-    setTimeout(() => {
-        document.documentElement.style.transition = '';
-    }, 300);
+    const themeColors = {
+        'light': '#ffffff',
+        'dark': '#1d232a',
+        'emerald': '#065f46',
+        'cupcake': '#fdf2f8',
+        'corporate': '#f3f4f6',
+        'synthwave': '#1a103d',
+        'retro': '#a16207',
+        'cyberpunk': '#0f0f23',
+        'valentine': '#881337',
+        'halloween': '#451a03',
+        'garden': '#14532d',
+        'aqua': '#0c4a6e',
+        'lofi': '#44403c',
+        'dracula': '#282a36',
+        'luxury': '#451a03',
+        'night': '#0f172a',
+        'coffee': '#44403c'
+    };
+    
+    metaThemeColor.content = themeColors[theme] || '#ffffff';
+}
+
+updateThemeSelectors(themeName) {
+    // Alle Theme-Selektoren in der UI aktualisieren
+    const selectors = [
+        '#theme-selector',
+        '.theme-dropdown select',
+        '.theme-picker input[type="radio"]'
+    ];
+    
+    selectors.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            if (element.tagName === 'SELECT') {
+                element.value = themeName;
+            } else if (element.type === 'radio') {
+                element.checked = element.value === themeName;
+            }
+        }
+    });
+    
+    // Theme-Vorschau Cards aktualisieren
+    const previewCards = document.querySelectorAll('.theme-preview-card');
+    previewCards.forEach(card => {
+        card.classList.remove('ring-2', 'ring-primary');
+        const badge = card.querySelector('.badge-primary');
+        if (badge) badge.remove();
+        
+        if (card.dataset.theme === themeName) {
+            card.classList.add('ring-2', 'ring-primary');
+            card.insertAdjacentHTML('beforeend', '<div class="badge badge-primary badge-sm absolute top-2 right-2">Aktiv</div>');
+        }
+    });
+}
+
+enableNeonEffects() {
+    if (!document.getElementById('neon-effects-style')) {
+        const style = document.createElement('style');
+        style.id = 'neon-effects-style';
+        style.textContent = `
+            .theme-animation-neon .btn:hover {
+                box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+                animation: neonPulse 2s infinite alternate;
+            }
+            
+            .theme-animation-neon .card {
+                box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+            }
+            
+            @keyframes neonPulse {
+                0% { filter: brightness(1) saturate(1); }
+                100% { filter: brightness(1.2) saturate(1.5); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+disableNeonEffects() {
+    const neonStyle = document.getElementById('neon-effects-style');
+    if (neonStyle) {
+        neonStyle.remove();
+    }
 }
 
 getAvailableThemes() {
@@ -3217,6 +3448,59 @@ getAvailableThemes() {
         { value: 'coffee', name: 'Coffee', icon: '☕', description: 'Gemütliches Kaffee-Design' },
         { value: 'winter', name: 'Winter', icon: '❄️', description: 'Kühles Winter-Design' }
     ];
+}
+
+detectPreferredTheme() {
+    // System-Präferenz erkennen
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+    }
+    
+    // Uhrzeit-basierte Empfehlung
+    const hour = new Date().getHours();
+    if (hour >= 20 || hour <= 6) {
+        return 'dark';
+    }
+    
+    return 'light';
+}
+
+onThemeChanged(themeData) {
+    // Zusätzliche Aktionen bei Theme-Wechsel
+    
+    // Service Worker benachrichtigen (falls verfügbar)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'THEME_CHANGED',
+            theme: themeData.theme
+        });
+    }
+    
+    // Analytics Update (anonymisiert)
+    if (JSON.parse(localStorage.getItem('analyticsSharing') || 'false')) {
+        console.log(`📊 Theme-Wechsel: ${themeData.theme} (Analytics)`);
+    }
+    
+    // Progressive Enhancement für Theme
+    this.enhanceThemeExperience(themeData.theme);
+}
+
+enhanceThemeExperience(theme) {
+    // Scroll-to-Top Button Style anpassen
+    const scrollBtn = document.querySelector('.scroll-to-top');
+    if (scrollBtn) {
+        scrollBtn.className = `scroll-to-top btn btn-circle btn-primary ${theme.includes('dark') ? 'btn-outline' : ''}`;
+    }
+    
+    // Loading Spinner Farbe anpassen
+    const loadingElements = document.querySelectorAll('.loading');
+    loadingElements.forEach(loader => {
+        if (theme === 'cyberpunk' || theme === 'synthwave') {
+            loader.classList.add('loading-accent');
+        } else {
+            loader.classList.remove('loading-accent');
+        }
+    });
 }
 }
 

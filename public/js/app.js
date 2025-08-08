@@ -2344,6 +2344,10 @@ showSettings() {
                             <i data-lucide="hard-drive" class="w-4 h-4 mr-2"></i>
                             Speicherverbrauch
                         </button>
+                        <button class="btn btn-outline btn-warning" onclick="healthTracker.showDataCleanupModal()">
+    <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
+    Daten bereinigen
+</button>
                     </div>
                 </div>
 
@@ -2795,6 +2799,181 @@ updateChartsTheme(theme) {
             chart.update('none');
         }
     });
+}
+
+// === MANUELLES DATENBEREINIGUNG-MODAL ===
+showDataCleanupModal() {
+    console.log('🧹 Datenbereinigung-Modal wird geöffnet');
+    
+    try {
+        // Aktuelle Speichernutzung berechnen
+        const usage = this.calculateStorageUsage();
+        const retentionDays = localStorage.getItem('dataRetention') || '365';
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open';
+        modal.innerHTML = `
+            <div class="modal-box max-w-2xl">
+                <h3 class="font-bold text-lg mb-4">
+                    <i data-lucide="broom" class="w-6 h-6 inline mr-2"></i>
+                    Datenbereinigung
+                </h3>
+                
+                <div class="alert alert-info mb-4">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                    <div>
+                        <strong>Aktuelle Einstellung:</strong>
+                        <p class="text-sm mt-1">
+                            Daten werden ${retentionDays === 'never' ? 'niemals automatisch' : `nach ${retentionDays} Tagen`} gelöscht
+                        </p>
+                    </div>
+                </div>
+
+                <div class="stats stats-vertical w-full mb-4">
+                    <div class="stat">
+                        <div class="stat-title">Aktueller Speicherverbrauch</div>
+                        <div class="stat-value text-sm">${usage.total} KB</div>
+                        <div class="stat-desc">Gesamt genutzter Speicher</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Gesundheitsdaten</div>
+                        <div class="stat-value text-sm">${usage.healthData} KB</div>
+                        <div class="stat-desc">Tracking-Daten</div>
+                    </div>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">Daten älter als:</span>
+                    </label>
+                    <select class="select select-bordered" id="cleanup-period">
+                        <option value="30">30 Tage</option>
+                        <option value="90">90 Tage (3 Monate)</option>
+                        <option value="180">180 Tage (6 Monate)</option>
+                        <option value="365">365 Tage (1 Jahr)</option>
+                    </select>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label cursor-pointer">
+                        <span class="label-text">Auch Cache und temporäre Daten löschen</span>
+                        <input type="checkbox" class="checkbox" id="cleanup-cache" checked>
+                    </label>
+                </div>
+
+                <div class="modal-action">
+                    <button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                    <button class="btn btn-primary" onclick="healthTracker.executeDataCleanup()">
+                        <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
+                        Bereinigung starten
+                    </button>
+                </div>
+            </div>
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        `;
+
+        document.body.appendChild(modal);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+    } catch (error) {
+        console.error('❌ Fehler beim Öffnen des Bereinigungs-Modals:', error);
+        this.showToast('❌ Fehler beim Öffnen der Bereinigung', 'error');
+    }
+}
+
+executeDataCleanup() {
+    try {
+        const period = parseInt(document.getElementById('cleanup-period').value);
+        const includeCache = document.getElementById('cleanup-cache').checked;
+        
+        console.log(`🧹 Starte Datenbereinigung: ${period} Tage, Cache: ${includeCache}`);
+        
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - period);
+        
+        const healthData = JSON.parse(localStorage.getItem('healthData') || '{}');
+        let removedEntries = 0;
+        
+        // Alte Gesundheitsdaten entfernen
+        Object.keys(healthData).forEach(date => {
+            if (new Date(date) < cutoffDate) {
+                delete healthData[date];
+                removedEntries++;
+            }
+        });
+        
+        localStorage.setItem('healthData', JSON.stringify(healthData));
+        
+        // Cache leeren falls gewählt
+        if (includeCache) {
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+        }
+        
+        // Erfolgsmeldung anzeigen
+        this.showDataCleanupResult(removedEntries, cutoffDate, includeCache);
+        
+        // Modal schließen
+        document.querySelector('.modal-open').remove();
+        
+    } catch (error) {
+        console.error('❌ Fehler bei Datenbereinigung:', error);
+        this.showToast('❌ Fehler bei der Bereinigung', 'error');
+    }
+}
+
+showDataCleanupResult(removedEntries, cutoffDate, cacheCleared) {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">
+                <i data-lucide="check-circle" class="w-6 h-6 inline mr-2 text-success"></i>
+                Bereinigung abgeschlossen
+            </h3>
+            
+            <div class="stats stats-vertical w-full mb-4">
+                <div class="stat">
+                    <div class="stat-title">Entfernte Einträge</div>
+                    <div class="stat-value text-primary">${removedEntries}</div>
+                    <div class="stat-desc">Gesundheitsdaten-Einträge</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Cutoff-Datum</div>
+                    <div class="stat-value text-sm">${cutoffDate.toLocaleDateString('de-DE')}</div>
+                    <div class="stat-desc">Daten vor diesem Datum entfernt</div>
+                </div>
+            </div>
+
+            ${cacheCleared ? `
+                <div class="alert alert-success mb-4">
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                    <span>Cache und temporäre Daten wurden ebenfalls geleert</span>
+                </div>
+            ` : ''}
+
+            <div class="modal-action">
+                <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
+                    <i data-lucide="thumbs-up" class="w-4 h-4 mr-2"></i>
+                    Super!
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    console.log(`✅ Datenbereinigung abgeschlossen: ${removedEntries} Einträge entfernt`);
 }
 }
 

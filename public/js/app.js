@@ -2872,11 +2872,40 @@ async showTodayView() {
 
 /** Show weekly view with weekly data */
 showWeeklyView() {
-    const weeklyView = document.getElementById('weekly-view');
-    if (weeklyView) {
-        weeklyView.classList.remove('hidden');
-        this.populateWeeklyView();
+    const content = document.getElementById('progress-content');
+    if (!content) return;
+
+    // Bootstrap: Falls noch kein Weekly-Layout existiert, einfügen
+    if (!content.querySelector('#weekly-chart-container')) {
+        content.innerHTML = `
+            <div class="space-y-6">
+                <!-- Weekly Header -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar-days" class="w-5 h-5 text-accent"></i>
+                        <h3 class="text-lg font-semibold">Wochenübersicht</h3>
+                    </div>
+                    <div class="badge badge-ghost text-xs opacity-70" id="weekly-range-badge">Letzte 7 Tage</div>
+                </div>
+
+                <!-- Weekly Stats + Charts Container -->
+                <div id="weekly-chart-container" class="space-y-6">
+                    <!-- Wird von populateWeeklyView gefüllt -->
+                    <div class="text-center py-10">
+                        <span class="loading loading-dots loading-lg text-accent"></span>
+                        <div class="mt-3 text-base-content/70 text-sm">Wöchentliche Daten werden geladen…</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
+
+    // Week-Daten sind in this.weekData vorbereitet (loadViewData)
+    // Jetzt die Ansicht befüllen
+    this.populateWeeklyView();
 }
 
 /** Show goals view with goal progress */

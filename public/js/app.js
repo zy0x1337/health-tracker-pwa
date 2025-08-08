@@ -101,6 +101,21 @@ initializeComponents() {
     } catch (error) {
         console.error('❌ Fehler bei Komponenteninitialisierung:', error);
     }
+
+    setTimeout(async () => {
+  try {
+    // Initiales Laden der ProgressHub-Daten sicherstellen
+    if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+      await this.progressHub.loadViewData();
+      // Standard-View anzeigen, falls nicht gesetzt
+      if (!this.progressHub.currentView && typeof this.progressHub.showView === 'function') {
+        this.progressHub.showView('overview');
+      }
+    }
+  } catch (e) {
+    console.error('❌ ProgressHub Initial-Ladefehler:', e);
+  }
+}, 250);
 }
     
     /**
@@ -151,26 +166,33 @@ initializeComponents() {
  * Setup Progress Hub tab navigation
  */
 setupProgressHubTabs() {
-    const tabs = document.querySelectorAll('[id^="tab-"]');
-    console.log('🔧 Setting up progress hub tabs:', tabs.length);
-    
-    tabs.forEach(tab => {
-        // Remove existing listeners to prevent duplicates
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-        
-        newTab.addEventListener('click', (e) => {
-            e.preventDefault();
-            const viewName = newTab.id.replace('tab-', '');
-            console.log('📊 Tab clicked:', viewName);
-            
-            if (this.progressHub && typeof this.progressHub.showView === 'function') {
-                this.progressHub.showView(viewName);
-            } else {
-                console.error('❌ ProgressHub nicht verfügbar oder showView Methode fehlt');
-            }
-        });
+  const tabs = document.querySelectorAll('[id^="tab-"]');
+  console.log('🔧 Setting up progress hub tabs:', tabs.length);
+
+  tabs.forEach(tab => {
+    // Bestehende Listener entfernen und durch neu gebundenes Element ersetzen
+    const newTab = tab.cloneNode(true);
+    tab.parentNode.replaceChild(newTab, tab);
+
+    newTab.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const viewName = newTab.id.replace('tab-', '');
+      console.log('📊 Tab clicked:', viewName);
+
+      if (this.progressHub && typeof this.progressHub.showView === 'function') {
+        this.progressHub.showView(viewName);
+      }
+
+      // Beim Tab-Wechsel Daten nachladen
+      if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+        try {
+          await this.progressHub.loadViewData();
+        } catch (err) {
+          console.error('❌ ProgressHub Tab-Ladefehler:', err);
+        }
+      }
     });
+  });
 }
     
     /**
@@ -855,35 +877,35 @@ getTodayData(allData) {
  * Refresh all components with new data
  */
 async refreshAllComponents() {
-    try {
-        // Clear cache to force fresh data
-        this.cache.delete('allHealthData');
-        
-        // Update dashboard
-        await this.updateDashboardStats();
-        
-        // Update Hero stats
-        await this.updateHeroStats();
-        
-        // Refresh activity feed
-        if (this.activityFeed && typeof this.activityFeed.load === 'function') {
-            await this.activityFeed.load();
-        }
-        
-        // ProgressHub refreshen
-        if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
-            await this.progressHub.loadViewData();
-            // Aktueller View wird automatisch durch handleDataUpdate aktualisiert
-        }
-        
-        // Refresh analytics
-        if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
-            await this.analyticsEngine.updateAllAnalytics();
-        }
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
+  try {
+    // Cache invalidieren (falls vorhanden)
+    this.cache?.delete?.('allHealthData');
+
+    // Dashboard + Hero aktualisieren
+    await this.updateDashboardStats?.();
+    await this.updateHeroStats?.();
+
+    // Activity Feed neu laden
+    if (this.activityFeed && typeof this.activityFeed.load === 'function') {
+      await this.activityFeed.load();
     }
+
+    // ProgressHub Daten neu laden und aktuellen View beibehalten
+    if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+      await this.progressHub.loadViewData();
+      const viewToShow = this.progressHub.currentView || 'overview';
+      if (typeof this.progressHub.showView === 'function') {
+        this.progressHub.showView(viewToShow);
+      }
+    }
+
+    // Analytics aktualisieren (bereinigt von entfernten Charts)
+    if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
+      await this.analyticsEngine.updateAllAnalytics();
+    }
+  } catch (error) {
+    console.error('❌ Fehler beim Aktualisieren der Komponenten:', error);
+  }
 }
 
 /**
@@ -2407,35 +2429,92 @@ class ProgressHub {
     }
 
     /**
- * Load data for all views
+ * Load data for Progress Hub views using existing view methods
  */
 async loadViewData() {
-    try {
-        const allData = await this.healthTracker.getAllHealthData();
-        
-        // Verwende die funktionierende HealthTracker Methode
-        this.todayData = this.healthTracker.getTodayData(allData);
-        
-        // Debug-Ausgabe zur Überprüfung
-        console.log('🔍 Rohdaten vom HealthTracker:', allData);
-        console.log('🔍 Aggregierte Today-Daten:', this.todayData);
-        
-        // Get week data
-        this.weekData = this.healthTracker.getWeekData(allData);
-        
-        // Get month data  
-        this.monthData = this.getMonthData(allData);
-        
-        console.log('📊 Progress Hub Daten geladen:', {
-            today: this.todayData,
-            weekEntries: this.weekData.length,
-            monthEntries: this.monthData.length
-        });
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Laden der Progress Hub Daten:', error);
-        this.healthTracker.showToast('⚠️ Fehler beim Laden der Daten', 'error');
+  // Selektoren (Loader/Content/Empty)
+  const loaderEl = document.querySelector('#progresshub-loading, [data-progresshub-loading]') 
+                || document.evaluate("//*[contains(text(),'Progress Hub wird geladen')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.parentElement;
+  const contentEl = document.getElementById('progress-hub-content') || document.querySelector('[data-progresshub-content]');
+  const emptyEl = document.getElementById('progress-hub-empty') || document.querySelector('[data-progresshub-empty]');
+
+  // Loader einblenden, Content/Empty verstecken
+  if (loaderEl) loaderEl.classList.remove('hidden');
+  if (contentEl) contentEl.classList.add('hidden');
+  if (emptyEl) emptyEl.classList.add('hidden');
+
+  try {
+    // Daten laden (Offline-First)
+    const allData = await this.healthTracker.getAllHealthData();
+
+    // Keine Daten -> Empty-State
+    if (!Array.isArray(allData) || allData.length === 0) {
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      if (contentEl) contentEl.classList.add('hidden');
+      return;
     }
+
+    // Woche cachen (für weekly-view)
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    this.weekData = allData
+      .filter(entry => {
+        if (!entry?.date) return false;
+        const d = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
+        return d >= oneWeekAgo && d <= now;
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Gewünschten View bestimmen und anzeigen
+    const view = this.currentView || 'overview';
+    if (view === 'overview' && typeof this.showOverviewView === 'function') {
+      this.showOverviewView();
+    } else if (view === 'weekly' && typeof this.showWeeklyView === 'function') {
+      this.showWeeklyView();
+    } else if (view === 'goals' && typeof this.showGoalsView === 'function') {
+      this.showGoalsView();
+    } else if (view === 'achievements' && typeof this.showAchievementsView === 'function') {
+      this.showAchievementsView();
+    } else if (typeof this.showOverviewView === 'function') {
+      // Fallback auf Overview
+      this.currentView = 'overview';
+      this.showOverviewView();
+    }
+
+    // Content sichtbar, Empty verstecken
+    if (contentEl) contentEl.classList.remove('hidden');
+    if (emptyEl) emptyEl.classList.add('hidden');
+  } catch (err) {
+    console.error('❌ ProgressHub loadViewData Fehler:', err);
+    // Fehler -> Empty-State, kein Dauerspinner
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    if (contentEl) contentEl.classList.add('hidden');
+  } finally {
+    // Loader immer ausblenden
+    if (loaderEl) loaderEl.classList.add('hidden');
+
+    // Fallback: Wenn keine Daten, zeige leeren Zustand statt Loader
+  const data = await this.healthTracker.getAllHealthData();
+  const emptyEl = document.getElementById('progress-hub-empty') || document.querySelector('[data-progresshub-empty]');
+  const contentEl = document.getElementById('progress-hub-content') || document.querySelector('[data-progresshub-content]');
+
+  if (!data || data.length === 0) {
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    if (contentEl) contentEl.classList.add('hidden');
+  } else {
+    if (emptyEl) emptyEl.classList.add('hidden');
+    if (contentEl) contentEl.classList.remove('hidden');
+  }
+
+    // Text-basierter Loader-Fallback sicher ausblenden
+    const loaderFallback = document.evaluate(
+      "//*[contains(text(),'Progress Hub wird geladen')]",
+      document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
+    ).singleNodeValue;
+    if (loaderFallback && loaderFallback.parentElement) {
+      loaderFallback.parentElement.classList.add('hidden');
+    }
+  }
 }
 
     /**

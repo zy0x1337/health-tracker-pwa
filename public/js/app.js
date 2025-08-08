@@ -172,7 +172,6 @@ clone.addEventListener('click', async (e) => {
 e.preventDefault();
 if (!this.progressHub) return;
 
-text
   // 1) View setzen und richtige View-Methode aufrufen (ohne Fallback auf today)
   this.progressHub.currentView = view;
   if (typeof this.progressHub.showView === 'function') {

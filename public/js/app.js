@@ -166,23 +166,21 @@ initializeComponents() {
  * Setup Progress Hub tab navigation
  */
 setupProgressHubTabs() {
-  const tabs = document.querySelectorAll('[id^="tab-"]');
-  console.log('🔧 Setting up progress hub tabs:', tabs.length);
+  const tabToday = document.getElementById('tab-today');
+  const tabWeek = document.getElementById('tab-week');
 
-  tabs.forEach(tab => {
-    const newTab = tab.cloneNode(true);
-    tab.parentNode.replaceChild(newTab, tab);
-
-    newTab.addEventListener('click', async (e) => {
+  const bind = (btn, view) => {
+    if (!btn) return;
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.addEventListener('click', async (e) => {
       e.preventDefault();
-      const viewName = newTab.id.replace('tab-', '');
-      console.log('📊 Tab clicked:', viewName);
-
-      if (this.progressHub && typeof this.progressHub.showView === 'function') {
-        this.progressHub.showView(viewName);
+      if (!this.progressHub) return;
+      // Erst View schalten (für DOM), dann Daten laden
+      if (typeof this.progressHub.showView === 'function') {
+        this.progressHub.showView(view);
       }
-
-      if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+      if (typeof this.progressHub.loadViewData === 'function') {
         try {
           await this.progressHub.loadViewData();
         } catch (err) {
@@ -190,7 +188,10 @@ setupProgressHubTabs() {
         }
       }
     });
-  });
+  };
+
+  bind(tabToday, 'today');
+  bind(tabWeek, 'week');
 }
     
     /**
@@ -2423,102 +2424,78 @@ class ProgressHub {
     }
 
     /**
- * Load data for Progress Hub views using existing showXxxView methods
+ * Load data for Progress Hub views
  */
 async loadViewData() {
-  // Container-Selektoren
-  const loaderEl =
-    document.querySelector('#progresshub-loading, [data-progresshub-loading]') ||
-    document.evaluate(
-      "//*[contains(text(),'Progress Hub wird geladen')]",
-      document,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue?.parentElement;
+  const contentEl = document.getElementById('progress-content');
 
-  // Content-Container: versuche feste ID, sonst fallback auf den ersten Card-Body nach der Überschrift "Fortschrittshub"
-  let contentEl =
-    document.getElementById('progress-hub-content') ||
-    document.querySelector('[data-progresshub-content]');
-  if (!contentEl) {
-    const heading = Array.from(document.querySelectorAll('h2,h3'))
-      .find(h => /fortschrittshub/i.test(h.textContent || ''));
-    contentEl = heading ? heading.closest('.card') || heading.parentElement : null;
+  // Loader-Fallback: das Start-HTML im contentEl enthält den Text "Progress Hub wird geladen..."
+  const loaderFallback = contentEl
+    ? contentEl.querySelector("*:contains('Progress Hub wird geladen...')") || null
+    : null;
+
+  // Fallback ohne :contains via XPath
+  const textLoaderNode = !loaderFallback && contentEl
+    ? document.evaluate(
+        ".//*[contains(text(),'Progress Hub wird geladen')]",
+        contentEl,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue
+    : null;
+
+  // Loader einblenden (in unserem Setup ist es nur der Text im Content)
+  if (contentEl) {
+    // nichts verstecken, da der Text als Loader dient
   }
 
-  const emptyEl =
-    document.getElementById('progress-hub-empty') ||
-    document.querySelector('[data-progresshub-empty]');
-
-  // Loader an, Content/Empty aus
-  if (loaderEl) loaderEl.classList.remove('hidden');
-  if (contentEl) contentEl.classList.add('hidden');
-  if (emptyEl) emptyEl.classList.add('hidden');
-
   try {
-    // Daten besorgen (Offline-First über HealthTracker)
+    // Daten laden
     const allData = await this.healthTracker.getAllHealthData();
 
-    // Keine Daten -> Empty anzeigen
-    if (!Array.isArray(allData) || allData.length === 0) {
-      if (emptyEl) emptyEl.classList.remove('hidden');
-      if (contentEl) contentEl.classList.add('hidden');
-      return;
-    }
-
-    // Week-Cache für weekly-Ansicht vorbereiten
+    // Weekly Cache vorbereiten
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    this.weekData = allData
-      .filter(entry => {
-        if (!entry?.date) return false;
-        const d = typeof entry.date === 'string' ? new Date(entry.date) : new Date(entry.date);
-        return d >= oneWeekAgo && d <= now;
-      })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    this.weekData = Array.isArray(allData)
+      ? allData
+          .filter(entry => {
+            if (!entry?.date) return false;
+            const d = typeof entry.date === 'string' ? new Date(entry.date) : new Date(entry.date);
+            return d >= oneWeekAgo && d <= now;
+          })
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
+      : [];
 
-    // currentView sicherstellen
-    const view = this.currentView || 'overview';
+    // View bestimmen (IDs in HTML: #tab-today, #tab-week)
+    const view = this.currentView || 'today';
     this.currentView = view;
 
-    // Vorhandene View-Methoden aufrufen
-    if (view === 'overview' && typeof this.showOverviewView === 'function') {
-      this.showOverviewView();
-    } else if (view === 'weekly' && typeof this.showWeeklyView === 'function') {
+    // Inhalt rendern: Deine vorhandenen Methoden verwenden
+    if (view === 'today' && typeof this.showTodayView === 'function') {
+      this.showTodayView();
+    } else if (view === 'week' && typeof this.showWeeklyView === 'function') {
       this.showWeeklyView();
-    } else if (view === 'goals' && typeof this.showGoalsView === 'function') {
-      this.showGoalsView();
-    } else if (view === 'achievements' && typeof this.showAchievementsView === 'function') {
-      this.showAchievementsView();
-    } else if (typeof this.showOverviewView === 'function') {
-      // Fallback auf Overview
-      this.currentView = 'overview';
-      this.showOverviewView();
+    } else if (typeof this.showTodayView === 'function') {
+      this.currentView = 'today';
+      this.showTodayView();
     }
 
-    // Content sichtbar machen
-    if (contentEl) contentEl.classList.remove('hidden');
-    if (emptyEl) emptyEl.classList.add('hidden');
   } catch (err) {
     console.error('❌ ProgressHub loadViewData Fehler:', err);
-    // Fehler -> Empty sichtbar, Content aus
-    if (emptyEl) emptyEl.classList.remove('hidden');
-    if (contentEl) contentEl.classList.add('hidden');
+    if (contentEl) {
+      contentEl.innerHTML = `
+        <div class="text-center py-12">
+          <div class="text-4xl mb-4">⚠️</div>
+          <p class="text-base-content/70">Fehler beim Laden des Fortschrittshubs</p>
+        </div>
+      `;
+    }
   } finally {
-    // Loader immer aus
-    if (loaderEl) loaderEl.classList.add('hidden');
-
-    // Text-Fallback "Progress Hub wird geladen..." sicher verstecken
-    const loaderFallback = document.evaluate(
-      "//*[contains(text(),'Progress Hub wird geladen')]",
-      document,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue;
-    if (loaderFallback && loaderFallback.parentElement) {
-      loaderFallback.parentElement.classList.add('hidden');
+    // Textbasierter Loader (falls noch vorhanden) ausblenden
+    const node = loaderFallback || textLoaderNode;
+    if (node && node.parentElement) {
+      node.parentElement.classList.add('hidden');
     }
   }
 }
@@ -2537,66 +2514,26 @@ async loadViewData() {
     }
 
     /**
- * Show a specific Progress Hub view and hide others
+ * Show a specific Progress Hub view and toggle tab states
  */
 showView(viewName) {
   this.currentView = viewName;
 
-  // Tab-Active Status setzen (optional, falls Tabs vorhanden)
-  document.querySelectorAll('[id^="tab-"]').forEach(tab => {
-    const isActive = tab.id.replace('tab-', '') === viewName;
-    tab.classList.toggle('tab-active', isActive);
-    tab.classList.toggle('btn-primary', isActive);
-    tab.classList.toggle('btn-ghost', !isActive);
-  });
+  const tabToday = document.getElementById('tab-today');
+  const tabWeek = document.getElementById('tab-week');
 
-  // Bereiche finden (robust, falls IDs fehlen)
-  const overviewSection =
-    document.getElementById('progress-overview-section') ||
-    document.querySelector('[data-progress-view="overview"]') ||
-    document.querySelector('#progress-hub-content'); // Fallback: Gesamter Content
+  // Tab-Zustände setzen gemäß daisyUI tabs
+  if (tabToday) tabToday.classList.toggle('tab-active', viewName === 'today');
+  if (tabWeek) tabWeek.classList.toggle('tab-active', viewName === 'week');
 
-  const weeklySection =
-    document.getElementById('progress-weekly-section') ||
-    document.querySelector('[data-progress-view="weekly"]');
-
-  const goalsSection =
-    document.getElementById('progress-goals-section') ||
-    document.querySelector('[data-progress-view="goals"]');
-
-  const achievementsSection =
-    document.getElementById('progress-achievements-section') ||
-    document.querySelector('[data-progress-view="achievements"]');
-
-  // Erst alles verstecken
-  [overviewSection, weeklySection, goalsSection, achievementsSection]
-    .filter(Boolean)
-    .forEach(sec => sec.classList.add('hidden'));
-
-  // Gewählten Bereich zeigen
-  const map = {
-    overview: overviewSection,
-    weekly: weeklySection,
-    goals: goalsSection,
-    achievements: achievementsSection
-  };
-
-  const target = map[viewName] || overviewSection;
-  if (target) target.classList.remove('hidden');
-
-  // Passende View-Rendermethode aufrufen
-  if (viewName === 'overview' && typeof this.showOverviewView === 'function') {
-    this.showOverviewView();
-  } else if (viewName === 'weekly' && typeof this.showWeeklyView === 'function') {
+  // Inhalt in #progress-content durch bestehende Methoden rendern
+  if (viewName === 'today' && typeof this.showTodayView === 'function') {
+    this.showTodayView();
+  } else if (viewName === 'week' && typeof this.showWeeklyView === 'function') {
     this.showWeeklyView();
-  } else if (viewName === 'goals' && typeof this.showGoalsView === 'function') {
-    this.showGoalsView();
-  } else if (viewName === 'achievements' && typeof this.showAchievementsView === 'function') {
-    this.showAchievementsView();
-  } else if (typeof this.showOverviewView === 'function') {
-    this.currentView = 'overview';
-    this.showOverviewView();
-    if (overviewSection) overviewSection.classList.remove('hidden');
+  } else if (typeof this.showTodayView === 'function') {
+    this.currentView = 'today';
+    this.showTodayView();
   }
 }
 

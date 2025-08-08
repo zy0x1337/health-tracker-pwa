@@ -1005,6 +1005,27 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 .about-modal .tab-panel[style*="display: block"] {
     border: 2px solid green !important; /* Nur zum Debuggen */
 }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.card:hover {
+    transform: translateY(-8px);
+}
+
+/* Smooth gradient text animation */
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.card h3 {
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+}
     </style>
 </head>
 
@@ -1315,9 +1336,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <span class="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight">
                         Health Tracker
                     </span>
-                    <span class="block text-3xl md:text-5xl font-bold text-base-content/80 mt-2">
-                        Professional
-                    </span>
                 </h1>
                 
                 <!-- Version Badge -->
@@ -1475,72 +1493,184 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
             </div>
 
             <!-- Feature Highlights -->
-            <div class="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-                <!-- Offline Feature -->
-                <div class="group cursor-pointer" onclick="healthTracker?.showDataPrivacy?.()">
-                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-primary/30">
-                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
-                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl flex items-center justify-center group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-300">
-                                <i data-lucide="wifi-off" class="w-8 h-8 lg:w-10 lg:h-10 text-primary group-hover:scale-110 transition-transform"></i>
-                            </div>
-                            <div class="space-y-2">
-                                <h3 class="card-title text-lg lg:text-xl font-bold">Offline-First</h3>
-                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
-                                    Vollständige Funktionalität ohne Internet. Automatische Sync bei Verbindung.
-                                </p>
-                            </div>
-                            <div class="badge badge-primary badge-sm opacity-75 group-hover:opacity-100">
-                                Verfügbar
-                            </div>
-                        </div>
-                    </div>
+<div class="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
+    <!-- Offline Feature -->
+    <div class="card group relative overflow-hidden bg-gradient-to-br from-base-100 via-base-100 to-base-100/95 
+                shadow-lg hover:shadow-2xl border border-base-200/60 hover:border-primary/30 
+                transition-all duration-500 cursor-pointer backdrop-blur-sm
+                before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/5 before:to-transparent 
+                before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+         onclick="healthTracker?.showDataPrivacy?.()">
+        
+        <!-- Animated Background Pattern -->
+        <div class="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity duration-700">
+            <div class="absolute top-4 right-4 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-4 left-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+        </div>
+        
+        <div class="card-body relative z-10 p-8 text-center space-y-6">
+            <!-- Enhanced Icon Container -->
+            <div class="relative mx-auto">
+                <div class="w-24 h-24 bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 
+                           rounded-3xl flex items-center justify-center shadow-lg group-hover:shadow-primary/25
+                           transition-all duration-500 group-hover:scale-110 group-hover:rotate-3
+                           border border-primary/10 group-hover:border-primary/30">
+                    <i data-lucide="wifi-off" class="w-12 h-12 text-primary transition-all duration-300 
+                       group-hover:scale-110 drop-shadow-sm"></i>
                 </div>
-                
-                <!-- AI Feature -->
-                <div class="group cursor-pointer" onclick="document.getElementById('analytics')?.scrollIntoView({behavior: 'smooth'})">
-                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-secondary/30">
-                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
-                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-2xl flex items-center justify-center group-hover:from-secondary/20 group-hover:to-secondary/10 transition-all duration-300">
-                                <i data-lucide="brain" class="w-8 h-8 lg:w-10 lg:h-10 text-secondary group-hover:scale-110 transition-transform"></i>
-                            </div>
-                            <div class="space-y-2">
-                                <h3 class="card-title text-lg lg:text-xl font-bold">KI-Analytics</h3>
-                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
-                                    Intelligente Muster-Erkennung und personalisierte Empfehlungen.
-                                </p>
-                            </div>
-                            <div class="badge badge-secondary badge-sm opacity-75 group-hover:opacity-100">
-                                Beta
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Privacy Feature -->
-                <div class="group cursor-pointer" onclick="healthTracker?.showDataPrivacy?.()">
-                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-accent/30">
-                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
-                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl flex items-center justify-center group-hover:from-accent/20 group-hover:to-accent/10 transition-all duration-300">
-                                <i data-lucide="shield-check" class="w-8 h-8 lg:w-10 lg:h-10 text-accent group-hover:scale-110 transition-transform"></i>
-                            </div>
-                            <div class="space-y-2">
-                                <h3 class="card-title text-lg lg:text-xl font-bold">Privacy-First</h3>
-                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
-                                    Deine Gesundheitsdaten bleiben ausschließlich auf deinem Gerät.
-                                </p>
-                            </div>
-                            <div class="badge badge-accent badge-sm opacity-75 group-hover:opacity-100">
-                                GDPR
-                            </div>
-                        </div>
-                    </div>
+                <!-- Pulse Ring -->
+                <div class="absolute inset-0 w-24 h-24 rounded-3xl border-2 border-primary/20 
+                           scale-110 opacity-0 group-hover:opacity-100 group-hover:scale-125 
+                           transition-all duration-500 animate-pulse"></div>
+            </div>
+            
+            <!-- Enhanced Content -->
+            <div class="space-y-4">
+                <h3 class="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-primary/80 
+                          bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/60
+                          transition-all duration-300">
+                    Offline-First
+                </h3>
+                <p class="text-base-content/75 leading-relaxed text-base max-w-xs mx-auto
+                          group-hover:text-base-content/90 transition-colors duration-300">
+                    Vollständige Funktionalität ohne Internet. Intelligente Synchronisation bei Verbindung.
+                </p>
+            </div>
+            
+            <!-- Modern Status Indicator -->
+            <div class="flex justify-center">
+                <div class="badge badge-primary badge-lg gap-3 px-4 py-3 shadow-sm
+                           group-hover:shadow-md group-hover:scale-105 transition-all duration-300
+                           bg-gradient-to-r from-primary to-primary/90 border-none">
+                    <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <span class="font-medium text-white">Verfügbar</span>
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- AI Feature -->
+    <div class="card group relative overflow-hidden bg-gradient-to-br from-base-100 via-base-100 to-base-100/95 
+                shadow-lg hover:shadow-2xl border border-base-200/60 hover:border-secondary/30 
+                transition-all duration-500 cursor-pointer backdrop-blur-sm
+                before:absolute before:inset-0 before:bg-gradient-to-br before:from-secondary/5 before:to-transparent 
+                before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+         onclick="document.getElementById('analytics')?.scrollIntoView({behavior: 'smooth'})">
+        
+        <!-- AI Particles Animation -->
+        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+            <div class="absolute top-8 right-8 w-2 h-2 bg-secondary rounded-full animate-ping"></div>
+            <div class="absolute top-16 right-12 w-1 h-1 bg-secondary/60 rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
+            <div class="absolute bottom-12 left-8 w-1.5 h-1.5 bg-secondary/40 rounded-full animate-bounce" style="animation-delay: 1s;"></div>
+        </div>
+        
+        <div class="card-body relative z-10 p-8 text-center space-y-6">
+            <!-- AI Brain Icon with Neural Network Effect -->
+            <div class="relative mx-auto">
+                <div class="w-24 h-24 bg-gradient-to-br from-secondary/15 via-secondary/10 to-secondary/5 
+                           rounded-3xl flex items-center justify-center shadow-lg group-hover:shadow-secondary/25
+                           transition-all duration-500 group-hover:scale-110 group-hover:-rotate-3
+                           border border-secondary/10 group-hover:border-secondary/30">
+                    <i data-lucide="brain" class="w-12 h-12 text-secondary transition-all duration-300 
+                       group-hover:scale-110 drop-shadow-sm"></i>
+                </div>
+                <!-- Neural Network Lines -->
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500">
+                    <svg class="w-24 h-24" viewBox="0 0 100 100">
+                        <line x1="20" y1="20" x2="80" y2="80" stroke="currentColor" stroke-width="0.5" class="text-secondary animate-pulse"/>
+                        <line x1="80" y1="20" x2="20" y2="80" stroke="currentColor" stroke-width="0.5" class="text-secondary animate-pulse" style="animation-delay: 0.3s;"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Enhanced Content -->
+            <div class="space-y-4">
+                <h3 class="text-2xl font-bold bg-gradient-to-r from-secondary via-secondary to-secondary/80 
+                          bg-clip-text text-transparent group-hover:from-secondary group-hover:to-secondary/60
+                          transition-all duration-300">
+                    KI-Analytics
+                </h3>
+                <p class="text-base-content/75 leading-relaxed text-base max-w-xs mx-auto
+                          group-hover:text-base-content/90 transition-colors duration-300">
+                    Intelligente Muster-Erkennung mit maschinellem Lernen für personalisierte Insights.
+                </p>
+            </div>
+            
+            <!-- Beta Badge with Shimmer Effect -->
+            <div class="flex justify-center">
+                <div class="badge badge-secondary badge-lg gap-3 px-4 py-3 shadow-sm
+                           group-hover:shadow-md group-hover:scale-105 transition-all duration-300
+                           relative overflow-hidden bg-gradient-to-r from-secondary to-secondary/90 border-none">
+                    <div class="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                               translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                    <i data-lucide="sparkles" class="w-4 h-4 text-white animate-pulse"></i>
+                    <span class="font-medium text-white relative z-10">Beta</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Privacy Feature -->
+    <div class="card group relative overflow-hidden bg-gradient-to-br from-base-100 via-base-100 to-base-100/95 
+                shadow-lg hover:shadow-2xl border border-base-200/60 hover:border-accent/30 
+                transition-all duration-500 cursor-pointer backdrop-blur-sm
+                before:absolute before:inset-0 before:bg-gradient-to-br before:from-accent/5 before:to-transparent 
+                before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+         onclick="healthTracker?.showDataPrivacy?.()">
+        
+        <!-- Security Shield Animation -->
+        <div class="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity duration-700">
+            <div class="absolute inset-4 border border-accent/20 rounded-2xl group-hover:scale-105 transition-transform duration-500"></div>
+            <div class="absolute inset-8 border border-accent/10 rounded-xl group-hover:scale-110 transition-transform duration-700"></div>
+        </div>
+        
+        <div class="card-body relative z-10 p-8 text-center space-y-6">
+            <!-- Shield Icon with Protection Aura -->
+            <div class="relative mx-auto">
+                <div class="w-24 h-24 bg-gradient-to-br from-accent/15 via-accent/10 to-accent/5 
+                           rounded-3xl flex items-center justify-center shadow-lg group-hover:shadow-accent/25
+                           transition-all duration-500 group-hover:scale-110 group-hover:rotate-2
+                           border border-accent/10 group-hover:border-accent/30">
+                    <i data-lucide="shield-check" class="w-12 h-12 text-accent transition-all duration-300 
+                       group-hover:scale-110 drop-shadow-sm"></i>
+                </div>
+                <!-- Protection Aura -->
+                <div class="absolute inset-0 w-24 h-24 rounded-3xl bg-accent/10 scale-125 opacity-0 
+                           group-hover:opacity-100 group-hover:scale-150 transition-all duration-700 blur-sm"></div>
+            </div>
+            
+            <!-- Enhanced Content -->
+            <div class="space-y-4">
+                <h3 class="text-2xl font-bold bg-gradient-to-r from-accent via-accent to-accent/80 
+                          bg-clip-text text-transparent group-hover:from-accent group-hover:to-accent/60
+                          transition-all duration-300">
+                    Privacy-First
+                </h3>
+                <p class="text-base-content/75 leading-relaxed text-base max-w-xs mx-auto
+                          group-hover:text-base-content/90 transition-colors duration-300">
+                    End-to-End Verschlüsselung. Deine Daten bleiben vollständig unter deiner Kontrolle.
+                </p>
+            </div>
+            
+            <!-- GDPR Badge with Lock Animation -->
+            <div class="flex justify-center">
+                <div class="badge badge-accent badge-lg gap-3 px-4 py-3 shadow-sm
+                           group-hover:shadow-md group-hover:scale-105 transition-all duration-300
+                           bg-gradient-to-r from-accent to-accent/90 border-none relative overflow-hidden">
+                    <i data-lucide="lock" class="w-4 h-4 text-white group-hover:animate-bounce"></i>
+                    <span class="font-medium text-white">GDPR-konform</span>
+                    <!-- Security Scan Line -->
+                    <div class="absolute bottom-0 left-0 h-0.5 bg-white/50 w-full scale-x-0 
+                               group-hover:scale-x-100 transition-transform duration-1000 origin-left"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Enhanced Scroll Indicator -->
         <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 cursor-pointer group" 
-             onclick="document.getElementById('dashboard')?.scrollIntoView({behavior: 'smooth'})">
+             onclick="document.getElementById('progress-hub')?.scrollIntoView({behavior: 'smooth'})">
             <div class="text-xs font-medium text-base-content/60 group-hover:text-base-content/80 transition-colors">
                 Entdecke mehr
             </div>

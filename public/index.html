@@ -628,25 +628,45 @@
                 </button>
                 
                 <div class="dropdown dropdown-top sm:dropdown-bottom">
-                    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2">
-                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-                        Mehr
-                    </div>
-                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
-                        <li><a onclick="document.getElementById('analytics-dashboard').scrollIntoView({behavior: 'smooth'})">
-                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
-                            Analytics Dashboard
-                        </a></li>
-                        <li><a onclick="document.getElementById('goals-form').scrollIntoView({behavior: 'smooth'})">
-                            <i data-lucide="flag" class="w-4 h-4"></i>
-                            Ziele anpassen
-                        </a></li>
-                        <li><a onclick="showInstallPrompt()">
-                            <i data-lucide="download" class="w-4 h-4"></i>
-                            App installieren
-                        </a></li>
-                    </ul>
-                </div>
+    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2">
+        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+        Mehr
+    </div>
+    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
+        <li><a onclick="document.getElementById('analytics-dashboard').scrollIntoView({behavior: 'smooth'})">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            Analytics Dashboard
+        </a></li>
+        <li><a onclick="document.getElementById('goals-form').scrollIntoView({behavior: 'smooth'})">
+            <i data-lucide="flag" class="w-4 h-4"></i>
+            Ziele anpassen
+        </a></li>
+        <li><a onclick="showInstallPrompt()">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            App installieren
+        </a></li>
+        <li><a onclick="healthTracker.showImportExport()">
+            <i data-lucide="download-cloud" class="w-4 h-4"></i>
+            Import/Export
+        </a></li>
+        <li><a onclick="healthTracker.showDataPrivacy()">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            Datenschutz
+        </a></li>
+        <li><a onclick="healthTracker.showAbout()">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            Über die App
+        </a></li>
+        <li><a onclick="healthTracker.showHelp()">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            Hilfe
+        </a></li>
+        <li><a onclick="healthTracker.showSettings()">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            Einstellungen
+        </a></li>
+    </ul>
+</div>
             </div>
 
             <!-- Feature Highlights -->

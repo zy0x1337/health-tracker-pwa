@@ -1925,6 +1925,248 @@ initializeFormDefaults() {
         
         console.log('✅ Analytics event listeners initialized successfully');
     }
+
+    // === MEHR-MENÜ FUNKTIONEN ===
+showImportExport() {
+    console.log('📥 Import/Export Dialog wird geöffnet');
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-lg mb-4">📥 Daten Import/Export</h3>
+            
+            <div class="tabs tabs-bordered mb-4">
+                <a class="tab tab-active" onclick="this.parentNode.querySelector('.tab-active').classList.remove('tab-active'); this.classList.add('tab-active'); document.getElementById('export-tab').style.display='block'; document.getElementById('import-tab').style.display='none'">Export</a>
+                <a class="tab" onclick="this.parentNode.querySelector('.tab-active').classList.remove('tab-active'); this.classList.add('tab-active'); document.getElementById('import-tab').style.display='block'; document.getElementById('export-tab').style.display='none'">Import</a>
+            </div>
+
+            <div id="export-tab">
+                <p class="mb-4">Exportiere deine Gesundheitsdaten als JSON-Datei:</p>
+                <button class="btn btn-primary mb-4" onclick="healthTracker.exportData()">📤 Daten exportieren</button>
+            </div>
+
+            <div id="import-tab" style="display:none">
+                <p class="mb-4">Importiere deine Gesundheitsdaten aus einer JSON-Datei:</p>
+                <input type="file" class="file-input file-input-bordered w-full mb-4" id="import-file" accept=".json">
+                <button class="btn btn-primary" onclick="healthTracker.importData()">📥 Daten importieren</button>
+            </div>
+
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+showDataPrivacy() {
+    console.log('🔒 Datenschutz-Info wird angezeigt');
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-lg mb-4">🔒 Datenschutz</h3>
+            <div class="prose max-w-none">
+                <h4>Deine Daten sind sicher</h4>
+                <ul>
+                    <li>Alle Gesundheitsdaten werden lokal auf deinem Gerät gespeichert</li>
+                    <li>Synchronisation erfolgt verschlüsselt über sichere Verbindungen</li>
+                    <li>Keine Weitergabe an Dritte</li>
+                    <li>Du behältst die vollständige Kontrolle über deine Daten</li>
+                </ul>
+                <h4>Offline-First Ansatz</h4>
+                <p>Die App funktioniert vollständig offline und synchronisiert nur bei verfügbarer Internetverbindung.</p>
+            </div>
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Verstanden</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+showAbout() {
+    console.log('ℹ️ Über die App wird angezeigt');
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">ℹ️ Über Health Tracker</h3>
+            <div class="prose max-w-none">
+                <p><strong>Version:</strong> 2.0</p>
+                <p><strong>Entwickelt mit:</strong> Progressive Web App (PWA)</p>
+                <p><strong>Features:</strong></p>
+                <ul>
+                    <li>📊 Umfassendes Gesundheitstracking</li>
+                    <li>🎯 Ziele setzen und verfolgen</li>
+                    <li>📈 Analytics und Trends</li>
+                    <li>🔔 Smart Notifications</li>
+                    <li>📱 Offline-Funktionalität</li>
+                </ul>
+                <p>Eine moderne, sichere und benutzerfreundliche Lösung für dein Gesundheitsmanagement.</p>
+            </div>
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+showHelp() {
+    console.log('❓ Hilfe wird angezeigt');
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-3xl">
+            <h3 class="font-bold text-lg mb-4">❓ Hilfe & Anleitung</h3>
+            <div class="collapse collapse-arrow bg-base-200 mb-2">
+                <input type="radio" name="help-accordion" checked="checked" /> 
+                <div class="collapse-title text-lg font-medium">📊 Wie tracke ich meine Gesundheitsdaten?</div>
+                <div class="collapse-content"> 
+                    <p>Verwende die Schnellerfassung im Dashboard oder navigiere zu den spezifischen Bereichen für detaillierte Eingaben.</p>
+                </div>
+            </div>
+            <div class="collapse collapse-arrow bg-base-200 mb-2">
+                <input type="radio" name="help-accordion" /> 
+                <div class="collapse-title text-lg font-medium">🎯 Wie setze ich Ziele?</div>
+                <div class="collapse-content"> 
+                    <p>Gehe zum Progress Hub → Ziele und erstelle neue Ziele mit spezifischen Zielvorgaben und Zeiträumen.</p>
+                </div>
+            </div>
+            <div class="collapse collapse-arrow bg-base-200 mb-2">
+                <input type="radio" name="help-accordion" /> 
+                <div class="collapse-title text-lg font-medium">📈 Wie interpretiere ich die Analytics?</div>
+                <div class="collapse-content"> 
+                    <p>Das Analytics Dashboard zeigt Trends, Korrelationen und Muster in deinen Daten. Nutze die Filter für spezifische Auswertungen.</p>
+                </div>
+            </div>
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+showSettings() {
+    console.log('⚙️ Einstellungen werden geöffnet');
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-lg mb-4">⚙️ Einstellungen</h3>
+            
+            <div class="form-control mb-4">
+                <label class="label cursor-pointer">
+                    <span class="label-text">🌙 Dark Mode</span> 
+                    <input type="checkbox" class="toggle" id="theme-toggle" ${document.documentElement.getAttribute('data-theme') === 'dark' ? 'checked' : ''} onchange="healthTracker.toggleTheme()">
+                </label>
+            </div>
+
+            <div class="form-control mb-4">
+                <label class="label cursor-pointer">
+                    <span class="label-text">🔔 Push-Benachrichtigungen</span> 
+                    <input type="checkbox" class="toggle" id="notifications-toggle" ${this.smartNotificationManager.isEnabled ? 'checked' : ''} onchange="healthTracker.toggleNotifications()">
+                </label>
+            </div>
+
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">🌍 Sprache</span>
+                </label>
+                <select class="select select-bordered w-full">
+                    <option selected>Deutsch</option>
+                    <option disabled>English (Coming soon)</option>
+                </select>
+            </div>
+
+            <div class="divider"></div>
+            
+            <button class="btn btn-error btn-outline w-full" onclick="healthTracker.resetApp()">🔄 App zurücksetzen</button>
+
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// === HILFSMETHODEN FÜR MEHR-MENÜ ===
+async exportData() {
+    try {
+        const data = {
+            healthData: JSON.parse(localStorage.getItem('healthData') || '{}'),
+            goals: JSON.parse(localStorage.getItem('goals') || '[]'),
+            exportDate: new Date().toISOString(),
+            version: '2.0'
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `health-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.showToast('📤 Daten erfolgreich exportiert', 'success');
+        console.log('📤 Datenexport erfolgreich');
+    } catch (error) {
+        console.error('❌ Export-Fehler:', error);
+        this.showToast('❌ Fehler beim Exportieren', 'error');
+    }
+}
+
+async importData() {
+    try {
+        const fileInput = document.getElementById('import-file');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            this.showToast('⚠️ Bitte wähle eine Datei aus', 'warning');
+            return;
+        }
+
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (data.healthData) localStorage.setItem('healthData', JSON.stringify(data.healthData));
+        if (data.goals) localStorage.setItem('goals', JSON.stringify(data.goals));
+
+        this.showToast('📥 Daten erfolgreich importiert', 'success');
+        console.log('📥 Datenimport erfolgreich');
+        
+        // UI aktualisieren
+        setTimeout(() => location.reload(), 1500);
+    } catch (error) {
+        console.error('❌ Import-Fehler:', error);
+        this.showToast('❌ Fehler beim Importieren', 'error');
+    }
+}
+
+toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    console.log(`🌓 Theme gewechselt zu: ${newTheme}`);
+}
+
+toggleNotifications() {
+    this.smartNotificationManager.isEnabled = !this.smartNotificationManager.isEnabled;
+    localStorage.setItem('notificationsEnabled', this.smartNotificationManager.isEnabled);
+    this.showToast(`🔔 Benachrichtigungen ${this.smartNotificationManager.isEnabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+resetApp() {
+    if (confirm('⚠️ Möchtest du wirklich alle Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+        localStorage.clear();
+        this.showToast('🔄 App wurde zurückgesetzt', 'info');
+        setTimeout(() => location.reload(), 1500);
+    }
+}
 }
 
 // ====================================================================
@@ -6048,5 +6290,53 @@ getGoalComparison(metric, value) {
     /** Public method to force refresh analytics */
     async updateAllAnalytics() {
         await this.loadCompleteAnalyticsData();
+    }
+}
+
+// === PWA INSTALL PROMPT (Globale Funktion) ===
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('📱 PWA Install Prompt verfügbar');
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+function showInstallPrompt() {
+    console.log('📱 PWA Installation wird angezeigt');
+    
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('✅ PWA Installation akzeptiert');
+                healthTracker.showToast('📱 App wird installiert...', 'success');
+            } else {
+                console.log('❌ PWA Installation abgelehnt');
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // Fallback für bereits installierte PWA oder nicht unterstützte Browser
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3 class="font-bold text-lg mb-4">📱 App Installation</h3>
+                <div class="prose max-w-none">
+                    <p>Diese App kann als PWA installiert werden:</p>
+                    <ul>
+                        <li><strong>Chrome/Edge:</strong> Klicke auf das Install-Symbol in der Adressleiste</li>
+                        <li><strong>Safari:</strong> Teilen → Zum Home-Bildschirm</li>
+                        <li><strong>Firefox:</strong> Menü → Diese Seite installieren</li>
+                    </ul>
+                    <p>Nach der Installation funktioniert die App offline und lädt schneller.</p>
+                </div>
+                <div class="modal-action">
+                    <button class="btn" onclick="this.closest('.modal').remove()">Verstanden</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 }

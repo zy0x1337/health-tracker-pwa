@@ -2523,389 +2523,408 @@ showView(viewName) {
   }
 }
 
-/** Show overview view (existing today view functionality) */
-showOverviewView() {
-    const overviewView = document.getElementById('overview-view');
-    if (overviewView) {
-        overviewView.classList.remove('hidden');
-        // The existing showTodayView functionality is already implemented
-        this.showTodayView();
-    }
-}
-
-/** Show today's overview with robust DOM bootstrap and animations */
+/** Show today's overview with modern DaisyUI layout */
 async showTodayView() {
-    console.log('📊 Showing optimized today view...');
+  console.log('📊 Showing optimized today view...');
+  const progressContent = document.getElementById('progress-content');
+  if (!progressContent) return;
 
-    try {
-        const progressContent = document.getElementById('progress-content');
-        if (!progressContent) {
-            console.warn('⚠️ #progress-content nicht gefunden');
-            return;
-        }
-
-        // 1) Ensure base layout exists (inject once)
-        if (!progressContent.querySelector('#today-steps-display')) {
-            progressContent.innerHTML = `
-                <div class="space-y-6">
-                    <!-- Header: Datum -->
-                    <div id="today-date" class="text-base-content/80"></div>
-
-                    <!-- Heute: Stats Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Schritte -->
-                        <div class="stat bg-base-100 rounded-xl border border-base-300">
-                            <div class="stat-title flex items-center gap-2">
-                                <i data-lucide="footprints" class="w-4 h-4 text-primary"></i>
-                                Schritte
-                            </div>
-                            <div class="stat-value text-primary" id="today-steps-display">0</div>
-                            <div class="mt-2 h-2 w-full bg-base-300 rounded">
-                                <div id="today-steps-progress" class="h-2 bg-primary rounded" style="width:0%"></div>
-                            </div>
-                            <div class="stat-desc text-xs opacity-70 mt-1">Tagesziel: ${this.healthTracker?.goals?.stepsGoal || 10000} Schritte</div>
-                        </div>
-
-                        <!-- Wasser -->
-                        <div class="stat bg-base-100 rounded-xl border border-base-300">
-                            <div class="stat-title flex items-center gap-2">
-                                <i data-lucide="droplets" class="w-4 h-4 text-info"></i>
-                                Wasser
-                            </div>
-                            <div class="stat-value text-info" id="today-water-display">0L</div>
-                            <div class="mt-2 h-2 w-full bg-base-300 rounded">
-                                <div id="today-water-progress" class="h-2 bg-info rounded" style="width:0%"></div>
-                            </div>
-                            <div class="stat-desc text-xs opacity-70 mt-1">Tagesziel: ${this.healthTracker?.goals?.waterGoal || 2}L</div>
-                        </div>
-
-                        <!-- Schlaf -->
-                        <div class="stat bg-base-100 rounded-xl border border-base-300">
-                            <div class="stat-title flex items-center gap-2">
-                                <i data-lucide="moon" class="w-4 h-4 text-warning"></i>
-                                Schlaf
-                            </div>
-                            <div class="stat-value text-warning" id="today-sleep-display">0h</div>
-                            <div class="mt-2 h-2 w-full bg-base-300 rounded">
-                                <div id="today-sleep-progress" class="h-2 bg-warning rounded" style="width:0%"></div>
-                            </div>
-                            <div class="stat-desc text-xs opacity-70 mt-1">Tagesziel: ${this.healthTracker?.goals?.sleepGoal || 8}h</div>
-                        </div>
-
-                        <!-- Gewicht -->
-                        <div class="stat bg-base-100 rounded-xl border border-base-300">
-                            <div class="stat-title flex items-center gap-2">
-                                <i data-lucide="scale" class="w-4 h-4 text-secondary"></i>
-                                Gewicht
-                            </div>
-                            <div class="stat-value text-secondary flex items-center gap-2">
-                                <span id="today-weight-display">—</span>
-                                <span id="weight-trend" class="text-sm opacity-70"></span>
-                            </div>
-                            <div class="stat-desc text-xs opacity-70 mt-1">Letztes Update automatisch</div>
-                        </div>
-                    </div>
-
-                    <!-- Abschlussrate -->
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="badge badge-lg"><span id="today-completion-rate">0%</span></div>
-                        <div id="week-steps-trend" class="text-sm"></div>
-                    </div>
-
-                    <!-- Heute Notizen -->
-                    <div id="today-notes-section" class="card bg-base-100 border border-base-300 hidden">
-                        <div class="card-body">
-                            <h4 class="card-title flex items-center gap-2">
-                                <i data-lucide="file-text" class="w-4 h-4 text-primary"></i>
-                                Notizen
-                            </h4>
-                            <pre id="today-notes-content" class="text-sm whitespace-pre-wrap"></pre>
-                        </div>
-                    </div>
-                </div>
-            `;
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-
-        // 2) Show loading overlay inside content
-        let loadingEl = document.getElementById('progress-loading');
-        if (!loadingEl) {
-            loadingEl = document.createElement('div');
-            loadingEl.id = 'progress-loading';
-            loadingEl.className = 'hidden';
-            progressContent.prepend(loadingEl);
-        }
-        progressContent.style.opacity = '0.5';
-        progressContent.style.transform = 'scale(0.98)';
-        progressContent.style.transition = 'all 0.3s ease';
-        loadingEl.classList.remove('hidden');
-        loadingEl.innerHTML = `
-            <div class="flex items-center justify-center py-8">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="loading loading-ring loading-lg text-primary"></div>
-                    <div class="text-primary font-medium animate-pulse">Optimiere deine Daten...</div>
-                </div>
+  // DaisyUI: Hochmodernes Layout (inject once, IDs beibehalten)
+  progressContent.innerHTML = `
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+        <div class="card-body p-5 md:p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <i data-lucide="sunrise" class="w-5 h-5 text-primary"></i>
+              <div>
+                <div class="text-sm text-base-content/70">Heute</div>
+                <div id="today-date" class="text-lg font-semibold">—</div>
+              </div>
             </div>
-        `;
+            <div class="flex items-center gap-2">
+              <div class="badge badge-ghost gap-1">
+                <i data-lucide="flame" class="w-3.5 h-3.5 text-warning"></i>
+                <span>Streak</span>
+                <span id="today-streak" class="font-semibold">0</span>
+              </div>
+              <div class="badge badge-ghost gap-1">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-success"></i>
+                <span>Erreicht</span>
+                <span id="today-completion-rate" class="font-semibold">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        // 3) Load and aggregate data
-        const allData = await this.healthTracker.getAllHealthData();
-        const todayData = this.healthTracker.getTodayData(allData);
-        const weekData = this.healthTracker.getWeekData(allData);
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Schritte -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+          <div class="card-body p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="footprints" class="w-4 h-4 text-primary"></i>
+                <span class="text-sm text-base-content/70">Schritte</span>
+              </div>
+              <div id="today-steps-badge" class="badge badge-ghost text-xs">Ziel: —</div>
+            </div>
+            <div class="text-2xl font-bold text-primary mt-1" id="today-steps-display">0</div>
+            <progress id="today-steps-progress" class="progress progress-primary w-full mt-3" value="0" max="100"></progress>
+          </div>
+        </div>
+        <!-- Wasser -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+          <div class="card-body p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="droplets" class="w-4 h-4 text-info"></i>
+                <span class="text-sm text-base-content/70">Wasser</span>
+              </div>
+              <div id="today-water-badge" class="badge badge-ghost text-xs">Ziel: —</div>
+            </div>
+            <div class="text-2xl font-bold text-info mt-1" id="today-water-display">0L</div>
+            <progress id="today-water-progress" class="progress progress-info w-full mt-3" value="0" max="100"></progress>
+          </div>
+        </div>
+        <!-- Schlaf -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+          <div class="card-body p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="moon" class="w-4 h-4 text-warning"></i>
+                <span class="text-sm text-base-content/70">Schlaf</span>
+              </div>
+              <div id="today-sleep-badge" class="badge badge-ghost text-xs">Ziel: —</div>
+            </div>
+            <div class="text-2xl font-bold text-warning mt-1" id="today-sleep-display">0h</div>
+            <progress id="today-sleep-progress" class="progress progress-warning w-full mt-3" value="0" max="100"></progress>
+          </div>
+        </div>
+        <!-- Gewicht -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+          <div class="card-body p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="scale" class="w-4 h-4 text-secondary"></i>
+                <span class="text-sm text-base-content/70">Gewicht</span>
+              </div>
+              <div id="today-weight-badge" class="badge badge-ghost text-xs">Letztes</div>
+            </div>
+            <div class="text-2xl font-bold text-secondary mt-1 flex items-center gap-2">
+              <span id="today-weight-display">—</span>
+              <span id="weight-trend" class="text-sm opacity-70"></span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        console.log('📊 Today data:', todayData);
-        console.log('📊 Week data length:', weekData.length);
+      <!-- Notizen -->
+      <div id="today-notes-section" class="card bg-base-100 border border-base-300 hidden">
+        <div class="card-body p-5">
+          <h4 class="card-title text-base flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-primary"></i>
+            Notizen
+          </h4>
+          <pre id="today-notes-content" class="text-sm whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  `;
 
-        // 4) Update header date
-        const todayDateEl = document.getElementById('today-date');
-        if (todayDateEl) {
-            const today = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const formattedDate = today.toLocaleDateString('de-DE', options);
-            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
-            todayDateEl.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="font-medium">${formattedDate}</span>
-                    <div class="badge badge-ghost badge-sm">Tag ${dayOfYear}</div>
-                </div>
-            `;
-        }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        // 5) Animate stat values and progress bars
-        const stats = [
-            {
-                id: 'today-steps-display',
-                progressId: 'today-steps-progress',
-                value: todayData.steps || 0,
-                goal: this.healthTracker.goals.stepsGoal,
-                format: (val) => val.toLocaleString()
-            },
-            {
-                id: 'today-water-display',
-                progressId: 'today-water-progress',
-                value: todayData.waterIntake || 0,
-                goal: this.healthTracker.goals.waterGoal,
-                format: (val) => `${val}L`
-            },
-            {
-                id: 'today-sleep-display',
-                progressId: 'today-sleep-progress',
-                value: todayData.sleepHours || 0,
-                goal: this.healthTracker.goals.sleepGoal,
-                format: (val) => `${val}h`
-            },
-            {
-                id: 'today-weight-display',
-                progressId: null,
-                value: todayData.weight || 0,
-                goal: null,
-                format: (val) => (val ? `${val}kg` : '—')
-            }
-        ];
+  // Daten laden
+  const allData = await this.healthTracker.getAllHealthData();
+  const todayData = this.healthTracker.getTodayData(allData);
+  const weekData = this.healthTracker.getWeekData(allData);
 
-        // Counter + progress animations
-        const animateCounterTo = (element, targetValue, formatter) => {
-            const startValue = 0;
-            const duration = 800;
-            const startTime = performance.now();
-            const step = (now) => {
-                const elapsed = now - startTime;
-                const t = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - t, 3);
-                const current = startValue + (targetValue - startValue) * ease;
-                element.textContent = formatter(Math.round(current * 10) / 10);
-                if (t < 1) requestAnimationFrame(step);
-            };
-            requestAnimationFrame(step);
-        };
+  // Datum
+  const todayDateEl = document.getElementById('today-date');
+  if (todayDateEl) {
+    const today = new Date();
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    todayDateEl.textContent = today.toLocaleDateString('de-DE', opts);
+  }
 
-        const animateProgressBar = (bar, percentage) => {
-            bar.style.width = '0%';
-            bar.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1)';
-            setTimeout(() => {
-                bar.style.width = `${Math.min(percentage, 100)}%`;
-            }, 100);
-        };
+  // Ziele/Badges
+  const goals = this.healthTracker?.goals || {};
+  const setBadge = (id, label, goal) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = goal ? `${label}: ${goal}` : `${label}: —`;
+  };
+  setBadge('today-steps-badge', 'Ziel', goals.stepsGoal || 10000);
+  setBadge('today-water-badge', 'Ziel', `${goals.waterGoal || 2}L`);
+  setBadge('today-sleep-badge', 'Ziel', `${goals.sleepGoal || 8}h`);
 
-        for (let i = 0; i < stats.length; i++) {
-            const s = stats[i];
-            const el = document.getElementById(s.id);
-            const bar = s.progressId ? document.getElementById(s.progressId) : null;
-            if (!el) continue;
-
-            // pulse-in
-            el.style.transform = 'scale(1.1)';
-            el.style.transition = 'all 0.3s';
-            el.classList.add('animate-pulse');
-
-            setTimeout(() => {
-                animateCounterTo(el, s.value, s.format);
-                el.classList.remove('animate-pulse');
-                el.style.transform = 'scale(1)';
-                if (bar && s.goal) {
-                    const pct = (s.value / s.goal) * 100;
-                    animateProgressBar(bar, pct);
-                }
-            }, 200 + i * 120);
-        }
-
-        // 6) Completion rate
-        const completionRateEl = document.getElementById('today-completion-rate');
-        if (completionRateEl) {
-            let completed = 0;
-            let total = 0;
-            if (this.healthTracker.goals.stepsGoal) { total++; if ((todayData.steps || 0) >= this.healthTracker.goals.stepsGoal) completed++; }
-            if (this.healthTracker.goals.waterGoal) { total++; if ((todayData.waterIntake || 0) >= this.healthTracker.goals.waterGoal) completed++; }
-            if (this.healthTracker.goals.sleepGoal) { total++; if ((todayData.sleepHours || 0) >= this.healthTracker.goals.sleepGoal) completed++; }
-            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-            const badge = completionRateEl.parentElement;
-            const duration = 1000;
-            const startTime = performance.now();
-            const anim = (now) => {
-                const t = Math.min((now - startTime) / duration, 1);
-                const current = Math.round(rate * t);
-                completionRateEl.textContent = `${current}%`;
-                badge.className = 'badge badge-lg';
-                if (current >= 80) badge.classList.add('badge-success');
-                else if (current >= 50) badge.classList.add('badge-warning');
-                else badge.classList.add('badge-error');
-                if (t < 1) requestAnimationFrame(anim);
-            };
-            requestAnimationFrame(anim);
-        }
-
-        // 7) Notes
-        const notesSection = document.getElementById('today-notes-section');
-        const notesContent = document.getElementById('today-notes-content');
-        if (todayData.notes && todayData.notes.trim()) {
-            if (notesSection && notesContent) {
-                notesContent.textContent = todayData.notes;
-                notesSection.classList.remove('hidden');
-                notesSection.style.opacity = '0';
-                notesSection.style.transform = 'translateY(10px)';
-                notesSection.style.transition = 'all 0.3s ease';
-                setTimeout(() => {
-                    notesSection.style.opacity = '1';
-                    notesSection.style.transform = 'translateY(0)';
-                }, 150);
-            }
-        } else if (notesSection) {
-            notesSection.classList.add('hidden');
-        }
-
-        // 8) Weight trend
-        const weightTrendEl = document.getElementById('weight-trend');
-        if (weightTrendEl && todayData.weight) {
-            const recent = (allData || []).filter(e => e.weight && e.weight > 0).slice(-7).map(e => e.weight);
-            if (recent.length >= 2) {
-                const change = recent[recent.length - 1] - recent[0];
-                if (Math.abs(change) < 0.1) {
-                    weightTrendEl.textContent = '→';
-                    weightTrendEl.className = 'text-base-content';
-                } else if (change > 0) {
-                    weightTrendEl.textContent = '↗️';
-                    weightTrendEl.className = 'text-warning';
-                } else {
-                    weightTrendEl.textContent = '↘️';
-                    weightTrendEl.className = 'text-success';
-                }
-            }
-        }
-
-        // 9) Weekly trend badge (steps)
-        const weeklyAvg = this.healthTracker.calculateWeeklyAverages(weekData);
-        const lastWeekStart = new Date(); lastWeekStart.setDate(lastWeekStart.getDate() - 14);
-        const lastWeekEnd = new Date(); lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
-        const previousWeekData = (allData || []).filter(d => {
-            const dt = new Date(d.date);
-            return dt >= lastWeekStart && dt < lastWeekEnd;
-        });
-        const previousAvg = this.healthTracker.calculateWeeklyAverages(previousWeekData);
-        const trendEl = document.getElementById('week-steps-trend');
-        if (trendEl && previousAvg.steps > 0) {
-            const change = ((weeklyAvg.steps - previousAvg.steps) / previousAvg.steps) * 100;
-            const changeText = `${change > 0 ? '+' : ''}${Math.round(change)}%`;
-            const icon = change > 0 ? '📈' : change < 0 ? '📉' : '➡️';
-            const color = change > 0 ? 'text-success' : change < 0 ? 'text-error' : 'text-base-content/70';
-            trendEl.innerHTML = `<span class="${color} font-medium">${icon} ${changeText}</span>`;
-        }
-
-        // 10) Hide loader smoothly
-        setTimeout(() => {
-            loadingEl.classList.add('hidden');
-            progressContent.style.opacity = '1';
-            progressContent.style.transform = 'scale(1)';
-        }, 300);
-
-        console.log('✅ Today view optimized and displayed successfully');
-    } catch (error) {
-        console.error('❌ Error showing optimized today view:', error);
-        const progressContent = document.getElementById('progress-content');
-        if (progressContent) {
-            progressContent.innerHTML = `
-                <div class="alert alert-error shadow-lg">
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="alert-circle" class="w-6 h-6 flex-shrink-0"></i>
-                        <div class="flex-1">
-                            <h3 class="font-bold">Fehler beim Laden der Daten</h3>
-                            <div class="text-sm mt-1 opacity-80">
-                                Bitte versuche es später erneut oder aktualisiere die Seite.
-                                <br><small class="opacity-60">Fehler: ${error.message}</small>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-ghost" onclick="healthTracker.progressHub?.showView('today')">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                            Erneut versuchen
-                        </button>
-                    </div>
-                </div>
-            `;
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
+  // Streak & Completion
+  const streakEl = document.getElementById('today-streak');
+  if (streakEl && typeof this.healthTracker.calculateCurrentStreak === 'function') {
+    streakEl.textContent = this.healthTracker.calculateCurrentStreak(allData);
+  }
+  const completionEl = document.getElementById('today-completion-rate');
+  if (completionEl) {
+    let completed = 0, total = 0;
+    if (goals.stepsGoal) { total++; if ((todayData.steps || 0) >= goals.stepsGoal) completed++; }
+    if (goals.waterGoal) { total++; if ((todayData.waterIntake || 0) >= goals.waterGoal) completed++; }
+    if (goals.sleepGoal) { total++; if ((todayData.sleepHours || 0) >= goals.sleepGoal) completed++; }
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    completionEl.textContent = `${rate}%`;
+    const badge = completionEl.closest('.badge');
+    if (badge) {
+      badge.classList.remove('badge-success','badge-warning','badge-error');
+      if (rate >= 80) badge.classList.add('badge-success');
+      else if (rate >= 50) badge.classList.add('badge-warning');
+      else badge.classList.add('badge-error');
     }
+  }
+
+  // Helper Animations
+  const animateProgress = (el, pct) => {
+    if (!el) return;
+    el.value = 0;
+    const target = Math.max(0, Math.min(100, Math.round(pct)));
+    const step = () => {
+      if (el.value >= target) return;
+      el.value += Math.max(1, Math.round((target - el.value) / 8));
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const setNumber = (id, value, suffix = '', locale = true) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const target = value || 0;
+    const start = 0, duration = 600, t0 = performance.now();
+    const fmt = (v) => (locale ? v.toLocaleString('de-DE') : v) + suffix;
+    const tick = (t) => {
+      const p = Math.min(1, (t - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(start + (target - start) * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
+  // Werte + Progress
+  setNumber('today-steps-display', todayData.steps || 0, '', true);
+  animateProgress(document.getElementById('today-steps-progress'), goals.stepsGoal ? (todayData.steps || 0) / goals.stepsGoal * 100 : 0);
+
+  setNumber('today-water-display', todayData.waterIntake || 0, 'L', false);
+  animateProgress(document.getElementById('today-water-progress'), goals.waterGoal ? (todayData.waterIntake || 0) / goals.waterGoal * 100 : 0);
+
+  setNumber('today-sleep-display', todayData.sleepHours || 0, 'h', false);
+  animateProgress(document.getElementById('today-sleep-progress'), goals.sleepGoal ? (todayData.sleepHours || 0) / goals.sleepGoal * 100 : 0);
+
+  const weightEl = document.getElementById('today-weight-display');
+  if (weightEl) weightEl.textContent = todayData.weight ? `${todayData.weight}kg` : '—';
+
+  // Gewichtstrend
+  const weightTrendEl = document.getElementById('weight-trend');
+  if (weightTrendEl) {
+    const recent = (allData || []).filter(e => e.weight).slice(-7).map(e => e.weight);
+    if (recent.length >= 2) {
+      const change = recent[recent.length - 1] - recent[0];
+      weightTrendEl.textContent = Math.abs(change) < 0.1 ? '→' : change > 0 ? '↗️' : '↘️';
+      weightTrendEl.className = `text-sm ${change > 0 ? 'text-warning' : change < 0 ? 'text-success' : 'text-base-content/70'}`;
+    }
+  }
+
+  // Notizen
+  const notesSection = document.getElementById('today-notes-section');
+  const notesContent = document.getElementById('today-notes-content');
+  if (notesSection && notesContent) {
+    const txt = todayData.notes?.trim();
+    if (txt) {
+      notesContent.textContent = txt;
+      notesSection.classList.remove('hidden');
+    } else {
+      notesSection.classList.add('hidden');
+    }
+  }
+
+  console.log('✅ Today view updated');
 }
 
-/** Show weekly view with weekly data */
+/** Show weekly view with modern DaisyUI layout */
 showWeeklyView() {
-    const content = document.getElementById('progress-content');
-    if (!content) return;
+  const content = document.getElementById('progress-content');
+  if (!content) return;
 
-    // Bootstrap: Falls noch kein Weekly-Layout existiert, einfügen
-    if (!content.querySelector('#weekly-chart-container')) {
-        content.innerHTML = `
-            <div class="space-y-6">
-                <!-- Weekly Header -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="calendar-days" class="w-5 h-5 text-accent"></i>
-                        <h3 class="text-lg font-semibold">Wochenübersicht</h3>
-                    </div>
-                    <div class="badge badge-ghost text-xs opacity-70" id="weekly-range-badge">Letzte 7 Tage</div>
-                </div>
-
-                <!-- Weekly Stats + Charts Container -->
-                <div id="weekly-chart-container" class="space-y-6">
-                    <!-- Wird von populateWeeklyView gefüllt -->
-                    <div class="text-center py-10">
-                        <span class="loading loading-dots loading-lg text-accent"></span>
-                        <div class="mt-3 text-base-content/70 text-sm">Wöchentliche Daten werden geladen…</div>
-                    </div>
-                </div>
+  content.innerHTML = `
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+        <div class="card-body p-5 md:p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <i data-lucide="calendar-days" class="w-5 h-5 text-accent"></i>
+              <div>
+                <div class="text-sm text-base-content/70">Woche</div>
+                <div class="text-lg font-semibold" id="weekly-range-label">Letzte 7 Tage</div>
+              </div>
             </div>
-        `;
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
+            <div class="badge badge-ghost gap-1 text-xs" id="weekly-entries-badge">Einträge: —</div>
+          </div>
+        </div>
+      </div>
 
-    // Week-Daten sind in this.weekData vorbereitet (loadViewData)
-    // Jetzt die Ansicht befüllen
-    this.populateWeeklyView();
+      <!-- KPI Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card bg-base-100 border border-base-300">
+          <div class="card-body p-5">
+            <div class="text-sm text-base-content/70 flex items-center gap-2">
+              <i data-lucide="footprints" class="w-4 h-4 text-primary"></i> Ø Schritte
+            </div>
+            <div class="text-2xl font-bold text-primary" id="weekly-avg-steps">0</div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-300">
+          <div class="card-body p-5">
+            <div class="text-sm text-base-content/70 flex items-center gap-2">
+              <i data-lucide="droplets" class="w-4 h-4 text-info"></i> Ø Wasser
+            </div>
+            <div class="text-2xl font-bold text-info" id="weekly-avg-water">0L</div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-300">
+          <div class="card-body p-5">
+            <div class="text-sm text-base-content/70 flex items-center gap-2">
+              <i data-lucide="moon" class="w-4 h-4 text-warning"></i> Ø Schlaf
+            </div>
+            <div class="text-2xl font-bold text-warning" id="weekly-avg-sleep">0h</div>
+          </div>
+        </div>
+        <div class="card bg-base-100 border border-base-300">
+          <div class="card-body p-5">
+            <div class="text-sm text-base-content/70 flex items-center gap-2">
+              <i data-lucide="list-checks" class="w-4 h-4 text-secondary"></i> Einträge
+            </div>
+            <div class="text-2xl font-bold text-secondary" id="weekly-total-entries">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily breakdown -->
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body p-5">
+          <h4 class="card-title text-base flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-accent"></i>
+            Tägliche Aufschlüsselung
+          </h4>
+          <div id="weekly-chart-container" class="mt-3 space-y-3"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  // Daten aus loadViewData oder frisch berechnen
+  const allData = this.healthTracker.cache?.get?.('allHealthData')?.data || null;
+  let weekData = this.weekData;
+  if (!weekData) {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const data = allData || [];
+    weekData = data.filter(e => e.date && new Date(e.date) >= oneWeekAgo && new Date(e.date) <= now);
+  }
+
+  // KPIs
+  const avg = (arr) => (arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0);
+  const byDay = {};
+  const days = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const now = new Date();
+  for (let i=6;i>=0;i--) {
+    const d = new Date(now.getTime() - i*24*60*60*1000);
+    const key = d.toISOString().split('T')[0];
+    byDay[key] = { date: d, steps: 0, water: 0, sleep: 0, weight: null, hasAny: false };
+  }
+  (weekData || []).forEach(e => {
+    const key = typeof e.date === 'string' ? e.date.split('T')[0] : new Date(e.date).toISOString().split('T')[0];
+    if (!byDay[key]) return;
+    byDay[key].steps += e.steps || 0;
+    byDay[key].water += e.waterIntake || 0;
+    byDay[key].sleep += e.sleepHours || 0;
+    if (e.weight) byDay[key].weight = e.weight;
+    if (e.steps || e.waterIntake || e.sleepHours || e.weight) byDay[key].hasAny = true;
+  });
+
+  const dayEntries = Object.values(byDay);
+  const avgSteps = Math.round(avg(dayEntries.map(d=>d.steps)));
+  const avgWater = Math.round(avg(dayEntries.map(d=>d.water))*10)/10;
+  const avgSleep = Math.round(avg(dayEntries.map(d=>d.sleep))*10)/10;
+  const totalEntries = (weekData || []).length;
+
+  const setText = (id, val) => { const el=document.getElementById(id); if (el) el.textContent = val; };
+  setText('weekly-avg-steps', avgSteps.toLocaleString('de-DE'));
+  setText('weekly-avg-water', `${avgWater}L`);
+  setText('weekly-avg-sleep', `${avgSleep}h`);
+  setText('weekly-total-entries', totalEntries.toString());
+  setText('weekly-entries-badge', `Einträge: ${totalEntries}`);
+
+  // Range Label
+  const start = dayEntries[0]?.date, end = dayEntries[dayEntries.length-1]?.date;
+  const fmt = (d) => d?.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+  const rangeEl = document.getElementById('weekly-range-label');
+  if (rangeEl && start && end) rangeEl.textContent = `${fmt(start)} – ${fmt(end)}`;
+
+  // Daily breakdown render
+  const container = document.getElementById('weekly-chart-container');
+  if (!container) return;
+
+  container.innerHTML = dayEntries.map((d, idx) => {
+    const dayName = days[d.date.getDay()];
+    const goalSteps = this.healthTracker?.goals?.stepsGoal || 10000;
+    const stepsPct = Math.min(100, Math.round((d.steps/goalSteps)*100));
+    const waterGoal = this.healthTracker?.goals?.waterGoal || 2;
+    const waterPct = Math.min(100, Math.round((d.water/waterGoal)*100));
+    const sleepGoal = this.healthTracker?.goals?.sleepGoal || 8;
+    const sleepPct = Math.min(100, Math.round((d.sleep/sleepGoal)*100));
+
+    const badgeClass =
+      stepsPct >= 80 || waterPct >= 80 || sleepPct >= 80 ? 'badge-success' :
+      stepsPct >= 50 || waterPct >= 50 || sleepPct >= 50 ? 'badge-warning' : 'badge-ghost';
+
+    return `
+      <div class="card bg-base-100 border border-base-300/70">
+        <div class="card-body p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="font-medium">${dayName}</div>
+              <div class="text-xs text-base-content/60">${d.date.toLocaleDateString('de-DE')}</div>
+            </div>
+            <div class="badge ${badgeClass} text-xs">${d.hasAny ? 'Aktivität' : 'leer'}</div>
+          </div>
+
+          <div class="mt-3 space-y-2">
+            <div class="flex items-center gap-2 text-xs text-base-content/70">
+              <i data-lucide="footprints" class="w-3.5 h-3.5 text-primary"></i>
+              <span class="w-20">Schritte</span>
+              <progress class="progress progress-primary flex-1" value="${stepsPct}" max="100"></progress>
+              <span class="w-16 text-right">${d.steps.toLocaleString('de-DE')}</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-base-content/70">
+              <i data-lucide="droplets" class="w-3.5 h-3.5 text-info"></i>
+              <span class="w-20">Wasser</span>
+              <progress class="progress progress-info flex-1" value="${waterPct}" max="100"></progress>
+              <span class="w-16 text-right">${(Math.round(d.water*10)/10)}L</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-base-content/70">
+              <i data-lucide="moon" class="w-3.5 h-3.5 text-warning"></i>
+              <span class="w-20">Schlaf</span>
+              <progress class="progress progress-warning flex-1" value="${sleepPct}" max="100"></progress>
+              <span class="w-16 text-right">${(Math.round(d.sleep*10)/10)}h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /** Show goals view with goal progress */

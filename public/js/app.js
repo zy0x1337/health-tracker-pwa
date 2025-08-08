@@ -2400,7 +2400,54 @@ toggleHapticFeedback() {
 toggleAnalytics() {
     const enabled = !JSON.parse(localStorage.getItem('advancedAnalytics') || 'false');
     localStorage.setItem('advancedAnalytics', enabled);
+    
+    // Advanced Analytics Features aktivieren/deaktivieren
+    if (enabled) {
+        this.enableAdvancedAnalytics();
+    } else {
+        this.disableAdvancedAnalytics();
+    }
+    
     this.showToast(`📊 Erweiterte Analytics ${enabled ? 'aktiviert' : 'deaktiviert'}`, 'info');
+}
+
+enableAdvancedAnalytics() {
+    console.log('📈 Erweiterte Analytics werden aktiviert');
+    
+    // Erweiterte Features verfügbar machen
+    this.analyticsEngine.advancedMode = true;
+    
+    // UI-Elemente für erweiterte Analytics anzeigen
+    this.showAdvancedAnalyticsFeatures();
+}
+
+disableAdvancedAnalytics() {
+    console.log('📉 Erweiterte Analytics werden deaktiviert');
+    
+    // Basis-Modus aktivieren
+    this.analyticsEngine.advancedMode = false;
+    
+    // Erweiterte UI-Elemente ausblenden
+    this.hideAdvancedAnalyticsFeatures();
+}
+
+showAdvancedAnalyticsFeatures() {
+    // Erweiterte Buttons und Panels aktivieren
+    const advancedElements = document.querySelectorAll('.advanced-analytics');
+    advancedElements.forEach(el => el.classList.remove('hidden'));
+    
+    // Zusätzliche Analytics-Tabs anzeigen
+    const advancedTabs = document.querySelectorAll('.analytics-tab-advanced');
+    advancedTabs.forEach(tab => tab.style.display = 'block');
+}
+
+hideAdvancedAnalyticsFeatures() {
+    // Erweiterte UI-Elemente ausblenden
+    const advancedElements = document.querySelectorAll('.advanced-analytics');
+    advancedElements.forEach(el => el.classList.add('hidden'));
+    
+    const advancedTabs = document.querySelectorAll('.analytics-tab-advanced');
+    advancedTabs.forEach(tab => tab.style.display = 'none');
 }
 
 changeLanguage(lang) {
@@ -3501,6 +3548,272 @@ enhanceThemeExperience(theme) {
             loader.classList.remove('loading-accent');
         }
     });
+}
+
+// 1. KORRELATIONSANALYSE
+generateCorrelationAnalysis() {
+    if (!this.advancedMode) return;
+    
+    console.log('🔗 Generating correlation analysis');
+    
+    const healthData = this.getHealthData();
+    const correlations = {};
+    
+    // Beispiel: Schlaf vs. Stimmung Korrelation
+    const sleepMoodCorr = this.calculateCorrelation('sleep', 'mood', healthData);
+    const stepsMoodCorr = this.calculateCorrelation('steps', 'mood', healthData);
+    const waterEnergyCorr = this.calculateCorrelation('water', 'mood', healthData);
+    
+    return {
+        sleepMood: { value: sleepMoodCorr, interpretation: this.interpretCorrelation(sleepMoodCorr, 'Schlaf', 'Stimmung') },
+        stepsMood: { value: stepsMoodCorr, interpretation: this.interpretCorrelation(stepsMoodCorr, 'Schritte', 'Stimmung') },
+        waterEnergy: { value: waterEnergyCorr, interpretation: this.interpretCorrelation(waterEnergyCorr, 'Wasser', 'Energie') }
+    };
+}
+
+// 2. TRENDANALYSE MIT PROGNOSEN
+generateTrendForecast(metric, days = 7) {
+    if (!this.advancedMode) return;
+    
+    console.log(`📈 Generating ${days}-day forecast for ${metric}`);
+    
+    const data = this.getMetricData(metric, 30); // Letzte 30 Tage
+    if (data.length < 7) return null;
+    
+    // Vereinfachte lineare Regression für Trend
+    const trend = this.calculateLinearTrend(data);
+    const forecast = [];
+    
+    for (let i = 1; i <= days; i++) {
+        const forecastValue = data[data.length - 1].value + (trend.slope * i);
+        forecast.push({
+            date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            value: Math.max(0, forecastValue),
+            confidence: Math.max(0.3, 0.9 - (i * 0.1)) // Abnehmendes Vertrauen
+        });
+    }
+    
+    return {
+        trend: trend,
+        forecast: forecast,
+        accuracy: this.calculateForecastAccuracy(data)
+    };
+}
+
+// 3. GESUNDHEITS-SCORE BERECHNUNG
+calculateHealthScore() {
+    if (!this.advancedMode) return { score: 0, details: {} };
+    
+    console.log('🎯 Calculating comprehensive health score');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const data = this.getHealthData()[today] || {};
+    const goals = this.getCurrentGoals();
+    
+    let totalScore = 0;
+    let maxScore = 0;
+    const details = {};
+    
+    // Gewichtung der verschiedenen Metriken
+    const weights = {
+        steps: 25,    // 25% Gewichtung
+        water: 20,    // 20% Gewichtung  
+        sleep: 25,    // 25% Gewichtung
+        mood: 15,     // 15% Gewichtung
+        weight: 15    // 15% Gewichtung
+    };
+    
+    Object.entries(weights).forEach(([metric, weight]) => {
+        if (data[metric] !== undefined) {
+            const score = this.calculateMetricScore(metric, data[metric], goals);
+            details[metric] = {
+                score: score,
+                weight: weight,
+                contribution: (score * weight) / 100
+            };
+            totalScore += (score * weight) / 100;
+        }
+        maxScore += weight;
+    });
+    
+    const finalScore = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    
+    return {
+        score: finalScore,
+        grade: this.getHealthGrade(finalScore),
+        details: details,
+        recommendations: this.generateRecommendations(details)
+    };
+}
+
+// 4. ANOMALIE-ERKENNUNG
+detectAnomalies() {
+    if (!this.advancedMode) return [];
+    
+    console.log('🚨 Detecting health data anomalies');
+    
+    const anomalies = [];
+    const metrics = ['steps', 'water', 'sleep', 'weight'];
+    
+    metrics.forEach(metric => {
+        const data = this.getMetricData(metric, 14); // Letzte 14 Tage
+        if (data.length < 7) return;
+        
+        const stats = this.calculateStats(data);
+        const threshold = 2; // 2 Standardabweichungen
+        
+        data.slice(-3).forEach(point => { // Letzte 3 Tage prüfen
+            if (Math.abs(point.value - stats.mean) > threshold * stats.stdDev) {
+                anomalies.push({
+                    metric: metric,
+                    date: point.date,
+                    value: point.value,
+                    expected: stats.mean,
+                    deviation: Math.abs(point.value - stats.mean),
+                    severity: this.getAnomalySeverity(Math.abs(point.value - stats.mean), stats.stdDev)
+                });
+            }
+        });
+    });
+    
+    return anomalies;
+}
+
+// 5. PERSONALISIERTE INSIGHTS
+generatePersonalizedInsights() {
+    if (!this.advancedMode) return [];
+    
+    console.log('💡 Generating personalized health insights');
+    
+    const insights = [];
+    const healthData = this.getHealthData();
+    const recentData = this.getRecentData(7); // Letzte 7 Tage
+    
+    // Insight 1: Beste Tage identifizieren
+    const bestDays = this.findBestPerformanceDays();
+    if (bestDays.length > 0) {
+        insights.push({
+            type: 'performance',
+            title: '🌟 Deine stärksten Tage',
+            description: `Du bist besonders aktiv an ${bestDays.join(', ')}. Plane wichtige Aktivitäten an diesen Tagen!`,
+            priority: 'high',
+            actionable: true
+        });
+    }
+    
+    // Insight 2: Schlaf-Aktivität Zusammenhang
+    const sleepActivityCorr = this.calculateCorrelation('sleep', 'steps', healthData);
+    if (sleepActivityCorr > 0.5) {
+        insights.push({
+            type: 'correlation',
+            title: '😴 Schlaf steigert deine Aktivität',
+            description: `Mehr Schlaf führt zu ${Math.round(sleepActivityCorr * 100)}% mehr Aktivität am nächsten Tag.`,
+            priority: 'medium',
+            actionable: true
+        });
+    }
+    
+    // Insight 3: Hydration Pattern
+    const waterPattern = this.analyzeHydrationPattern();
+    if (waterPattern.recommendation) {
+        insights.push({
+            type: 'hydration',
+            title: '💧 Optimiere deine Flüssigkeitszufuhr',
+            description: waterPattern.recommendation,
+            priority: 'medium',
+            actionable: true
+        });
+    }
+    
+    return insights;
+}
+
+calculateCorrelation(metric1, metric2, data) {
+    const pairs = [];
+    
+    Object.entries(data).forEach(([date, dayData]) => {
+        if (dayData[metric1] !== undefined && dayData[metric2] !== undefined) {
+            pairs.push([dayData[metric1], dayData[metric2]]);
+        }
+    });
+    
+    if (pairs.length < 3) return 0;
+    
+    // Pearson Korrelationskoeffizient
+    const n = pairs.length;
+    const sum1 = pairs.reduce((sum, pair) => sum + pair[0], 0);
+    const sum2 = pairs.reduce((sum, pair) => sum + pair[1], 0);
+    const sum1Sq = pairs.reduce((sum, pair) => sum + pair[0] * pair[0], 0);
+    const sum2Sq = pairs.reduce((sum, pair) => sum + pair[1] * pair[1], 0);
+    const pSum = pairs.reduce((sum, pair) => sum + pair[0] * pair[1], 0);
+    
+    const num = pSum - (sum1 * sum2 / n);
+    const den = Math.sqrt((sum1Sq - sum1 * sum1 / n) * (sum2Sq - sum2 * sum2 / n));
+    
+    return den === 0 ? 0 : num / den;
+}
+
+interpretCorrelation(value, metric1, metric2) {
+    const abs = Math.abs(value);
+    let strength = '';
+    
+    if (abs >= 0.7) strength = 'starke';
+    else if (abs >= 0.4) strength = 'moderate';
+    else if (abs >= 0.2) strength = 'schwache';
+    else return `Keine signifikante Korrelation zwischen ${metric1} und ${metric2}.`;
+    
+    const direction = value > 0 ? 'positive' : 'negative';
+    
+    return `${strength.charAt(0).toUpperCase() + strength.slice(1)} ${direction} Korrelation zwischen ${metric1} und ${metric2} (${Math.round(abs * 100)}%).`;
+}
+
+calculateLinearTrend(data) {
+    const n = data.length;
+    const x = data.map((_, i) => i);
+    const y = data.map(d => d.value);
+    
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+    const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    return { slope, intercept, trend: slope > 0 ? 'steigend' : slope < 0 ? 'fallend' : 'stabil' };
+}
+
+getHealthGrade(score) {
+    if (score >= 90) return { grade: 'A', description: 'Ausgezeichnet', color: 'success' };
+    if (score >= 80) return { grade: 'B', description: 'Sehr gut', color: 'success' };
+    if (score >= 70) return { grade: 'C', description: 'Gut', color: 'info' };
+    if (score >= 60) return { grade: 'D', description: 'Befriedigend', color: 'warning' };
+    return { grade: 'F', description: 'Verbesserungsbedarf', color: 'error' };
+}
+
+generateRecommendations(details) {
+    const recommendations = [];
+    
+    Object.entries(details).forEach(([metric, data]) => {
+        if (data.score < 70) {
+            const recommendation = this.getMetricRecommendation(metric, data.score);
+            if (recommendation) recommendations.push(recommendation);
+        }
+    });
+    
+    return recommendations.slice(0, 3); // Top 3 Empfehlungen
+}
+
+getMetricRecommendation(metric, score) {
+    const recommendations = {
+        steps: 'Versuche täglich 1000 zusätzliche Schritte zu gehen. Nimm die Treppe statt den Aufzug.',
+        water: 'Stelle dir eine Wasserflasche sichtbar auf den Schreibtisch als Erinnerung.',
+        sleep: 'Erstelle eine feste Abendroutine und gehe jeden Tag zur gleichen Zeit ins Bett.',
+        mood: 'Plane täglich 10 Minuten für Entspannung oder Meditation ein.',
+        weight: 'Fokussiere dich auf eine ausgewogene Ernährung und regelmäßige Bewegung.'
+    };
+    
+    return recommendations[metric] || null;
 }
 }
 

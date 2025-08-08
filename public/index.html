@@ -860,13 +860,33 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <span>Analytics</span>
                 </a>
             </li>
-            <!-- Custom Install Button (wird nur bei PWA-Unterstützung angezeigt) -->
-<button id="custom-install-btn" style="display:none" class="btn btn-ghost gap-2">
-    <i data-lucide="download" class="w-4 h-4"></i>
-    App installieren
-</button>
         </ul>
     </div>
+
+    <!-- Install Button mit verbesserter Sichtbarkeit -->
+<div class="navbar-end">
+  <div class="flex items-center gap-2">
+    <div id="install-status" class="text-xs text-gray-500 hidden"></div>
+    <button 
+      id="install-btn" 
+      class="btn btn-primary btn-sm gap-2 install-button" 
+      style="display: none;" 
+      title="App installieren"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      </svg>
+      Installieren
+    </button>
+    <div id="theme-toggle" class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
     
     <!-- Navbar End - Actions & Status -->
     <div class="navbar-end gap-1">
@@ -909,7 +929,7 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                 
                 <!-- Install PWA -->
                 <li>
-                    <button id="install-btn" class="gap-3 py-3 hidden">
+                    <button id="install-btn" class="gap-3 py-3">
                         <i data-lucide="download" class="w-4 h-4 text-info"></i>
                         <span>App installieren</span>
                         <div class="badge badge-info badge-xs">PWA</div>
@@ -1027,20 +1047,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <div class="stat-desc text-xs">erfasst</div>
                 </div>
             </div>
-
-            <!-- UnDraw SVG Illustration -->
-            <img src="/images/health-dashboard.svg" 
-     alt="Gesundheits-Dashboard Illustration" 
-     class="max-w-md w-full h-auto"
-     onerror="this.style.display='none'; document.getElementById('svg-fallback-hero').style.display='flex';">
-
-<!-- Fallback Content -->
-<div id="svg-fallback-hero" style="display:none;" class="max-w-md w-full h-auto flex flex-col items-center justify-center py-12">
-    <div class="w-32 h-32 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-        <i data-lucide="activity" class="w-16 h-16 text-primary"></i>
-    </div>
-    <p class="text-sm text-base-content/60 text-center">Dashboard wird geladen...</p>
-</div>
 
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
@@ -1625,23 +1631,12 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                         <!-- Activities werden hier eingefügt -->
                     </div>
 
-                    <!-- Enhanced Empty State mit SVG -->
-<div class="text-center py-12" id="activity-empty-state">
-    <div class="flex flex-col items-center space-y-4">
-        <img src="/images/no-data.svg" 
-             alt="Keine Daten verfügbar" 
-             class="w-64 h-auto opacity-80">
-        <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">
-            Noch keine Aktivitäten
-        </h3>
-        <p class="text-gray-500 max-w-md">
-            Füge deine ersten Gesundheitsdaten hinzu und verfolge deine Fortschritte!
-        </p>
-        <button class="btn btn-primary" onclick="document.getElementById('health-form').scrollIntoView()">
-            📊 Erste Daten hinzufügen
-        </button>
-    </div>
-</div>
+                    <!-- Empty State -->
+                    <div id="activities-empty" class="text-center py-8">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p class="font-medium text-base-content/70">Noch keine Aktivitäten</p>
+                        <p class="text-sm text-base-content/60">Füge deine ersten Gesundheitsdaten hinzu!</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1973,11 +1968,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <i data-lucide="bug" class="w-4 h-4 text-warning/60"></i>
                     Debug-Info
                 </button>
-                <!-- Custom Install Button (wird nur bei PWA-Unterstützung angezeigt) -->
-<button id="custom-install-btn" style="display:none" class="btn btn-ghost gap-2">
-    <i data-lucide="download" class="w-4 h-4"></i>
-    App installieren
-</button>
             </nav>
 
             <!-- Health Categories -->

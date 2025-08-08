@@ -1,407 +1,276 @@
-// Enhanced PWA Features with Install Button Support
-
+// Enhanced PWA Installation with Debug Support
 let deferredPrompt = null;
 let installButton = null;
+let debugMode = true; // Für besseres Debugging
+
+console.log('🚀 PWA Install Script wird geladen...');
 
 // ==================================================================== 
-// PWA INSTALLATION HANDLING
+// SOFORTIGE BUTTON ANZEIGE FÜR DEBUGGING
 // ====================================================================
+function initializeInstallButton() {
+  console.log('🔧 Initialisiere Install Button...');
+  
+  installButton = document.getElementById('install-btn');
+  const installStatus = document.getElementById('install-status');
+  
+  if (!installButton) {
+    console.error('❌ Install Button Element nicht gefunden!');
+    return;
+  }
 
-// KRITISCH: Event Listener SOFORT registrieren (nicht auf window load warten)
-window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('🎯 beforeinstallprompt Event gefeuert');
-    e.preventDefault();
-    deferredPrompt = e;
+  // Debug-Info anzeigen
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isInstalled = navigator.standalone || isStandalone;
+  const supportsInstall = 'serviceWorker' in navigator && 'BeforeInstallPromptEvent' in window;
+  
+  console.log('📊 Install Status Check:', {
+    isStandalone,
+    isInstalled,
+    supportsInstall,
+    userAgent: navigator.userAgent,
+    hasPrompt: !!deferredPrompt
+  });
+
+  if (installStatus) {
+    installStatus.classList.remove('hidden');
+    installStatus.textContent = isInstalled ? 'Bereits installiert' : 'Installierbar';
+  }
+
+  // Immer Button anzeigen falls nicht bereits installiert
+  if (!isInstalled) {
+    console.log('✅ Zeige Install Button (nicht installiert)');
+    installButton.style.display = 'flex';
+    installButton.classList.remove('hidden');
     
-    // Install Button sichtbar machen
-    installButton = document.getElementById('install-btn');
-    if (installButton) {
-        installButton.classList.remove('hidden');
-        console.log('✅ Install Button sichtbar gemacht');
-        
-        // Install Event Listener
-        installButton.addEventListener('click', async (event) => {
-            event.preventDefault();
-            
-            if (!deferredPrompt) {
-                console.log('❌ Kein deferredPrompt verfügbar');
-                showManualInstallInstructions();
-                return;
-            }
-            
-            installButton.classList.add('hidden');
-            deferredPrompt.prompt();
-            
-            const { outcome } = await deferredPrompt.userChoice;
-            
-            if (outcome === 'accepted') {
-                console.log('✅ PWA Installation akzeptiert');
-                showInstallSuccess();
-            } else {
-                console.log('❌ PWA Installation abgelehnt');
-                installButton.classList.remove('hidden');
-            }
-            
-            deferredPrompt = null;
-        });
-    } else {
-        console.log('❌ Install Button Element nicht gefunden');
-    }
-});
-
-// App installed Event
-window.addEventListener('appinstalled', (e) => {
-    console.log('✅ PWA erfolgreich installiert');
-    showInstallSuccess();
-    deferredPrompt = null;
-    
-    if (installButton) {
-        installButton.classList.add('hidden');
-    }
-});
-
-// Backup: Manual Install Instructions falls Event nicht feuert
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (!deferredPrompt) {
-            console.log('⚠️ beforeinstallprompt nicht gefeuert - prüfe Browser-Support');
-            checkInstallSupport();
-        }
-    }, 2000);
-});
-
-// ==================================================================== 
-// SERVICE WORKER REGISTRATION
-// ====================================================================
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', async () => {
-        try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('✅ Service Worker registriert:', registration.scope);
-            
-            // Update available notification
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        showUpdateAvailable();
-                    }
-                });
-            });
-            
-            // Check for existing update
-            if (registration.waiting) {
-                showUpdateAvailable();
-            }
-            
-        } catch (error) {
-            console.error('❌ Service Worker Registrierung fehlgeschlagen:', error);
-        }
-    });
+    // Fallback Click Handler für manuelle Installation
+    installButton.addEventListener('click', handleInstallClick);
+  } else {
+    console.log('ℹ️ App bereits installiert - Button verstecken');
+    installButton.style.display = 'none';
+  }
 }
 
 // ==================================================================== 
-// NETWORK STATUS HANDLING
+// INSTALL CLICK HANDLER
 // ====================================================================
-
-window.addEventListener('online', () => {
-    console.log('🌐 Verbindung wiederhergestellt');
-    showConnectivityStatus('online');
-    syncOfflineData();
-});
-
-window.addEventListener('offline', () => {
-    console.log('📵 Offline-Modus aktiviert');
-    showConnectivityStatus('offline');
-});
-
-// ==================================================================== 
-// OFFLINE DATA SYNC
-// ====================================================================
-
-async function syncOfflineData() {
+async function handleInstallClick(event) {
+  event.preventDefault();
+  console.log('🎯 Install Button geklickt');
+  
+  if (deferredPrompt) {
+    console.log('✅ Verwende beforeinstallprompt');
     try {
-        const localData = JSON.parse(localStorage.getItem('healthData') || '[]');
-        const unsyncedData = localData.filter(data => !data._synced);
-        
-        if (unsyncedData.length === 0) {
-            console.log('📤 Keine Daten zum Synchronisieren');
-            return;
-        }
-        
-        console.log(`📤 Synchronisiere ${unsyncedData.length} offline Einträge...`);
-        let successCount = 0;
-        
-        for (const data of unsyncedData) {
-            try {
-                const response = await fetch('/api/health-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...data,
-                        _localId: undefined // Remove local ID for server
-                    })
-                });
-                
-                if (response.ok) {
-                    // Mark as synced in localStorage
-                    const allData = JSON.parse(localStorage.getItem('healthData') || '[]');
-                    const updatedData = allData.map(item => 
-                        item._localId === data._localId ? { ...item, _synced: true } : item
-                    );
-                    localStorage.setItem('healthData', JSON.stringify(updatedData));
-                    successCount++;
-                }
-            } catch (error) {
-                console.error('❌ Sync error für Eintrag:', error);
-            }
-        }
-        
-        if (successCount > 0) {
-            showToast(`📤 ${successCount} Einträge synchronisiert`, 'success');
-            // Trigger refresh event
-            document.dispatchEvent(new CustomEvent('data-synced', { 
-                detail: { count: successCount } 
-            }));
-        }
-        
+      installButton.style.display = 'none';
+      await deferredPrompt.prompt();
+      
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('📊 Install Outcome:', outcome);
+      
+      if (outcome === 'accepted') {
+        showInstallSuccess();
+      } else {
+        installButton.style.display = 'flex'; // Button wieder anzeigen
+        showToast('❌ Installation abgebrochen', 'warning');
+      }
+      
+      deferredPrompt = null;
     } catch (error) {
-        console.error('❌ Sync process error:', error);
+      console.error('❌ Install prompt error:', error);
+      showManualInstallInstructions();
     }
+  } else {
+    console.log('⚠️ Kein deferredPrompt - zeige manuelle Anweisungen');
+    showManualInstallInstructions();
+  }
 }
 
 // ==================================================================== 
-// INSTALL SUPPORT DETECTION
+// BEFORE INSTALL PROMPT EVENT
 // ====================================================================
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('🎯 beforeinstallprompt Event empfangen!');
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Button sichtbar machen/lassen
+  if (installButton) {
+    installButton.style.display = 'flex';
+    installButton.classList.remove('hidden');
+    console.log('✅ Install Button aktiviert mit Prompt');
+  }
+  
+  // Status Update
+  const installStatus = document.getElementById('install-status');
+  if (installStatus) {
+    installStatus.textContent = 'Bereit zur Installation';
+    installStatus.style.color = '#10b981'; // green
+  }
+});
 
-function checkInstallSupport() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    
-    console.log('📱 Device detection:', { isIOS, isAndroid, isStandalone });
-    
-    if (isStandalone) {
-        console.log('✅ App bereits installiert (Standalone-Modus)');
-        return;
-    }
-    
-    // Show manual install instructions for iOS
-    if (isIOS) {
-        setTimeout(() => {
-            showManualInstallInstructions('ios');
-        }, 3000);
-    }
-    // Show manual instructions for other browsers
-    else if (!deferredPrompt) {
-        setTimeout(() => {
-            showManualInstallInstructions('other');
-        }, 5000);
-    }
+// ==================================================================== 
+// APP INSTALLED EVENT
+// ====================================================================
+window.addEventListener('appinstalled', (e) => {
+  console.log('✅ PWA erfolgreich installiert!');
+  showInstallSuccess();
+  deferredPrompt = null;
+  
+  if (installButton) {
+    installButton.style.display = 'none';
+  }
+  
+  const installStatus = document.getElementById('install-status');
+  if (installStatus) {
+    installStatus.textContent = 'Installiert';
+    installStatus.style.color = '#10b981';
+  }
+});
+
+// ==================================================================== 
+// MANUELLE INSTALL ANWEISUNGEN
+// ====================================================================
+function showManualInstallInstructions() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isChrome = /Chrome/.test(navigator.userAgent);
+  const isFirefox = /Firefox/.test(navigator.userAgent);
+  const isEdge = /Edg/.test(navigator.userAgent);
+  
+  let instructions = '';
+  
+  if (isIOS) {
+    instructions = `
+      <div class="space-y-4">
+        <h3 class="font-bold text-lg">📱 Installation auf iOS Safari:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+          <li>Tippe auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil) unten in Safari</li>
+          <li>Scrolle nach unten und wähle <strong>"Zum Home-Bildschirm"</strong></li>
+          <li>Tippe auf <strong>"Hinzufügen"</strong></li>
+        </ol>
+      </div>
+    `;
+  } else if (isAndroid && isChrome) {
+    instructions = `
+      <div class="space-y-4">
+        <h3 class="font-bold text-lg">📱 Installation auf Android Chrome:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+          <li>Öffne das <strong>Drei-Punkte-Menü</strong> (⋮) oben rechts</li>
+          <li>Wähle <strong>"App installieren"</strong> oder <strong>"Zur Startseite hinzufügen"</strong></li>
+          <li>Bestätige mit <strong>"Installieren"</strong></li>
+        </ol>
+      </div>
+    `;
+  } else if (isChrome) {
+    instructions = `
+      <div class="space-y-4">
+        <h3 class="font-bold text-lg">💻 Installation auf Desktop Chrome:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+          <li>Klicke auf das <strong>Install-Symbol</strong> (⬇️) in der Adressleiste</li>
+          <li>Oder: Drei-Punkte-Menü → <strong>"App installieren"</strong></li>
+          <li>Bestätige mit <strong>"Installieren"</strong></li>
+        </ol>
+      </div>
+    `;
+  } else if (isEdge) {
+    instructions = `
+      <div class="space-y-4">
+        <h3 class="font-bold text-lg">💻 Installation auf Microsoft Edge:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+          <li>Klicke auf das <strong>Drei-Punkte-Menü</strong> (⋯) oben rechts</li>
+          <li>Wähle <strong>"Apps" → "Diese Website als App installieren"</strong></li>
+          <li>Bestätige mit <strong>"Installieren"</strong></li>
+        </ol>
+      </div>
+    `;
+  } else {
+    instructions = `
+      <div class="space-y-4">
+        <h3 class="font-bold text-lg">🌐 Manuelle Installation:</h3>
+        <p class="text-sm">Diese App kann als PWA installiert werden. Prüfe in deinem Browser-Menü nach Optionen wie:</p>
+        <ul class="list-disc list-inside space-y-1 text-sm">
+          <li>"App installieren"</li>
+          <li>"Zur Startseite hinzufügen"</li>
+          <li>"Als App installieren"</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal modal-open';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">📲 Health Tracker Pro installieren</h3>
+      ${instructions}
+      <div class="modal-action">
+        <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
+          Verstanden
+        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+  `;
+  document.body.appendChild(modal);
 }
 
 // ==================================================================== 
-// UI NOTIFICATION FUNCTIONS
+// SUCCESS FUNCTIONS
 // ====================================================================
-
 function showInstallSuccess() {
-    showToast('✅ Health Tracker Pro erfolgreich installiert!', 'success', 6000);
-    
-    // Hide install button permanently
-    const installBtn = document.getElementById('install-btn');
-    if (installBtn) {
-        installBtn.style.display = 'none';
-    }
+  showToast('✅ Health Tracker Pro erfolgreich installiert!', 'success', 6000);
+  
+  // Konfetti-Effekt (optional)
+  if (typeof confetti !== 'undefined') {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  }
 }
-
-function showUpdateAvailable() {
-    const toast = createAdvancedToast(
-        '🔄 App-Update verfügbar', 
-        'Eine neue Version ist verfügbar. Jetzt aktualisieren?',
-        'info', 
-        [
-            {
-                text: 'Aktualisieren',
-                action: () => {
-                    window.location.reload();
-                }
-            },
-            {
-                text: 'Später',
-                action: null
-            }
-        ]
-    );
-    document.body.appendChild(toast);
-}
-
-function showConnectivityStatus(status) {
-    const message = status === 'online'
-        ? '🌐 Verbindung wiederhergestellt - Daten werden synchronisiert'
-        : '📵 Offline-Modus aktiv - Daten werden lokal gespeichert';
-    
-    showToast(message, status === 'online' ? 'success' : 'warning', 4000);
-}
-
-function showManualInstallInstructions(platform = 'other') {
-    let instructions = '';
-    
-    if (platform === 'ios') {
-        instructions = `
-            <div class="text-sm">
-                <p class="font-semibold mb-2">📱 Installation auf iOS:</p>
-                <ol class="list-decimal list-inside space-y-1">
-                    <li>Tippe auf das Teilen-Symbol <span class="font-mono">⬆️</span></li>
-                    <li>Wähle "Zum Home-Bildschirm"</li>
-                    <li>Tippe "Hinzufügen"</li>
-                </ol>
-            </div>
-        `;
-    } else {
-        instructions = `
-            <div class="text-sm">
-                <p class="font-semibold mb-2">📱 Installation:</p>
-                <p>Öffne das Browser-Menü <span class="font-mono">⋮</span> und wähle "App installieren" oder "Zur Startseite hinzufügen"</p>
-            </div>
-        `;
-    }
-    
-    const toast = createAdvancedToast(
-        '📲 App installieren',
-        instructions,
-        'info',
-        [
-            {
-                text: 'Verstanden',
-                action: null
-            }
-        ],
-        8000
-    );
-    
-    document.body.appendChild(toast);
-}
-
-// ==================================================================== 
-// TOAST NOTIFICATION SYSTEM
-// ====================================================================
 
 function showToast(message, type = 'info', duration = 4000) {
-    const toast = createToast(message, type);
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.transform = 'translateY(-100%)';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
-
-function createToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 transform translate-y-0 max-w-sm`;
-    
-    const bgColor = {
-        'success': 'bg-green-500',
-        'warning': 'bg-yellow-500',
-        'info': 'bg-blue-500',
-        'error': 'bg-red-500'
-    }[type] || 'bg-gray-500';
-    
-    toast.className += ` ${bgColor}`;
-    toast.innerHTML = `
-        <div class="flex items-center">
-            <span class="flex-1">${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">✕</button>
-        </div>
-    `;
-    
-    return toast;
-}
-
-function createAdvancedToast(title, content, type, buttons = [], duration = 6000) {
-    const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border max-w-sm transition-all duration-300 transform translate-y-0`;
-    
-    const borderColor = {
-        'success': 'border-green-500',
-        'warning': 'border-yellow-500',
-        'info': 'border-blue-500',
-        'error': 'border-red-500'
-    }[type] || 'border-gray-300';
-    
-    toast.className += ` ${borderColor}`;
-    
-    const buttonsHtml = buttons.map(btn => 
-        `<button class="btn btn-sm ${btn.action ? 'btn-primary' : 'btn-ghost'}" 
-                onclick="${btn.action ? 'this.clickAction()' : 'this.parentElement.parentElement.parentElement.remove()'}">${btn.text}</button>`
-    ).join('');
-    
-    toast.innerHTML = `
-        <div class="p-4">
-            <div class="flex items-start justify-between mb-2">
-                <h4 class="font-semibold text-gray-900 dark:text-white">${title}</h4>
-                <button onclick="this.parentElement.parentElement.parentElement.remove()" 
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">✕</button>
-            </div>
-            <div class="text-gray-600 dark:text-gray-300 mb-3">${content}</div>
-            <div class="flex gap-2 justify-end">
-                ${buttonsHtml}
-            </div>
-        </div>
-    `;
-    
-    // Add click actions to buttons
-    buttons.forEach((btn, index) => {
-        if (btn.action) {
-            const button = toast.querySelectorAll('button')[index + 1]; // +1 for close button
-            if (button) {
-                button.clickAction = () => {
-                    btn.action();
-                    toast.remove();
-                };
-            }
-        }
-    });
-    
-    // Auto remove
-    if (duration > 0) {
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.style.transform = 'translateY(-100%)';
-                setTimeout(() => toast.remove(), 300);
-            }
-        }, duration);
-    }
-    
-    return toast;
+  const toast = document.createElement('div');
+  const bgClass = {
+    success: 'bg-green-500',
+    error: 'bg-red-500', 
+    warning: 'bg-yellow-500',
+    info: 'bg-blue-500'
+  }[type] || 'bg-gray-500';
+  
+  toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 transform ${bgClass}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.transform = 'translateY(-100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 // ==================================================================== 
-// PWA FEATURES DETECTION
+// DOM READY INITIALIZATION
 // ====================================================================
-
-// Display mode detection
-if (window.matchMedia('(display-mode: standalone)').matches) {
-    console.log('✅ App läuft im Standalone-Modus');
-    document.body.classList.add('pwa-standalone');
-}
-
-// Background sync support
-if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-    navigator.serviceWorker.ready.then(registration => {
-        console.log('✅ Background Sync unterstützt');
-        
-        // Register sync event when data is saved offline
-        document.addEventListener('health-data-saved-offline', () => {
-            registration.sync.register('background-sync');
-        });
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('📄 DOM Ready - Initialisiere Install Button');
+  initializeInstallButton();
+  
+  // Debugging Info nach 3 Sekunden
+  setTimeout(() => {
+    console.log('🔍 Install Debug nach 3 Sekunden:', {
+      buttonVisible: installButton?.style.display !== 'none',
+      buttonExists: !!installButton,
+      hasPrompt: !!deferredPrompt,
+      isStandalone: window.matchMedia('(display-mode: standalone)').matches
     });
-}
+  }, 3000);
+});
 
-// Push notifications support check
-if ('Notification' in window && 'serviceWorker' in navigator) {
-    console.log('✅ Push Notifications unterstützt');
-}
-
-console.log('🚀 PWA Features initialisiert');
+// Fallback für sehr langsame Seiten
+window.addEventListener('load', () => {
+  if (!installButton) {
+    console.log('🔄 Window Load Fallback - versuche erneut');
+    setTimeout(initializeInstallButton, 1000);
+  }
+});

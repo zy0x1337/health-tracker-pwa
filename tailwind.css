@@ -1,3 +1,89 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Health Tracker Styles */
+@layer components {
+  .stat-card {
+    @apply transition-transform duration-200 hover:-translate-y-1;
+  }
+  
+  .progress {
+    @apply transition-all duration-300;
+  }
+  
+  .heatmap-cell {
+    @apply aspect-square min-h-5 rounded-sm transition-all duration-200 cursor-pointer hover:scale-110;
+  }
+  
+  .navbar {
+    @apply transition-all duration-300;
+  }
+  
+  .btn:hover {
+    @apply shadow-xl;
+  }
+  
+  .card:hover {
+    @apply -translate-y-1;
+  }
+}
+
+@layer utilities {
+  .animation-delay-1000 {
+    animation-delay: 1s;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .shadow-3xl {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+}
+
+/* Theme-specific enhancements */
+.theme-health .hero {
+  background: linear-gradient(135deg, oklch(65% 0.25 145), oklch(70% 0.2 160));
+}
+
+.theme-neon .btn:hover {
+  box-shadow: 0 0 30px currentColor;
+  animation: neonPulse 1.5s infinite alternate;
+}
+
+@keyframes neonPulse {
+  0% { box-shadow: 0 0 5px currentColor; }
+  100% { box-shadow: 0 0 30px currentColor, 0 0 40px currentColor; }
+}
+
+/* Performance optimizations */
+.theme-animation-neon .btn,
+.theme-animation-luxury .card {
+  transform: translateZ(0);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .text-6xl {
+    font-size: 3rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .btn,
+  .card {
+    transition: none;
+  }
+  
+  .animate-spin-slow {
+    animation: none;
+  }
+}

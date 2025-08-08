@@ -2516,13 +2516,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- 8. DEVELOPMENT HELPERS (nur in Dev-Mode) -->
+<!-- 8. ENHANCED DEVELOPMENT HELPERS -->
 <script defer>
 if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
     // Performance Monitoring
     window.addEventListener('load', () => {
         setTimeout(() => {
             const totalTime = Math.round(performance.now() - appStartTime);
+            
+            // Console Log (wie bisher)
             console.log(`
 🚀 PERFORMANCE SUMMARY:
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2531,8 +2533,161 @@ if (window.location.hostname === 'localhost' || window.location.search.includes(
 📊  Status: ${totalTime < 2000 ? '✅ GOOD' : '⚠️ NEEDS OPTIMIZATION'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
             `);
+            
+            // ZUSÄTZLICH: Performance Panel auf der Seite
+            showPerformancePanel(totalTime);
         }, 100);
     });
+}
+
+// Performance Panel auf der Webseite anzeigen
+function showPerformancePanel(loadTime) {
+    // Performance Panel erstellen
+    const panel = document.createElement('div');
+    panel.id = 'performance-panel';
+    panel.className = 'fixed bottom-4 right-4 z-50 bg-base-300/95 backdrop-blur-sm rounded-lg shadow-lg p-4 max-w-xs text-xs border border-primary/20';
+    
+    const status = loadTime < 2000 ? 'GOOD' : 'NEEDS OPTIMIZATION';
+    const statusColor = loadTime < 2000 ? 'text-success' : 'text-warning';
+    const statusIcon = loadTime < 2000 ? '✅' : '⚠️';
+    
+    panel.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-primary">🚀 Performance</h4>
+            <button onclick="this.parentElement.parentElement.remove()" class="btn btn-ghost btn-xs">×</button>
+        </div>
+        <div class="space-y-1">
+            <div class="flex justify-between">
+                <span>Load Time:</span>
+                <span class="font-bold">${loadTime}ms</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Target:</span>
+                <span>&lt;2000ms</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Status:</span>
+                <span class="${statusColor} font-bold">${statusIcon} ${status}</span>
+            </div>
+            <div class="divider my-2"></div>
+            <div class="flex justify-between">
+                <span>Memory:</span>
+                <span>${navigator.deviceMemory || 'N/A'}GB</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Connection:</span>
+                <span>${navigator.connection?.effectiveType || 'Unknown'}</span>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="mt-3">
+            <div class="flex justify-between text-[10px] mb-1">
+                <span>Performance Score</span>
+                <span>${Math.max(0, 100 - Math.floor(loadTime/20))}%</span>
+            </div>
+            <div class="w-full bg-base-100 rounded-full h-2">
+                <div class="bg-primary h-2 rounded-full transition-all duration-1000" 
+                     style="width: ${Math.max(0, 100 - Math.floor(loadTime/20))}%"></div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="mt-3 flex gap-1">
+            <button onclick="location.reload()" class="btn btn-xs btn-primary">Refresh</button>
+            <button onclick="localStorage.clear(); location.reload()" class="btn btn-xs btn-outline">Clear Cache</button>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // Auto-hide nach 10 Sekunden
+    setTimeout(() => {
+        if (panel.parentNode) {
+            panel.style.opacity = '0';
+            panel.style.transform = 'translateY(20px)';
+            setTimeout(() => panel.remove(), 300);
+        }
+    }, 10000);
+}
+</script>
+<!-- Debug Panel Toggle Button (nur in Dev-Mode) -->
+<script defer>
+if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Debug Toggle Button erstellen
+        const debugBtn = document.createElement('button');
+        debugBtn.innerHTML = '🔧 Debug';
+        debugBtn.className = 'btn btn-xs btn-ghost fixed top-4 left-4 z-50 opacity-50 hover:opacity-100';
+        debugBtn.onclick = () => showDebugConsole();
+        document.body.appendChild(debugBtn);
+    });
+}
+
+function showDebugConsole() {
+    const existingConsole = document.getElementById('debug-console');
+    if (existingConsole) {
+        existingConsole.remove();
+        return;
+    }
+    
+    const currentTime = performance.now();
+    const totalTime = Math.round(currentTime - (window.appStartTime || 0));
+    
+    const debugConsole = document.createElement('div');
+    debugConsole.id = 'debug-console';
+    debugConsole.className = 'fixed inset-4 z-[60] bg-base-300/95 backdrop-blur-md rounded-lg shadow-2xl border border-primary/30 overflow-hidden';
+    
+    debugConsole.innerHTML = `
+        <div class="bg-primary text-primary-content p-3 flex items-center justify-between">
+            <h3 class="font-bold">🔧 Debug Console</h3>
+            <button onclick="this.closest('#debug-console').remove()" class="btn btn-ghost btn-sm text-primary-content">×</button>
+        </div>
+        
+        <div class="p-4 max-h-96 overflow-y-auto">
+            <div class="grid gap-4">
+                <!-- Performance Metrics -->
+                <div class="card bg-base-200">
+                    <div class="card-body p-3">
+                        <h4 class="font-bold text-primary mb-2">⚡ Performance</h4>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>Load Time: <strong>${totalTime}ms</strong></div>
+                            <div>Target: <strong>&lt;2000ms</strong></div>
+                            <div>Status: <strong class="${totalTime < 2000 ? 'text-success' : 'text-warning'}">${totalTime < 2000 ? '✅ GOOD' : '⚠️ SLOW'}</strong></div>
+                            <div>Memory: <strong>${navigator.deviceMemory || 'N/A'}GB</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Storage Info -->
+                <div class="card bg-base-200">
+                    <div class="card-body p-3">
+                        <h4 class="font-bold text-secondary mb-2">💾 Storage</h4>
+                        <div class="text-sm">
+                            <div>Health Data: <strong>${Object.keys(JSON.parse(localStorage.getItem('healthData') || '{}')).length}</strong> entries</div>
+                            <div>Goals: <strong>${Object.keys(JSON.parse(localStorage.getItem('userGoals') || '{}')).length}</strong> active</div>
+                            <div>Theme: <strong>${localStorage.getItem('theme') || 'light'}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card bg-base-200">
+                    <div class="card-body p-3">
+                        <h4 class="font-bold text-accent mb-2">🚀 Actions</h4>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="location.reload()" class="btn btn-xs btn-primary">Reload</button>
+                            <button onclick="localStorage.clear(); location.reload()" class="btn btn-xs btn-warning">Clear All</button>
+                            <button onclick="console.clear()" class="btn btn-xs btn-ghost">Clear Console</button>
+                            <button onclick="window.healthTracker?.showDataUsage?.()" class="btn btn-xs btn-info">Storage Info</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(debugConsole);
 }
 </script>
 </body>

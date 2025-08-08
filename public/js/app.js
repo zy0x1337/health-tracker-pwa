@@ -533,12 +533,12 @@ getTodayData(allData) {
     // Heutiges Datum in lokalem Format
     const today = new Date();
     const todayStr = today.getFullYear() + '-' + 
-                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                     String(today.getDate()).padStart(2, '0');
-    
+        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(today.getDate()).padStart(2, '0');
+
     console.log('🗓️ Suche Daten für:', todayStr);
     console.log('📊 Verfügbare Daten:', allData?.length || 0);
-    
+
     if (!allData || !Array.isArray(allData) || allData.length === 0) {
         console.log('❌ Keine Daten verfügbar');
         return { date: todayStr };
@@ -549,9 +549,8 @@ getTodayData(allData) {
         if (!entry || !entry.date) {
             return false;
         }
-        
+
         let entryDateStr;
-        
         // Fall 1: String-Datum (ISO oder einfach)
         if (typeof entry.date === 'string') {
             // ISO Format: "2025-08-06T10:30:00.000Z" -> "2025-08-06"
@@ -564,29 +563,27 @@ getTodayData(allData) {
         // Fall 2: Date-Objekt
         else if (entry.date instanceof Date) {
             entryDateStr = entry.date.getFullYear() + '-' + 
-                          String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(entry.date.getDate()).padStart(2, '0');
+                String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(entry.date.getDate()).padStart(2, '0');
         }
         // Fall 3: MongoDB Date String
         else if (typeof entry.date === 'object' && entry.date.$date) {
             const date = new Date(entry.date.$date);
             entryDateStr = date.getFullYear() + '-' + 
-                          String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(date.getDate()).padStart(2, '0');
-        }
-        else {
+                String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(date.getDate()).padStart(2, '0');
+        } else {
             console.log('⚠️ Unbekanntes Datumsformat:', entry.date, typeof entry.date);
             return false;
         }
-        
+
         const matches = entryDateStr === todayStr;
         console.log(`📅 "${entryDateStr}" === "${todayStr}" = ${matches}`);
-        
         return matches;
     });
-    
+
     console.log(`✅ Gefunden: ${todayEntries.length} heutige Einträge`);
-    
+
     if (todayEntries.length === 0) {
         console.log('📊 Keine Einträge für heute - return empty object');
         return { date: todayStr };
@@ -604,9 +601,8 @@ getTodayData(allData) {
         entryCount: todayEntries.length,
         lastUpdated: null
     };
-    
+
     console.log('🔄 Aggregiere Einträge...');
-    
     todayEntries.forEach((entry, index) => {
         console.log(`Eintrag ${index + 1}:`, {
             weight: entry.weight,
@@ -615,50 +611,50 @@ getTodayData(allData) {
             sleepHours: entry.sleepHours,
             mood: entry.mood
         });
-        
+
         // Gewicht (letzter Wert)
         if (entry.weight !== null && entry.weight !== undefined) {
             aggregatedData.weight = entry.weight;
             console.log(`⚖️ Gewicht aktualisiert: ${aggregatedData.weight}kg`);
         }
-        
+
         // Schritte (summieren)
         if (entry.steps && entry.steps > 0) {
             aggregatedData.steps += entry.steps;
             console.log(`🚶♂️ Schritte summiert: ${aggregatedData.steps}`);
         }
-        
+
         // Wasser (summieren)
         if (entry.waterIntake && entry.waterIntake > 0) {
             aggregatedData.waterIntake += entry.waterIntake;
             console.log(`💧 Wasser summiert: ${aggregatedData.waterIntake}L`);
         }
-        
+
         // Schlaf (summieren)
         if (entry.sleepHours && entry.sleepHours > 0) {
             aggregatedData.sleepHours += entry.sleepHours;
             console.log(`😴 Schlaf summiert: ${aggregatedData.sleepHours}h`);
         }
-        
+
         // Stimmung (letzter Wert)
         if (entry.mood) {
             aggregatedData.mood = entry.mood;
             console.log(`😊 Stimmung: ${aggregatedData.mood}`);
         }
-        
+
         // Notizen sammeln
         if (entry.notes && entry.notes.trim()) {
             aggregatedData.notes.push(entry.notes.trim());
         }
     });
-    
+
     // Nachbearbeitung
-    aggregatedData.notes = aggregatedData.notes.length > 0 ? aggregatedData.notes.join(' | ') : null;
+    aggregatedData.notes = aggregatedData.notes.length > 0 ? 
+        aggregatedData.notes.join(' | ') : null;
     aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
     aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
-    
+
     console.log('📊 FINALE DATEN:', aggregatedData);
-    
     return aggregatedData;
 }
     
@@ -868,39 +864,115 @@ getTodayData(allData) {
 }
     
     /**
-     * Get current week's health data
-     */
-    getWeekData(allData) {
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        
-        return allData.filter(entry => {
-            const entryDate = new Date(entry.date);
-            return entryDate >= oneWeekAgo && entryDate <= now;
-        });
+ * Get current week's health data with improved date filtering
+ */
+getWeekData(allData) {
+    if (!allData || !Array.isArray(allData) || allData.length === 0) {
+        console.log('❌ Keine Daten für Wochenfilterung verfügbar');
+        return [];
     }
+
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     
-    /**
-     * Calculate weekly averages
-     */
-    calculateWeeklyAverages(weekData) {
-        if (weekData.length === 0) {
-            return { steps: 0, water: 0, sleep: 0 };
+    console.log('📅 Wochenfilter:', {
+        von: oneWeekAgo.toISOString().split('T')[0],
+        bis: now.toISOString().split('T')[0],
+        gesamtDaten: allData.length
+    });
+
+    const weekData = allData.filter(entry => {
+        if (!entry || !entry.date) {
+            return false;
+        }
+
+        let entryDate;
+        
+        // Verschiedene Datumsformate handhaben
+        if (typeof entry.date === 'string') {
+            // ISO Format oder einfaches Datum
+            if (entry.date.includes('T')) {
+                entryDate = new Date(entry.date.split('T')[0]);
+            } else {
+                entryDate = new Date(entry.date);
+            }
+        } else if (entry.date instanceof Date) {
+            entryDate = entry.date;
+        } else if (typeof entry.date === 'object' && entry.date.$date) {
+            entryDate = new Date(entry.date.$date);
+        } else {
+            console.log('⚠️ Unbekanntes Datumsformat in Woche:', entry.date);
+            return false;
+        }
+
+        // Prüfe ob Datum in der letzten Woche liegt
+        const isInWeek = entryDate >= oneWeekAgo && entryDate <= now;
+        
+        if (isInWeek) {
+            console.log(`✅ Wocheneintrag: ${entryDate.toISOString().split('T')[0]} - Steps: ${entry.steps}, Water: ${entry.waterIntake}, Sleep: ${entry.sleepHours}`);
         }
         
-        const totals = weekData.reduce((acc, entry) => {
-            acc.steps += entry.steps || 0;
-            acc.water += entry.waterIntake || 0;
-            acc.sleep += entry.sleepHours || 0;
-            return acc;
-        }, { steps: 0, water: 0, sleep: 0 });
-        
-        return {
-            steps: Math.round(totals.steps / weekData.length),
-            water: Math.round((totals.water / weekData.length) * 10) / 10,
-            sleep: Math.round((totals.sleep / weekData.length) * 10) / 10
-        };
+        return isInWeek;
+    });
+
+    console.log(`📊 Wöchentliche Daten gefiltert: ${weekData.length} Einträge`);
+    return weekData;
+}
+    
+    /**
+ * Calculate weekly averages with improved validation
+ */
+calculateWeeklyAverages(weekData) {
+    console.log('🧮 Berechne Wochendurchschnitte für', weekData.length, 'Einträge');
+    
+    if (!weekData || weekData.length === 0) {
+        console.log('❌ Keine Wochendaten für Durchschnitt verfügbar');
+        return { steps: 0, water: 0, sleep: 0 };
     }
+
+    let validStepsEntries = 0;
+    let validWaterEntries = 0;
+    let validSleepEntries = 0;
+
+    const totals = weekData.reduce((acc, entry) => {
+        console.log(`📊 Verarbeite Eintrag:`, {
+            date: entry.date,
+            steps: entry.steps,
+            water: entry.waterIntake,
+            sleep: entry.sleepHours
+        });
+
+        if (entry.steps && entry.steps > 0) {
+            acc.steps += entry.steps;
+            validStepsEntries++;
+        }
+        if (entry.waterIntake && entry.waterIntake > 0) {
+            acc.water += entry.waterIntake;
+            validWaterEntries++;
+        }
+        if (entry.sleepHours && entry.sleepHours > 0) {
+            acc.sleep += entry.sleepHours;
+            validSleepEntries++;
+        }
+        return acc;
+    }, { steps: 0, water: 0, sleep: 0 });
+
+    console.log('📊 Wochentotale:', totals);
+    console.log('📊 Gültige Einträge:', {
+        steps: validStepsEntries,
+        water: validWaterEntries,
+        sleep: validSleepEntries
+    });
+
+    const averages = {
+        steps: validStepsEntries > 0 ? Math.round(totals.steps / validStepsEntries) : 0,
+        water: validWaterEntries > 0 ? Math.round((totals.water / validWaterEntries) * 10) / 10 : 0,
+        sleep: validSleepEntries > 0 ? Math.round((totals.sleep / validSleepEntries) * 10) / 10 : 0
+    };
+
+    console.log('📊 Berechnete Wochendurchschnitte:', averages);
+    return averages;
+}
     
     /**
  * Refresh all components with new data
@@ -934,13 +1006,20 @@ async refreshAllComponents() {
 }
 
 /**
- * Update dashboard statistics
+ * Update dashboard statistics with improved week data handling
  */
 async updateDashboardStats() {
     try {
+        console.log('📊 Aktualisiere Dashboard-Statistiken...');
+        
         const data = await this.getAllHealthData();
+        console.log('📊 Geladene Daten:', data.length, 'Einträge');
+        
         const todayData = this.getTodayData(data);
         const weekData = this.getWeekData(data);
+        
+        console.log('📊 Heute-Daten:', todayData);
+        console.log('📊 Wochen-Daten:', weekData.length, 'Einträge');
 
         // Update today's stats
         this.updateStatCard('today-weight', todayData.weight, 'kg', '⚖️');
@@ -950,6 +1029,8 @@ async updateDashboardStats() {
 
         // Update weekly averages
         const weeklyAvg = this.calculateWeeklyAverages(weekData);
+        console.log('📊 Wöchentliche Durchschnitte berechnet:', weeklyAvg);
+        
         this.updateStatCard('week-steps', weeklyAvg.steps, '', '📊');
         this.updateStatCard('week-water', weeklyAvg.water, 'L', '📈');
         this.updateStatCard('week-sleep', weeklyAvg.sleep, 'h', '🌙');
@@ -957,7 +1038,7 @@ async updateDashboardStats() {
         // Update goal progress
         this.updateGoalProgress(todayData);
 
-        console.log('📊 Dashboard Stats aktualisiert');
+        console.log('✅ Dashboard Stats erfolgreich aktualisiert');
     } catch (error) {
         console.error('❌ Fehler beim Aktualisieren der Statistiken:', error);
     }

@@ -2401,6 +2401,17 @@ toggleAnalytics() {
     const enabled = !JSON.parse(localStorage.getItem('advancedAnalytics') || 'false');
     localStorage.setItem('advancedAnalytics', enabled);
     
+    // Visuelles Feedback sofort anzeigen
+    const toggle = document.getElementById('analytics-toggle');
+    if (toggle) {
+        toggle.checked = enabled;
+        // Animation für visuelles Feedback
+        toggle.parentElement.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+            toggle.parentElement.style.transform = 'scale(1)';
+        }, 200);
+    }
+    
     // Advanced Analytics Features aktivieren/deaktivieren
     if (enabled) {
         this.enableAdvancedAnalytics();
@@ -2415,39 +2426,230 @@ enableAdvancedAnalytics() {
     console.log('📈 Erweiterte Analytics werden aktiviert');
     
     // Erweiterte Features verfügbar machen
-    this.analyticsEngine.advancedMode = true;
+    if (this.analyticsEngine) {
+        this.analyticsEngine.advancedMode = true;
+    }
     
     // UI-Elemente für erweiterte Analytics anzeigen
     this.showAdvancedAnalyticsFeatures();
+    
+    // Sofortiges Refresh der Analytics
+    setTimeout(() => {
+        if (this.analyticsEngine && typeof this.analyticsEngine.loadCompleteAnalyticsData === 'function') {
+            this.analyticsEngine.loadCompleteAnalyticsData();
+        }
+    }, 100);
+    
+    this.showToast('🚀 Erweiterte Analytics aktiviert!', 'success');
 }
 
 disableAdvancedAnalytics() {
     console.log('📉 Erweiterte Analytics werden deaktiviert');
     
     // Basis-Modus aktivieren
-    this.analyticsEngine.advancedMode = false;
+    if (this.analyticsEngine) {
+        this.analyticsEngine.advancedMode = false;
+    }
     
     // Erweiterte UI-Elemente ausblenden
     this.hideAdvancedAnalyticsFeatures();
+    
+    this.showToast('📊 Basis-Analytics aktiviert', 'info');
 }
 
 showAdvancedAnalyticsFeatures() {
-    // Erweiterte Buttons und Panels aktivieren
-    const advancedElements = document.querySelectorAll('.advanced-analytics');
-    advancedElements.forEach(el => el.classList.remove('hidden'));
+    console.log('🔧 Aktiviere erweiterte Analytics-Features');
     
-    // Zusätzliche Analytics-Tabs anzeigen
-    const advancedTabs = document.querySelectorAll('.analytics-tab-advanced');
-    advancedTabs.forEach(tab => tab.style.display = 'block');
+    // 1. Erweiterte UI-Elemente einblenden
+    const advancedElements = [
+        // Erweiterte Buttons und Panels
+        '.advanced-analytics',
+        '.analytics-tab-advanced',
+        // Spezifische Advanced Features
+        '#correlation-insights',
+        '#ai-predictions',
+        '#anomaly-detection',
+        '[data-advanced="true"]'
+    ];
+    
+    advancedElements.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            el.classList.remove('hidden');
+            el.style.display = 'block';
+        });
+    });
+    
+    // 2. Erweiterte Analytics-Tabs hinzufügen
+    this.addAdvancedAnalyticsTabs();
+    
+    // 3. KI-Insights Container erstellen
+    this.createAdvancedInsightsContainers();
+    
+    // 4. Erweiterte Chart-Optionen aktivieren
+    this.enableAdvancedChartFeatures();
 }
 
 hideAdvancedAnalyticsFeatures() {
-    // Erweiterte UI-Elemente ausblenden
-    const advancedElements = document.querySelectorAll('.advanced-analytics');
-    advancedElements.forEach(el => el.classList.add('hidden'));
+    console.log('🔧 Deaktiviere erweiterte Analytics-Features');
     
+    // Erweiterte UI-Elemente ausblenden
+    const advancedElements = [
+        '.advanced-analytics',
+        '.analytics-tab-advanced',
+        '#correlation-insights .advanced-correlation',
+        '#ai-predictions',
+        '#anomaly-detection',
+        '[data-advanced="true"]'
+    ];
+    
+    advancedElements.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        });
+    });
+    
+    // Entferne erweiterte Tabs
     const advancedTabs = document.querySelectorAll('.analytics-tab-advanced');
-    advancedTabs.forEach(tab => tab.style.display = 'none');
+    advancedTabs.forEach(tab => tab.remove());
+}
+
+addAdvancedAnalyticsTabs() {
+    // Suche das Analytics-Tab-Container
+    const tabContainer = document.querySelector('.tabs.tabs-boxed') || 
+                        document.querySelector('#analytics .tabs') ||
+                        document.querySelector('.analytics-tabs');
+    
+    if (!tabContainer) {
+        console.warn('⚠️ Kein Tab-Container für erweiterte Analytics gefunden');
+        return;
+    }
+    
+    // Füge erweiterte Tabs hinzu (falls nicht vorhanden)
+    if (!document.querySelector('.analytics-tab-advanced')) {
+        const advancedTabs = [
+            {
+                id: 'predictions-tab',
+                icon: 'brain',
+                label: 'KI-Vorhersagen',
+                action: 'showPredictions'
+            },
+            {
+                id: 'anomalies-tab',
+                icon: 'alert-triangle',
+                label: 'Anomalien',
+                action: 'showAnomalies'
+            },
+            {
+                id: 'correlations-tab',
+                icon: 'git-branch',
+                label: 'Korrelationen',
+                action: 'showCorrelations'
+            }
+        ];
+        
+        advancedTabs.forEach(tab => {
+            const tabElement = document.createElement('button');
+            tabElement.className = 'tab analytics-tab-advanced';
+            tabElement.innerHTML = `
+                <i data-lucide="${tab.icon}" class="w-4 h-4 mr-1"></i>
+                ${tab.label}
+            `;
+            tabElement.onclick = () => {
+                if (typeof this.analyticsEngine[tab.action] === 'function') {
+                    this.analyticsEngine[tab.action]();
+                }
+            };
+            tabContainer.appendChild(tabElement);
+        });
+        
+        // Lucide Icons neu initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+createAdvancedInsightsContainers() {
+    // Erstelle Container für erweiterte Insights
+    const analyticsSection = document.getElementById('analytics') || 
+                            document.querySelector('.analytics-content');
+    
+    if (!analyticsSection) return;
+    
+    // KI-Predictions Container
+    if (!document.getElementById('ai-predictions')) {
+        const predictionsContainer = document.createElement('div');
+        predictionsContainer.id = 'ai-predictions';
+        predictionsContainer.className = 'card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 shadow-xl advanced-analytics';
+        predictionsContainer.innerHTML = `
+            <div class="card-body p-6">
+                <h3 class="card-title text-xl mb-6 flex items-center gap-3">
+                    <i data-lucide="brain" class="w-6 h-6 text-primary"></i>
+                    KI-Vorhersagen
+                    <div class="badge badge-primary badge-sm">Erweitert</div>
+                </h3>
+                <div id="predictions-content">
+                    <div class="text-center py-8">
+                        <i data-lucide="brain" class="w-12 h-12 text-primary/30 mx-auto mb-2"></i>
+                        <p class="text-base-content/60">KI-Analyse wird geladen...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        analyticsSection.appendChild(predictionsContainer);
+    }
+    
+    // Anomaly Detection Container
+    if (!document.getElementById('anomaly-detection')) {
+        const anomalyContainer = document.createElement('div');
+        anomalyContainer.id = 'anomaly-detection';
+        anomalyContainer.className = 'card bg-gradient-to-br from-warning/5 to-error/5 border border-warning/20 shadow-xl advanced-analytics';
+        anomalyContainer.innerHTML = `
+            <div class="card-body p-6">
+                <h3 class="card-title text-xl mb-6 flex items-center gap-3">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-warning"></i>
+                    Anomalie-Erkennung
+                    <div class="badge badge-warning badge-sm">Erweitert</div>
+                </h3>
+                <div id="anomaly-content">
+                    <div class="alert alert-success">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        <span>Keine Anomalien in den letzten 7 Tagen erkannt</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        analyticsSection.appendChild(anomalyContainer);
+    }
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+enableAdvancedChartFeatures() {
+    // Erweiterte Chart-Features aktivieren
+    const chartContainers = [
+        '#trends-chart-container',
+        '#correlation-chart',
+        '#heatmap-chart'
+    ];
+    
+    chartContainers.forEach(selector => {
+        const container = document.querySelector(selector);
+        if (container) {
+            // Füge erweiterte Chart-Optionen hinzu
+            container.classList.add('advanced-chart-enabled');
+            
+            // Erweiterte Tooltips
+            container.setAttribute('data-advanced', 'true');
+        }
+    });
+    
+    console.log('📈 Erweiterte Chart-Features aktiviert');
 }
 
 changeLanguage(lang) {

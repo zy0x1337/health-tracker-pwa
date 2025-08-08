@@ -87,22 +87,112 @@ class HealthTracker {
     }
 }
 
-debugInstallState() {
-    console.log('🔍 PWA Install Debug Info:');
-    console.log('- beforeinstallprompt support:', 'onbeforeinstallprompt' in window);
-    console.log('- Service Worker support:', 'serviceWorker' in navigator);
-    console.log('- Standalone mode:', window.matchMedia('(display-mode: standalone)').matches);
-    console.log('- User Agent:', navigator.userAgent);
-    console.log('- Current URL:', window.location.href);
+/** * Navbar-spezifische Funktionen */
+
+// Quick Add Modal anzeigen
+showQuickAddModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
+                Schnell hinzufügen
+            </h3>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('steps').focus();">
+                    <i data-lucide="footprints" class="w-4 h-4"></i>
+                    Schritte
+                </button>
+                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('waterIntake').focus();">
+                    <i data-lucide="droplets" class="w-4 h-4"></i>
+                    Wasser
+                </button>
+                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('weight').focus();">
+                    <i data-lucide="scale" class="w-4 h-4"></i>
+                    Gewicht
+                </button>
+                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('sleepHours').focus();">
+                    <i data-lucide="moon" class="w-4 h-4"></i>
+                    Schlaf
+                </button>
+            </div>
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">
+                    Schließen
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    document.body.appendChild(modal);
     
-    // Prüfe Manifest
-    const manifestLink = document.querySelector('link[rel="manifest"]');
-    console.log('- Manifest Link:', manifestLink ? manifestLink.href : 'NOT FOUND');
+    // Lucide Icons neu initialisieren
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// Connection Status Check
+async checkConnectionStatus() {
+    const statusEl = document.getElementById('connection-status');
+    const indicatorEl = document.getElementById('connection-indicator');
     
-    // Prüfe Install Button Element
-    const installBtn = document.getElementById('install-btn');
-    console.log('- Install Button Element:', installBtn ? 'Found' : 'NOT FOUND');
-    console.log('- Install Button Hidden:', installBtn?.classList.contains('hidden'));
+    if (!statusEl) return;
+    
+    // Visual Feedback
+    statusEl.classList.add('loading');
+    
+    try {
+        // Teste Verbindung mit API
+        const response = await fetch('/api/health', { 
+            method: 'GET',
+            timeout: 5000 
+        });
+        
+        const isOnline = response.ok;
+        this.isOnline = isOnline;
+        
+        // Update UI
+        if (isOnline) {
+            statusEl.className = 'badge badge-success gap-2 cursor-pointer hover:badge-success/80 transition-colors duration-200 text-xs font-medium';
+            statusEl.innerHTML = '<i data-lucide="wifi" class="w-3 h-3"></i><span class="hidden sm:inline">Online</span>';
+            indicatorEl.className = 'indicator-item indicator-top indicator-end badge badge-success badge-xs animate-pulse';
+            this.showToast('🌐 Verbindung aktiv', 'success', 2000);
+        } else {
+            throw new Error('Offline');
+        }
+        
+    } catch (error) {
+        this.isOnline = false;
+        statusEl.className = 'badge badge-warning gap-2 cursor-pointer hover:badge-warning/80 transition-colors duration-200 text-xs font-medium';
+        statusEl.innerHTML = '<i data-lucide="wifi-off" class="w-3 h-3"></i><span class="hidden sm:inline">Offline</span>';
+        indicatorEl.className = 'indicator-item indicator-top indicator-end badge badge-warning badge-xs animate-pulse';
+        this.showToast('📵 Offline-Modus', 'warning', 2000);
+    } finally {
+        statusEl.classList.remove('loading');
+        
+        // Icons aktualisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+// Navigation aktiven Zustand aktualisieren
+updateActiveNavigation(activeSection) {
+    // Entferne aktive Klassen
+    document.querySelectorAll('[data-nav]').forEach(nav => {
+        nav.classList.remove('btn-primary', 'text-primary-content');
+        nav.classList.add('btn-ghost');
+    });
+    
+    // Setze aktive Klasse
+    const activeNav = document.querySelector(`[data-nav="${activeSection}"]`);
+    if (activeNav) {
+        activeNav.classList.remove('btn-ghost');
+        activeNav.classList.add('btn-primary', 'text-primary-content');
+    }
 }
     
     /**
@@ -8393,6 +8483,63 @@ function showInstallPrompt() {
             lucide.createIcons();
         }
     }
+
+    // Auto-Initialisierung des Install Hints
+function initializeInstallHint() {
+    // Warte bis DOM vollständig geladen ist
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(addInstallHintToNav, 1000);
+        });
+    } else {
+        setTimeout(addInstallHintToNav, 1000);
+    }
+
+    // Auch nach beforeinstallprompt Event
+    window.addEventListener('beforeinstallprompt', () => {
+        setTimeout(addInstallHintToNav, 500);
+    });
+}
+
+// CSS Animation Styles dynamisch hinzufügen
+function addInstallHintStyles() {
+    if (!document.getElementById('install-hint-styles')) {
+        const style = document.createElement('style');
+        style.id = 'install-hint-styles';
+        style.textContent = `
+            #nav-install-hint {
+                animation: subtle-pulse 3s ease-in-out infinite;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            @keyframes subtle-pulse {
+                0%, 100% { 
+                    opacity: 1; 
+                    transform: scale(1);
+                }
+                50% { 
+                    opacity: 0.8; 
+                    transform: scale(1.02);
+                }
+            }
+            
+            #nav-install-hint:hover {
+                animation: none;
+            }
+            
+            @media (max-width: 640px) {
+                #nav-install-hint {
+                    padding: 0.25rem 0.75rem;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Initialisierung starten
+initializeInstallHint();
+addInstallHintStyles();
 }
 
 // === PWA INSTALL VERBESSERUNGEN ===
@@ -8424,16 +8571,131 @@ window.addEventListener('beforeinstallprompt', (e) => {
     addInstallHintToNav();
 });
 
-// Install Hint zur Navigation hinzufügen
+// Enhanced Install Hint für Navigation mit verbesserter Darstellung
 function addInstallHintToNav() {
-    const nav = document.querySelector('.navbar') || document.querySelector('nav');
-    if (nav && !document.getElementById('nav-install-hint')) {
-        const installHint = document.createElement('div');
-        installHint.id = 'nav-install-hint';
-        installHint.className = 'badge badge-primary badge-sm cursor-pointer animate-pulse';
-        installHint.innerHTML = '📱 Installieren';
-        installHint.onclick = showInstallPrompt;
-        nav.appendChild(installHint);
+    const navbar = document.querySelector('.navbar');
+    const navbarEnd = document.querySelector('.navbar-end');
+    
+    if (!navbar || document.getElementById('nav-install-hint')) {
+        return; // Bereits vorhanden oder keine Navbar
+    }
+
+    // Prüfe ob bereits installiert
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isInstalled = navigator.standalone || isStandalone;
+    
+    if (isInstalled) {
+        console.log('📱 App bereits installiert - Install Hint wird nicht angezeigt');
+        return;
+    }
+
+    // Erstelle Install Hint mit verbessertem Design
+    const installHint = document.createElement('div');
+    installHint.id = 'nav-install-hint';
+    installHint.className = 'flex items-center gap-2 px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-full border border-primary/30 transition-all duration-300 cursor-pointer group';
+    
+    installHint.innerHTML = `
+        <div class="flex items-center gap-2 text-primary">
+            <svg class="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            </svg>
+            <span class="text-sm font-medium hidden sm:inline">App installieren</span>
+            <span class="text-sm font-medium sm:hidden">Install</span>
+        </div>
+    `;
+
+    // Tooltip für bessere UX
+    installHint.setAttribute('title', 'Health Tracker Pro als App installieren');
+    
+    // Click Handler mit Feedback
+    installHint.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Visual Feedback
+        installHint.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            installHint.style.transform = 'scale(1)';
+        }, 150);
+        
+        showInstallPrompt();
+    });
+
+    // Hover Effekte
+    installHint.addEventListener('mouseenter', () => {
+        installHint.style.transform = 'translateY(-1px)';
+        installHint.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+    });
+
+    installHint.addEventListener('mouseleave', () => {
+        installHint.style.transform = 'translateY(0)';
+        installHint.style.boxShadow = 'none';
+    });
+
+    // Positionierung in der Navbar
+    if (navbarEnd) {
+        // Füge vor dem Theme-Toggle ein
+        const themeToggle = navbarEnd.querySelector('#theme-toggle') || navbarEnd.querySelector('[data-theme-toggle]');
+        if (themeToggle) {
+            navbarEnd.insertBefore(installHint, themeToggle);
+        } else {
+            navbarEnd.appendChild(installHint);
+        }
+    } else {
+        // Fallback: Direkt zur Navbar hinzufügen
+        navbar.appendChild(installHint);
+    }
+
+    console.log('📱 Enhanced Install Hint zur Navigation hinzugefügt');
+
+    // Auto-hide nach 10 Sekunden wenn nicht verwendet
+    setTimeout(() => {
+        if (installHint && !installHint.dataset.clicked) {
+            installHint.style.opacity = '0.7';
+            installHint.style.transform = 'scale(0.9)';
+        }
+    }, 10000);
+
+    // Entfernen nach App-Installation
+    window.addEventListener('appinstalled', () => {
+        installHint?.remove();
+    });
+}
+
+// Erweiterte Install Prompt Funktion
+function showInstallPrompt() {
+    const installHint = document.getElementById('nav-install-hint');
+    if (installHint) {
+        installHint.dataset.clicked = 'true';
+    }
+
+    if (deferredPrompt) {
+        console.log('✅ Zeige nativen Install Prompt');
+        
+        // Visual Feedback
+        if (installHint) {
+            installHint.style.display = 'none';
+        }
+        
+        deferredPrompt.prompt();
+        
+        deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('👤 Install Choice:', choiceResult.outcome);
+            
+            if (choiceResult.outcome === 'accepted') {
+                showToast('✅ App wird installiert...', 'success');
+            } else {
+                // Hint wieder anzeigen falls abgelehnt
+                if (installHint) {
+                    installHint.style.display = 'flex';
+                }
+                showToast('ℹ️ Installation abgebrochen', 'info');
+            }
+            
+            deferredPrompt = null;
+        });
+    } else {
+        console.log('⚠️ Kein deferredPrompt - zeige manuelle Anweisungen');
+        showManualInstallInstructions();
     }
 }
 

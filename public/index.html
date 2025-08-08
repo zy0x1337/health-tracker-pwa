@@ -781,162 +781,262 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
     color: oklch(100% 0 0);
     box-shadow: 0 0 10px currentColor;
 }
+
+/* Navbar Enhancement Styles */
+
+/* Smooth navbar animations */
+.navbar {
+    backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced dropdown animations */
+.dropdown-content {
+    animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Navbar scroll behavior */
+.navbar.scrolled {
+    background-color: rgba(255, 255, 255, 0.98);
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Active navigation indicators */
+.btn[data-nav].active {
+    background: linear-gradient(135deg, var(--p) 0%, var(--s) 100%);
+    color: var(--pc);
+    box-shadow: 0 4px 12px rgba(var(--p), 0.3);
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Mobile menu improvements */
+@media (max-width: 1024px) {
+    .dropdown-content {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
     </style>
 </head>
 
 <body class="min-h-screen bg-base-100">
     <!-- Enhanced Navigation mit vollständiger daisyUI Optimierung -->
-<div class="navbar bg-base-100 shadow-lg border-b border-base-300/50 sticky top-0 z-50 backdrop-blur-sm">
+<nav class="navbar bg-base-100/95 backdrop-blur-sm shadow-lg sticky top-0 z-40 border-b border-base-300/20">
     <!-- Navbar Start - Logo & Mobile Menu -->
     <div class="navbar-start">
-        <!-- Mobile Dropdown Menu -->
+        <!-- Mobile Dropdown Menu - Optimiert -->
         <div class="dropdown lg:hidden">
-            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm hover:bg-primary/10 transition-colors duration-200" aria-label="Menü öffnen">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </div>
-            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-64 p-2 shadow-2xl border border-base-300/50">
-                <li class="menu-title">
-                    <span class="text-base-content/70">Navigation</span>
+            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100/95 backdrop-blur-md rounded-box z-[100] mt-3 w-72 p-3 shadow-2xl border border-base-300/30 animate-in fade-in slide-in-from-top-2 duration-200">
+                <li class="menu-title mb-2">
+                    <span class="text-base-content/70 font-semibold">Navigation</span>
                 </li>
                 <li>
-                    <a href="#dashboard" class="gap-3 py-3">
-                        <i data-lucide="home" class="w-4 h-4 text-primary"></i>
-                        <span>Dashboard</span>
-                        <div class="badge badge-primary badge-xs"></div>
+                    <a href="#dashboard" class="gap-3 py-3 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 group">
+                        <i data-lucide="home" class="w-4 h-4 text-primary group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Dashboard</span>
+                        <div class="badge badge-primary badge-xs ml-auto"></div>
                     </a>
                 </li>
                 <li>
-                    <a href="#progress-hub" class="gap-3 py-3">
-                        <i data-lucide="target" class="w-4 h-4 text-success"></i>
-                        <span>Fortschritt</span>
+                    <a href="#progress-hub" class="gap-3 py-3 rounded-lg hover:bg-success/10 hover:text-success transition-all duration-200 group">
+                        <i data-lucide="target" class="w-4 h-4 text-success group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Fortschritt</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#analytics" class="gap-3 py-3">
-                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-info"></i>
-                        <span>Analytics</span>
+                    <a href="#analytics" class="gap-3 py-3 rounded-lg hover:bg-info/10 hover:text-info transition-all duration-200 group">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-info group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Analytics</span>
                     </a>
                 </li>
-                <div class="divider my-2"></div>
-                <li>
-                    <a href="#health-form" class="gap-3 py-3 text-primary font-medium">
-                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <div class="divider my-3 opacity-50"></div>
+                <li class="mb-2">
+                    <a href="#health-form" class="gap-3 py-3 rounded-lg bg-primary/5 hover:bg-primary/15 text-primary font-semibold transition-all duration-200 group border border-primary/20">
+                        <i data-lucide="plus-circle" class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300"></i>
                         <span>Daten eingeben</span>
-                        <div class="badge badge-primary badge-outline badge-xs">Neu</div>
+                        <div class="badge badge-primary badge-outline badge-xs ml-auto animate-pulse">Neu</div>
                     </a>
+                </li>
+                <li>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-warning/10 hover:text-warning transition-all duration-200 group" onclick="healthTracker?.showSettings?.()">
+                        <i data-lucide="settings" class="w-4 h-4 text-warning group-hover:rotate-90 transition-transform duration-500"></i>
+                        <span class="font-medium">Einstellungen</span>
+                    </button>
                 </li>
             </ul>
         </div>
         
-        <!-- Logo/Brand -->
-        <a class="btn btn-ghost text-xl font-bold normal-case gap-2">
+        <!-- Logo/Brand - Optimiert -->
+        <a href="#dashboard" class="btn btn-ghost text-xl font-bold normal-case gap-2 hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10 transition-all duration-300 group">
             <div class="avatar placeholder">
-                <div class="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-lg w-8 h-8">
-                    <i data-lucide="activity" class="w-4 h-4"></i>
+                <div class="bg-gradient-to-br from-primary via-primary to-secondary text-primary-content rounded-lg w-8 h-8 group-hover:scale-105 transition-transform duration-200 shadow-md">
+                    <i data-lucide="activity" class="w-4 h-4 group-hover:animate-pulse"></i>
                 </div>
             </div>
-            <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent hidden sm:inline">
+            <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent hidden sm:inline group-hover:from-primary/80 group-hover:to-secondary/80 transition-all duration-200">
                 Health Tracker Pro
             </span>
-            <span class="text-primary sm:hidden">HTP</span>
+            <span class="text-primary sm:hidden font-extrabold">HTP</span>
         </a>
     </div>
     
-    <!-- Navbar Center - Desktop Navigation -->
+    <!-- Navbar Center - Desktop Navigation - Optimiert -->
     <div class="navbar-center hidden lg:flex">
-        <ul class="menu menu-horizontal gap-1">
+        <ul class="menu menu-horizontal gap-2 bg-base-200/30 rounded-full px-2 py-1">
             <li>
-                <a href="#dashboard" class="btn btn-ghost btn-sm gap-2 hover:btn-primary hover:text-primary-content transition-all duration-200">
-                    <i data-lucide="home" class="w-4 h-4"></i>
-                    <span>Dashboard</span>
-                    <div class="badge badge-primary badge-xs opacity-75"></div>
+                <a href="#dashboard" class="btn btn-ghost btn-sm gap-2 rounded-full hover:bg-primary hover:text-primary-content hover:shadow-lg hover:scale-105 transition-all duration-200 group" data-nav="dashboard">
+                    <i data-lucide="home" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-medium">Dashboard</span>
+                    <div class="badge badge-primary badge-xs opacity-75 group-hover:opacity-100"></div>
                 </a>
             </li>
             <li>
-                <a href="#progress-hub" class="btn btn-ghost btn-sm gap-2 hover:btn-success hover:text-success-content transition-all duration-200">
-                    <i data-lucide="target" class="w-4 h-4"></i>
-                    <span>Fortschritt</span>
+                <a href="#progress-hub" class="btn btn-ghost btn-sm gap-2 rounded-full hover:bg-success hover:text-success-content hover:shadow-lg hover:scale-105 transition-all duration-200 group" data-nav="progress">
+                    <i data-lucide="target" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-medium">Fortschritt</span>
                 </a>
             </li>
             <li>
-                <a href="#analytics" class="btn btn-ghost btn-sm gap-2 hover:btn-info hover:text-info-content transition-all duration-200">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    <span>Analytics</span>
+                <a href="#analytics" class="btn btn-ghost btn-sm gap-2 rounded-full hover:bg-info hover:text-info-content hover:shadow-lg hover:scale-105 transition-all duration-200 group" data-nav="analytics">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-medium">Analytics</span>
                 </a>
             </li>
         </ul>
     </div>
     
-    <!-- Navbar End - Actions & Status -->
-    <div class="navbar-end gap-1">
-        <!-- Connection Status Badge -->
-        <div class="indicator">
-            <span class="indicator-item indicator-top indicator-end badge badge-success badge-xs animate-pulse"></span>
-            <div class="badge badge-success gap-2 hidden sm:flex cursor-pointer tooltip tooltip-bottom" data-tip="Verbindungsstatus" id="connection-status">
-                <span class="text-xs font-medium">Online</span>
-            </div>
-        </div>
+    <!-- Navbar End - Actions & Status - Optimiert -->
+    <div class="navbar-end gap-2">
+        <!-- Install Hint wird hier automatisch eingefügt durch pwa.js -->
         
-        <!-- Goals Button with Indicator -->
-        <div class="indicator">
-            <span class="indicator-item indicator-top indicator-end badge badge-secondary badge-xs">!</span>
-            <button class="btn btn-ghost btn-sm gap-2 hover:btn-secondary hover:text-secondary-content transition-all duration-200 tooltip tooltip-bottom" 
-                    data-tip="Ziele verwalten"
-                    onclick="document.getElementById('goals-modal').showModal()">
-                <i data-lucide="target" class="w-4 h-4"></i>
-                <span class="hidden xl:inline">Ziele</span>
+        <!-- Connection Status Badge - Verbessert -->
+        <div class="indicator tooltip tooltip-bottom" data-tip="Verbindungsstatus prüfen">
+            <span class="indicator-item indicator-top indicator-end badge badge-success badge-xs animate-pulse" id="connection-indicator"></span>
+            <button class="badge badge-success gap-2 cursor-pointer hover:badge-success/80 transition-colors duration-200 text-xs font-medium" 
+                    id="connection-status"
+                    onclick="healthTracker?.checkConnectionStatus?.()">
+                <i data-lucide="wifi" class="w-3 h-3"></i>
+                <span class="hidden sm:inline">Online</span>
             </button>
         </div>
         
-        <!-- Action Menu Dropdown -->
+        <!-- Quick Add Button - Neu -->
+        <div class="tooltip tooltip-bottom" data-tip="Schnell Daten hinzufügen">
+            <button class="btn btn-primary btn-sm btn-circle hover:btn-primary/80 hover:scale-110 transition-all duration-200 shadow-md" 
+                    onclick="healthTracker?.showQuickAddModal?.()">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+            </button>
+        </div>
+        
+        <!-- Goals Button - Optimiert -->
+        <div class="indicator tooltip tooltip-bottom" data-tip="Ziele verwalten">
+            <span class="indicator-item indicator-top indicator-end badge badge-secondary badge-xs animate-bounce" id="goals-indicator"></span>
+            <button class="btn btn-ghost btn-sm gap-2 hover:bg-secondary/10 hover:text-secondary hover:scale-105 transition-all duration-200 group" 
+                    onclick="healthTracker?.showGoalsModal?.()">
+                <i data-lucide="target" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                <span class="hidden xl:inline font-medium">Ziele</span>
+            </button>
+        </div>
+        
+        <!-- Action Menu Dropdown - Erweitert -->
         <div class="dropdown dropdown-end">
-            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm hover:btn-accent transition-all duration-200">
-                <i data-lucide="more-vertical" class="w-4 h-4"></i>
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm hover:bg-accent/10 hover:text-accent hover:scale-105 transition-all duration-200 group" aria-label="Mehr Optionen">
+                <i data-lucide="more-vertical" class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300"></i>
             </div>
-            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-56 p-2 shadow-2xl border border-base-300/50">
-                <li class="menu-title">
-                    <span class="text-base-content/70">Aktionen</span>
+            <ul tabindex="0" class="dropdown-content menu bg-base-100/95 backdrop-blur-md rounded-box z-[100] w-64 p-3 shadow-2xl border border-base-300/30 animate-in fade-in slide-in-from-top-2 duration-200">
+                <li class="menu-title mb-2">
+                    <span class="text-base-content/70 font-semibold flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        Schnellaktionen
+                    </span>
                 </li>
                 
-                <!-- Theme Toggle -->
+                <!-- Theme Toggle - Verbessert -->
                 <li>
-                    <button class="gap-3 py-3" onclick="healthTracker.showThemeSelector()">
-                        <i data-lucide="palette" class="w-5 h-5 text-info"></i>
-                        <span>Design ändern</span>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-info/10 hover:text-info transition-all duration-200 group" 
+                            onclick="healthTracker?.showThemeSelector?.()">
+                        <i data-lucide="palette" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Design ändern</span>
+                        <div class="badge badge-info badge-outline badge-xs ml-auto">Themes</div>
                     </button>
                 </li>
                 
-                <!-- Install PWA -->
+                <!-- Export/Import -->
                 <li>
-                    <button id="install-btn" class="btn btn-primary btn-sm fixed top-20 right-4 z-50">
-    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m-7-7l7-7 7 7"></path>
-    </svg>
-    App installieren
-</button>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-warning/10 hover:text-warning transition-all duration-200 group" 
+                            onclick="healthTracker?.showImportExport?.()">
+                        <i data-lucide="download" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Export/Import</span>
+                    </button>
                 </li>
                 
-                <div class="divider my-2"></div>
+                <div class="divider my-2 opacity-50"></div>
                 
                 <!-- Settings -->
                 <li>
-                    <button class="gap-3 py-3">
-                        <i data-lucide="settings" class="w-4 h-4 text-base-content/70"></i>
-                        <span>Einstellungen</span>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-base-200 transition-all duration-200 group" 
+                            onclick="healthTracker?.showSettings?.()">
+                        <i data-lucide="settings" class="w-4 h-4 text-base-content/70 group-hover:rotate-90 group-hover:text-base-content transition-all duration-300"></i>
+                        <span class="font-medium">Einstellungen</span>
                     </button>
                 </li>
                 
                 <!-- Help -->
                 <li>
-                    <button class="gap-3 py-3">
-                        <i data-lucide="help-circle" class="w-4 h-4 text-base-content/70"></i>
-                        <span>Hilfe & Support</span>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-base-200 transition-all duration-200 group" 
+                            onclick="healthTracker?.showHelp?.()">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-base-content/70 group-hover:scale-110 group-hover:text-base-content transition-all duration-200"></i>
+                        <span class="font-medium">Hilfe & Support</span>
+                    </button>
+                </li>
+                
+                <!-- About -->
+                <li>
+                    <button class="gap-3 py-3 rounded-lg hover:bg-base-200 transition-all duration-200 group" 
+                            onclick="healthTracker?.showAbout?.()">
+                        <i data-lucide="info" class="w-4 h-4 text-base-content/70 group-hover:scale-110 group-hover:text-base-content transition-all duration-200"></i>
+                        <span class="font-medium">Über die App</span>
                     </button>
                 </li>
             </ul>
         </div>
     </div>
-</div>
+</nav>
 
 <!-- Enhanced Mobile Quick Actions Fab (Optional) -->
 <div class="btm-nav lg:hidden z-40 border-t border-base-300/50 bg-base-100/80 backdrop-blur-sm">
@@ -2077,50 +2177,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
      data-permissions-checked="false">
 </div>
 
-<!-- Install Button Debugging -->
-<div id="install-debug-panel" class="fixed bottom-4 right-4 bg-red-100 p-3 rounded-lg text-xs max-w-xs">
-  <div class="font-bold mb-1">🔧 Install Debug</div>
-  <div id="debug-manifest">Manifest: <span class="loading"></span></div>
-  <div id="debug-sw">SW: <span class="loading"></span></div>  
-  <div id="debug-https">HTTPS: <span class="loading"></span></div>
-  <div id="debug-icons">Icons: <span class="loading"></span></div>
-  <div id="debug-prompt">Prompt: <span class="loading"></span></div>
-  <button onclick="this.parentElement.remove()" class="btn btn-xs mt-1">❌</button>
-</div>
-
-<script>
-// Sofortige Install-Diagnose mit Live-Updates
-function updateDebugInfo() {
-  const debug = {
-    manifest: !!document.querySelector('link[rel="manifest"]'),
-    sw: 'serviceWorker' in navigator,
-    https: location.protocol === 'https:' || location.hostname === 'localhost',
-    icons: true, // Mit SVG-Icons immer verfügbar
-    prompt: typeof deferredPrompt !== 'undefined' && !!deferredPrompt
-  };
-  
-  document.getElementById('debug-manifest').innerHTML = `Manifest: ${debug.manifest ? '✅' : '❌'}`;
-  document.getElementById('debug-sw').innerHTML = `SW: ${debug.sw ? '✅' : '❌'}`;
-  document.getElementById('debug-https').innerHTML = `HTTPS: ${debug.https ? '✅' : '❌'}`;
-  document.getElementById('debug-icons').innerHTML = `Icons: ✅ (SVG)`;
-  document.getElementById('debug-prompt').innerHTML = `Prompt: ${debug.prompt ? '✅' : '⏳ Warten...'}`;
-  
-  // Console Output für Debugging
-  console.log('🔧 PWA Install Status:', debug);
-}
-
-// Sofort ausführen
-updateDebugInfo();
-
-// Alle 2 Sekunden aktualisieren
-setInterval(updateDebugInfo, 2000);
-
-// Event Listeners für Prompt-Updates
-window.addEventListener('beforeinstallprompt', () => {
-  setTimeout(updateDebugInfo, 100);
-});
-</script>
-
     <!-- JavaScript -->
     <script src="/js/app.js"></script>
     <script>
@@ -2233,5 +2289,44 @@ window.addEventListener('error', function(e) {
             }
         });
     </script>
+    <!-- Navbar Scroll Behavior Script -->
+<script>
+// Navbar scroll behavior
+let lastScrollY = 0;
+const navbar = document.querySelector('.navbar');
+
+window.addEventListener('scroll', () => {
+    const currentScrollY = window.scrollY;
+    
+    if (navbar) {
+        if (currentScrollY > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+        
+        // Auto-hide navbar on scroll down (mobile)
+        if (window.innerWidth <= 768) {
+            if (currentScrollY > lastScrollY && currentScrollY > 200) {
+                navbar.style.transform = 'translateY(-100%)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+            }
+        }
+    }
+    
+    lastScrollY = currentScrollY;
+}, { passive: true });
+
+// Enhanced click handlers with haptic feedback
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.btn')) {
+        // Haptic feedback für unterstützte Geräte
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            navigator.vibrate(10);
+        }
+    }
+});
+</script>
 </body>
 </html>

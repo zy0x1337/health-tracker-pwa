@@ -2880,224 +2880,224 @@ showAbout() {
                 <a class="tab" data-about-tab="stats">📈 Statistiken</a>
                 <a class="tab" data-about-tab="tech">⚡ Technologie</a>
             </div>
-            
-            <!-- Tab Content -->
-            <div class="tab-content">
-                <!-- Overview Tab -->
-                <div id="about-overview" class="tab-panel active">
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title text-lg flex items-center gap-2">
-                                    <i data-lucide="info" class="w-5 h-5"></i>
-                                    App-Informationen
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Version:</span>
-                                        <span class="font-semibold">${buildInfo.version}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Build:</span>
-                                        <span class="font-mono text-xs">${buildInfo.buildDate}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Typ:</span>
-                                        <div class="badge badge-primary badge-sm">PWA</div>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Status:</span>
-                                        <div class="badge badge-success badge-sm">
-                                            ${this.isOnline ? '🌐 Online' : '📵 Offline'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
+                <!-- Tab Content -->
+<div class="tab-content">
+    <!-- Overview Tab -->
+    <div id="about-overview" class="tab-panel block">
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title text-lg flex items-center gap-2">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                        App-Informationen
+                    </h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Version:</span>
+                            <span class="font-semibold">${buildInfo.version}</span>
                         </div>
-                        
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title text-lg flex items-center gap-2">
-                                    <i data-lucide="users" class="w-5 h-5"></i>
-                                    Nutzung
-                                </h4>
-                                <div class="space-y-3">
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Tage mit Daten</div>
-                                        <div class="stat-value text-2xl">${appStats.totalDays}</div>
-                                    </div>
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Einträge gesamt</div>
-                                        <div class="stat-value text-2xl">${appStats.totalEntries}</div>
-                                    </div>
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Aktuelle Serie</div>
-                                        <div class="stat-value text-2xl">${appStats.currentStreak}</div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Build:</span>
+                            <span class="font-mono text-xs">${buildInfo.buildDate}</span>
                         </div>
-                    </div>
-                    
-                    <div class="mt-6 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20">
-                        <p class="text-center text-base-content/80">
-                            <i data-lucide="heart" class="w-4 h-4 inline mr-1 text-red-500"></i>
-                            Eine moderne, sichere und benutzerfreundliche Lösung für dein Gesundheitsmanagement.
-                        </p>
-                    </div>
-                </div>
-                
-                <!-- Features Tab -->
-                <div id="about-features" class="tab-panel hidden">
-                    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${this.generateFeatureCards()}
-                    </div>
-                </div>
-                
-                <!-- Stats Tab -->
-                <div id="about-stats" class="tab-panel hidden">
-                    <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
-                        <div class="stat">
-                            <div class="stat-figure text-primary">
-                                <i data-lucide="calendar-days" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Installiert seit</div>
-                            <div class="stat-value text-lg">${appStats.installDuration}</div>
-                            <div class="stat-desc">${appStats.installDate}</div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Typ:</span>
+                            <div class="badge badge-primary badge-sm">PWA</div>
                         </div>
-                        
-                        <div class="stat">
-                            <div class="stat-figure text-secondary">
-                                <i data-lucide="target" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Ziele erreicht</div>
-                            <div class="stat-value text-lg">${appStats.goalsAchieved}</div>
-                            <div class="stat-desc">von ${appStats.totalGoals} gesetzt</div>
-                        </div>
-                        
-                        <div class="stat">
-                            <div class="stat-figure text-accent">
-                                <i data-lucide="database" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Datenspeicher</div>
-                            <div class="stat-value text-lg">${appStats.storageSize}</div>
-                            <div class="stat-desc">lokal gespeichert</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Speicher-Details -->
-                    <div class="mt-6 card bg-base-200">
-                        <div class="card-body">
-                            <h4 class="card-title flex items-center gap-2">
-                                <i data-lucide="hard-drive" class="w-5 h-5"></i>
-                                Speicher-Details
-                            </h4>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-primary">${appStats.healthDataSize}</div>
-                                    <div class="text-xs text-base-content/70">Gesundheitsdaten</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-secondary">${appStats.goalsSize}</div>
-                                    <div class="text-xs text-base-content/70">Ziele</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-accent">${appStats.settingsSize}</div>
-                                    <div class="text-xs text-base-content/70">Einstellungen</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-info">${appStats.cacheSize}</div>
-                                    <div class="text-xs text-base-content/70">Cache</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Tech Tab -->
-                <div id="about-tech" class="tab-panel hidden">
-                    <div class="space-y-6">
-                        <!-- Technologie Stack -->
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title flex items-center gap-2">
-                                    <i data-lucide="code" class="w-5 h-5"></i>
-                                    Technologie-Stack
-                                </h4>
-                                <div class="grid sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Frontend</h5>
-                                        <div class="space-y-1">
-                                            <div class="badge badge-outline">Vanilla JavaScript ES6+</div>
-                                            <div class="badge badge-outline">HTML5 & CSS3</div>
-                                            <div class="badge badge-outline">DaisyUI + Tailwind CSS</div>
-                                            <div class="badge badge-outline">Lucide Icons</div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Backend & Infrastruktur</h5>
-                                        <div class="space-y-1">
-                                            <div class="badge badge-outline">Netlify Functions</div>
-                                            <div class="badge badge-outline">MongoDB Atlas</div>
-                                            <div class="badge badge-outline">Service Worker</div>
-                                            <div class="badge badge-outline">PWA Manifest</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- PWA Features -->
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title flex items-center gap-2">
-                                    <i data-lucide="smartphone" class="w-5 h-5"></i>
-                                    PWA-Features
-                                </h4>
-                                <div class="grid sm:grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="wifi-off" class="w-4 h-4 text-success"></i>
-                                            <span>Offline-First Architecture</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="download" class="w-4 h-4 text-success"></i>
-                                            <span>App-Installation möglich</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="sync" class="w-4 h-4 text-success"></i>
-                                            <span>Automatische Synchronisation</span>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="bell" class="w-4 h-4 text-success"></i>
-                                            <span>Push-Benachrichtigungen</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="shield" class="w-4 h-4 text-success"></i>
-                                            <span>Sichere Datenhaltung</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="smartphone" class="w-4 h-4 text-success"></i>
-                                            <span>Responsive Design</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Browser Support -->
-                        <div class="alert alert-info">
-                            <i data-lucide="info" class="w-5 h-5"></i>
-                            <div>
-                                <h4 class="font-semibold">Browser-Kompatibilität</h4>
-                                <p class="text-sm">Optimiert für Chrome, Firefox, Safari und Edge. PWA-Installation in modernen Browsern verfügbar.</p>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Status:</span>
+                            <div class="badge badge-success badge-sm">
+                                ${this.isOnline ? '🌐 Online' : '📵 Offline'}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title text-lg flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        Nutzung
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="stat">
+                            <div class="stat-title text-xs">Tage mit Daten</div>
+                            <div class="stat-value text-2xl">${appStats.totalDays}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title text-xs">Einträge gesamt</div>
+                            <div class="stat-value text-2xl">${appStats.totalEntries}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title text-xs">Aktuelle Serie</div>
+                            <div class="stat-value text-2xl">${appStats.currentStreak}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20">
+            <p class="text-center text-base-content/80">
+                <i data-lucide="heart" class="w-4 h-4 inline mr-1 text-red-500"></i>
+                Eine moderne, sichere und benutzerfreundliche Lösung für dein Gesundheitsmanagement.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Features Tab -->
+    <div id="about-features" class="tab-panel hidden">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${this.generateFeatureCards()}
+        </div>
+    </div>
+    
+    <!-- Stats Tab -->
+    <div id="about-stats" class="tab-panel hidden">
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i data-lucide="calendar-days" class="w-8 h-8"></i>
+                </div>
+                <div class="stat-title">Installiert seit</div>
+                <div class="stat-value text-lg">${appStats.installDuration}</div>
+                <div class="stat-desc">${appStats.installDate}</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <i data-lucide="target" class="w-8 h-8"></i>
+                </div>
+                <div class="stat-title">Ziele erreicht</div>
+                <div class="stat-value text-lg">${appStats.goalsAchieved}</div>
+                <div class="stat-desc">von ${appStats.totalGoals} gesetzt</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-accent">
+                    <i data-lucide="database" class="w-8 h-8"></i>
+                </div>
+                <div class="stat-title">Datenspeicher</div>
+                <div class="stat-value text-lg">${appStats.storageSize}</div>
+                <div class="stat-desc">lokal gespeichert</div>
+            </div>
+        </div>
+        
+        <!-- Speicher-Details -->
+        <div class="mt-6 card bg-base-200">
+            <div class="card-body">
+                <h4 class="card-title flex items-center gap-2">
+                    <i data-lucide="hard-drive" class="w-5 h-5"></i>
+                    Speicher-Details
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-base-100 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-primary">${appStats.healthDataSize}</div>
+                        <div class="text-xs text-base-content/70">Gesundheitsdaten</div>
+                    </div>
+                    <div class="bg-base-100 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-secondary">${appStats.goalsSize}</div>
+                        <div class="text-xs text-base-content/70">Ziele</div>
+                    </div>
+                    <div class="bg-base-100 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-accent">${appStats.settingsSize}</div>
+                        <div class="text-xs text-base-content/70">Einstellungen</div>
+                    </div>
+                    <div class="bg-base-100 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-info">${appStats.cacheSize}</div>
+                        <div class="text-xs text-base-content/70">Cache</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tech Tab -->
+    <div id="about-tech" class="tab-panel hidden">
+        <div class="space-y-6">
+            <!-- Technologie Stack -->
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title flex items-center gap-2">
+                        <i data-lucide="code" class="w-5 h-5"></i>
+                        Technologie-Stack
+                    </h4>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-semibold mb-2">Frontend</h5>
+                            <div class="space-y-1">
+                                <div class="badge badge-outline">Vanilla JavaScript ES6+</div>
+                                <div class="badge badge-outline">HTML5 & CSS3</div>
+                                <div class="badge badge-outline">DaisyUI + Tailwind CSS</div>
+                                <div class="badge badge-outline">Lucide Icons</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold mb-2">Backend & Infrastruktur</h5>
+                            <div class="space-y-1">
+                                <div class="badge badge-outline">Netlify Functions</div>
+                                <div class="badge badge-outline">MongoDB Atlas</div>
+                                <div class="badge badge-outline">Service Worker</div>
+                                <div class="badge badge-outline">PWA Manifest</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PWA Features -->
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title flex items-center gap-2">
+                        <i data-lucide="smartphone" class="w-5 h-5"></i>
+                        PWA-Features
+                    </h4>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="wifi-off" class="w-4 h-4 text-success"></i>
+                                <span>Offline-First Architecture</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4 text-success"></i>
+                                <span>App-Installation möglich</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="sync" class="w-4 h-4 text-success"></i>
+                                <span>Automatische Synchronisation</span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="bell" class="w-4 h-4 text-success"></i>
+                                <span>Push-Benachrichtigungen</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="shield" class="w-4 h-4 text-success"></i>
+                                <span>Sichere Datenhaltung</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-success"></i>
+                                <span>Responsive Design</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Browser Support -->
+            <div class="alert alert-info">
+                <i data-lucide="info" class="w-5 h-5"></i>
+                <div>
+                    <h4 class="font-semibold">Browser-Kompatibilität</h4>
+                    <p class="text-sm">Optimiert für Chrome, Firefox, Safari und Edge. PWA-Installation in modernen Browsern verfügbar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
             
             <!-- Action Buttons -->
             <div class="modal-action mt-6">
@@ -3278,19 +3278,32 @@ initializeAboutTabs(modal) {
     const tabs = modal.querySelectorAll('[data-about-tab]');
     const panels = modal.querySelectorAll('.tab-panel');
     
+    console.log('🔧 About Tabs initialisiert:', tabs.length, 'Tabs,', panels.length, 'Panels');
+    
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
+            
+            const targetTab = tab.dataset.aboutTab;
+            console.log('🔄 Tab-Wechsel zu:', targetTab);
             
             // Update tab states
             tabs.forEach(t => t.classList.remove('tab-active'));
             tab.classList.add('tab-active');
             
             // Update panel visibility
-            panels.forEach(panel => panel.classList.add('hidden'));
-            const targetPanel = modal.querySelector(`#about-${tab.dataset.aboutTab}`);
+            panels.forEach(panel => {
+                panel.classList.add('hidden');
+                panel.classList.remove('block');
+            });
+            
+            const targetPanel = modal.querySelector(`#about-${targetTab}`);
             if (targetPanel) {
                 targetPanel.classList.remove('hidden');
+                targetPanel.classList.add('block');
+                console.log('✅ Panel sichtbar:', targetPanel.id);
+            } else {
+                console.error('❌ Panel nicht gefunden:', `#about-${targetTab}`);
             }
             
             // Haptic feedback
@@ -3299,6 +3312,16 @@ initializeAboutTabs(modal) {
             }
         });
     });
+    
+    // Initial state sicherstellen
+    setTimeout(() => {
+        const overviewPanel = modal.querySelector('#about-overview');
+        if (overviewPanel) {
+            overviewPanel.classList.remove('hidden');
+            overviewPanel.classList.add('block');
+            console.log('✅ Overview Panel initial sichtbar gemacht');
+        }
+    }, 100);
 }
 
 /**
@@ -5794,6 +5817,143 @@ showQuickToast(message, type = 'success') {
         closable: false,
         sound: false 
     });
+}
+
+/**
+ * Enhanced Hero Stats Update mit Performance-Optimierungen
+ */
+async updateHeroStats() {
+    try {
+        const startTime = performance.now();
+        console.log('🎯 Hero Stats werden aktualisiert...');
+        
+        // Status Updates
+        this.updateHeroConnectionStatus();
+        this.updateHeroPerformanceMetric(startTime);
+        
+        // Daten parallel laden
+        const [allData] = await Promise.all([
+            this.getAllHealthData()
+        ]);
+        
+        const todayData = this.getTodayData(allData);
+        
+        // Stats mit Animationen updaten
+        this.animateHeroStat('hero-goals-today', this.calculateGoalsToday(todayData));
+        this.animateHeroStat('hero-current-streak', this.calculateCurrentStreak(allData));
+        this.animateHeroStat('hero-improvement', this.calculateWeeklyImprovement(allData));
+        this.animateHeroStat('hero-total-entries', allData.length);
+        
+        // Progress Ring für Goals
+        this.updateHeroGoalsProgress(todayData);
+        
+        console.log(`✅ Hero Stats in ${Math.round(performance.now() - startTime)}ms aktualisiert`);
+        
+    } catch (error) {
+        console.error('❌ Hero Stats Update Fehler:', error);
+    }
+}
+
+/**
+ * Verbindungsstatus in Hero anzeigen
+ */
+updateHeroConnectionStatus() {
+    const statusText = document.querySelector('.hero-status-text');
+    const statusDot = document.querySelector('.hero-status-dot');
+    
+    if (statusText && statusDot) {
+        if (this.isOnline) {
+            statusText.textContent = 'Online';
+            statusDot.style.backgroundColor = 'hsl(var(--su))';
+        } else {
+            statusText.textContent = 'Offline';
+            statusDot.style.backgroundColor = 'hsl(var(--wa))';
+        }
+    }
+}
+
+/**
+ * Performance-Metrik in Hero anzeigen
+ */
+updateHeroPerformanceMetric(startTime) {
+    const perfBadge = document.getElementById('hero-performance');
+    if (perfBadge) {
+        const loadTime = Math.round(performance.now() - (window.appStartTime || 0));
+        perfBadge.innerHTML = `
+            <i data-lucide="zap" class="w-3 h-3"></i>
+            <span>${loadTime}ms</span>
+        `;
+        
+        // Icons neu initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+/**
+ * Animierte Stat-Updates
+ */
+animateHeroStat(elementId, targetValue, duration = 1000) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const startValue = parseInt(element.textContent) || 0;
+    const difference = targetValue - startValue;
+    const steps = 30;
+    const stepValue = difference / steps;
+    const stepDuration = duration / steps;
+    
+    let currentStep = 0;
+    
+    const animate = () => {
+        if (currentStep < steps) {
+            currentStep++;
+            const currentValue = Math.round(startValue + (stepValue * currentStep));
+            element.textContent = currentValue.toLocaleString('de-DE');
+            setTimeout(animate, stepDuration);
+        } else {
+            element.textContent = targetValue.toLocaleString('de-DE');
+        }
+    };
+    
+    animate();
+}
+
+/**
+ * Goals Progress Ring Update
+ */
+updateHeroGoalsProgress(todayData) {
+    const progressRing = document.getElementById('hero-goals-progress');
+    if (!progressRing) return;
+    
+    const completedGoals = this.calculateGoalsToday(todayData);
+    const totalGoals = 5;
+    const progress = (completedGoals / totalGoals) * 100;
+    
+    const circumference = 87.96;
+    const offset = circumference - (progress / 100) * circumference;
+    
+    setTimeout(() => {
+        progressRing.style.strokeDashoffset = offset;
+    }, 500);
+}
+
+/**
+ * Hero Initialisierung
+ */
+initializeHero() {
+    // Hero Stats regelmäßig aktualisieren
+    this.updateHeroStats();
+    
+    // Auto-Update alle 30 Sekunden
+    if (this.memoryManager) {
+        this.memoryManager.setInterval(() => {
+            this.updateHeroStats();
+        }, 30000);
+    }
+    
+    console.log('🎯 Hero Section initialisiert');
 }
 }
 

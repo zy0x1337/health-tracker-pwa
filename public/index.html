@@ -204,20 +204,6 @@ function fallbackShowSettings() {
     }
 }
 
-/* Enhanced Hero Section Animations */
-.hero {
-    position: relative;
-}
-
-/* Floating Animation Delays */
-.animation-delay-1000 {
-    animation-delay: 1s;
-}
-
-.animation-delay-2000 {
-    animation-delay: 2s;
-}
-
 /* Button Hover Enhancements */
 .btn:hover {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -1286,163 +1272,282 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 </div>
 
     <!-- Optimierte Hero Section -->
-<section class="hero min-h-[50vh] bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 relative overflow-hidden">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.03" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="3"/%3E%3C/g%3E%3C/svg%3E')]"></div>
+<section class="hero min-h-screen bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 relative overflow-hidden">
+    <!-- Enhanced Background -->
+    <div class="absolute inset-0">
+        <!-- Primary Gradient Layer -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
+        
+        <!-- Subtle Pattern -->
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="40" height="40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23000000" fill-opacity="0.02"%3E%3Ccircle cx="20" cy="20" r="2"/%3E%3Ccircle cx="10" cy="10" r="1"/%3E%3Ccircle cx="30" cy="30" r="1"/%3E%3C/g%3E%3C/svg%3E')]"></div>
+        
+        <!-- Floating Elements -->
+        <div class="absolute top-20 left-16 w-2 h-2 bg-primary/20 rounded-full animate-pulse"></div>
+        <div class="absolute top-32 right-20 w-3 h-3 bg-secondary/20 rounded-full animate-pulse"></div>
+        <div class="absolute bottom-40 left-10 w-1.5 h-1.5 bg-accent/20 rounded-full animate-pulse"></div>
+        <div class="absolute bottom-20 right-16 w-2.5 h-2.5 bg-info/20 rounded-full animate-pulse"></div>
+    </div>
     
-    <div class="hero-content text-center relative z-10 max-w-6xl mx-auto px-4">
+    <!-- Glass Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-base-100/10 to-transparent backdrop-blur-[0.5px]"></div>
+    
+    <div class="hero-content text-center relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="w-full">
             <!-- Main Heading -->
-            <div class="mb-8">
-                <div class="flex justify-center mb-4">
-                    <div class="p-4 bg-primary/10 rounded-2xl backdrop-blur-sm border border-primary/20">
-                        <i data-lucide="heart-pulse" class="w-16 h-16 text-primary"></i>
+            <div class="mb-12">
+                <!-- Logo Icon -->
+                <div class="flex justify-center mb-8">
+                    <div class="relative group cursor-pointer" onclick="healthTracker?.showQuickAddModal?.()">
+                        <div class="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-3xl backdrop-blur-sm border border-primary/20 shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-105">
+                            <i data-lucide="heart-pulse" class="w-20 h-20 text-primary transition-all duration-300 group-hover:scale-110"></i>
+                        </div>
+                        <!-- Hover Tooltip -->
+                        <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <div class="bg-base-content text-base-100 text-xs px-3 py-1 rounded-lg whitespace-nowrap">
+                                Schnell-Eingabe öffnen
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
-                    Health Tracker Pro
+                <!-- Title -->
+                <h1 class="text-5xl md:text-7xl font-black mb-6">
+                    <span class="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight">
+                        Health Tracker
+                    </span>
+                    <span class="block text-3xl md:text-5xl font-bold text-base-content/80 mt-2">
+                        Professional
+                    </span>
                 </h1>
                 
-                <div class="badge badge-primary badge-lg gap-2 mb-6">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i>
-                    Progressive Web App
+                <!-- Version Badge -->
+                <div class="flex justify-center mb-8">
+                    <div class="badge badge-primary badge-lg gap-2 px-6 py-3 shadow-lg">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span class="font-semibold">PWA v2.1</span>
+                        <div class="badge badge-success badge-xs ml-2">Beta</div>
+                    </div>
                 </div>
                 
-                <p class="text-lg md:text-xl text-base-content/80 max-w-2xl mx-auto leading-relaxed">
-                    Verfolge deine Gesundheitsziele intelligent und erreiche mehr Wohlbefinden durch 
-                    <span class="font-semibold text-primary">datenbasierte Einblicke</span> und 
-                    <span class="font-semibold text-secondary">personalisierte Empfehlungen</span>.
+                <!-- Description -->
+                <p class="text-lg md:text-xl text-base-content/80 max-w-3xl mx-auto leading-relaxed mb-8">
+                    Die <strong class="text-primary">modernste</strong> Gesundheitsplattform für 
+                    <strong class="text-secondary">professionelles</strong> Wellness-Management mit
+                    <strong class="text-accent">KI-gestützten</strong> Einblicken.
                 </p>
+                
+                <!-- Feature Pills -->
+                <div class="flex flex-wrap justify-center gap-3 mb-12">
+                    <span class="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
+                        🧠 KI-Analytics
+                    </span>
+                    <span class="px-4 py-2 bg-secondary/10 text-secondary rounded-full text-sm font-medium border border-secondary/20">
+                        📱 Offline-First
+                    </span>
+                    <span class="px-4 py-2 bg-accent/10 text-accent rounded-full text-sm font-medium border border-accent/20">
+                        🔒 Privacy-First
+                    </span>
+                    <span class="px-4 py-2 bg-info/10 text-info rounded-full text-sm font-medium border border-info/20">
+                        ⚡ Real-time
+                    </span>
+                </div>
             </div>
 
-            <!-- Quick Stats Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="stat-figure text-primary">
-                        <i data-lucide="target" class="w-8 h-8"></i>
+            <!-- Dynamic Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mb-12 max-w-6xl mx-auto">
+                <!-- Goals Card -->
+                <div class="group cursor-pointer" onclick="document.getElementById('progress-hub')?.scrollIntoView({behavior: 'smooth'})">
+                    <div class="stat bg-gradient-to-br from-base-100/90 to-base-100/70 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-6 group-hover:scale-105 group-hover:border-primary/30">
+                        <div class="stat-figure text-primary mb-2">
+                            <i data-lucide="target" class="w-8 h-8 lg:w-10 lg:h-10"></i>
+                        </div>
+                        <div class="stat-title text-xs lg:text-sm">Heutige Ziele</div>
+                        <div class="stat-value text-xl lg:text-3xl" id="hero-goals-today">—</div>
+                        <div class="stat-desc text-xs">erreicht</div>
                     </div>
-                    <div class="stat-title text-xs">Heutige Ziele</div>
-                    <div class="stat-value text-2xl" id="hero-goals-today">—</div>
-                    <div class="stat-desc text-xs">erreicht</div>
                 </div>
                 
-                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="stat-figure text-secondary">
-                        <i data-lucide="calendar-days" class="w-8 h-8"></i>
+                <!-- Streak Card -->
+                <div class="group cursor-pointer" onclick="healthTracker?.showStreakDetails?.()">
+                    <div class="stat bg-gradient-to-br from-base-100/90 to-base-100/70 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-6 group-hover:scale-105 group-hover:border-secondary/30">
+                        <div class="stat-figure text-secondary mb-2">
+                            <i data-lucide="calendar-days" class="w-8 h-8 lg:w-10 lg:h-10"></i>
+                        </div>
+                        <div class="stat-title text-xs lg:text-sm">Aktueller Streak</div>
+                        <div class="stat-value text-xl lg:text-3xl" id="hero-current-streak">—</div>
+                        <div class="stat-desc text-xs">Tage in Folge</div>
                     </div>
-                    <div class="stat-title text-xs">Aktueller Streak</div>
-                    <div class="stat-value text-2xl" id="hero-current-streak">—</div>
-                    <div class="stat-desc text-xs">Tage in Folge</div>
                 </div>
                 
-                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="stat-figure text-accent">
-                        <i data-lucide="trending-up" class="w-8 h-8"></i>
+                <!-- Improvement Card -->
+                <div class="group cursor-pointer" onclick="document.getElementById('analytics')?.scrollIntoView({behavior: 'smooth'})">
+                    <div class="stat bg-gradient-to-br from-base-100/90 to-base-100/70 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-6 group-hover:scale-105 group-hover:border-accent/30">
+                        <div class="stat-figure text-accent mb-2">
+                            <i data-lucide="trending-up" class="w-8 h-8 lg:w-10 lg:h-10"></i>
+                        </div>
+                        <div class="stat-title text-xs lg:text-sm">Verbesserung</div>
+                        <div class="stat-value text-xl lg:text-3xl" id="hero-improvement">—</div>
+                        <div class="stat-desc text-xs">diese Woche</div>
                     </div>
-                    <div class="stat-title text-xs">Verbesserung</div>
-                    <div class="stat-value text-2xl" id="hero-improvement">—</div>
-                    <div class="stat-desc text-xs">diese Woche</div>
                 </div>
                 
-                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="stat-figure text-info">
-                        <i data-lucide="database" class="w-8 h-8"></i>
+                <!-- Total Entries Card -->
+                <div class="group cursor-pointer" onclick="healthTracker?.showDataUsage?.()">
+                    <div class="stat bg-gradient-to-br from-base-100/90 to-base-100/70 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-300 p-4 lg:p-6 group-hover:scale-105 group-hover:border-info/30">
+                        <div class="stat-figure text-info mb-2">
+                            <i data-lucide="database" class="w-8 h-8 lg:w-10 lg:h-10"></i>
+                        </div>
+                        <div class="stat-title text-xs lg:text-sm">Gesamt Einträge</div>
+                        <div class="stat-value text-xl lg:text-3xl" id="hero-total-entries">—</div>
+                        <div class="stat-desc text-xs">erfasst</div>
                     </div>
-                    <div class="stat-title text-xs">Gesamt Einträge</div>
-                    <div class="stat-value text-2xl" id="hero-total-entries">—</div>
-                    <div class="stat-desc text-xs">erfasst</div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-                <button class="btn btn-primary btn-lg gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})">
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                <!-- Primary CTA -->
+                <button class="btn btn-primary btn-lg gap-3 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-200 px-8 py-4" 
+                        onclick="healthTracker?.showQuickAddModal?.()">
                     <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                    Daten eingeben
+                    <span class="text-base font-bold">Daten erfassen</span>
+                    <div class="badge badge-success badge-xs">Schnell</div>
                 </button>
                 
-                <button class="btn btn-outline btn-secondary btn-lg gap-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('progress-hub').scrollIntoView({behavior: 'smooth'})">
+                <!-- Secondary CTA -->
+                <button class="btn btn-outline btn-secondary btn-lg gap-3 hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-6 py-4" 
+                        onclick="document.getElementById('progress-hub')?.scrollIntoView({behavior: 'smooth'})">
                     <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    Fortschritt ansehen
+                    <span class="text-base font-semibold">Analytics</span>
                 </button>
                 
-                <div class="dropdown dropdown-top sm:dropdown-bottom">
-    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2">
-        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-        Mehr
-    </div>
-    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
-        <li><a onclick="document.getElementById('edit-goals-btn').click()">
-    <i data-lucide="flag" class="w-4 h-4"></i>
-    Ziele anpassen
-</a></li>
-        <li><a onclick="showInstallPrompt()">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            App installieren
-        </a></li>
-        <li><a onclick="healthTracker.showImportExport()">
-            <i data-lucide="download-cloud" class="w-4 h-4"></i>
-            Import/Export
-        </a></li>
-        <li><a onclick="healthTracker.showDataPrivacy()">
-            <i data-lucide="shield-check" class="w-4 h-4"></i>
-            Datenschutz
-        </a></li>
-        <li><a onclick="healthTracker.showAbout()">
-            <i data-lucide="info" class="w-4 h-4"></i>
-            Über die App
-        </a></li>
-        <li><a onclick="healthTracker.showHelp()">
-            <i data-lucide="help-circle" class="w-4 h-4"></i>
-            Hilfe
-        </a></li>
-        <li><a onclick="healthTracker.showSettings()">
-            <i data-lucide="settings" class="w-4 h-4"></i>
-            Einstellungen
-        </a></li>
-    </ul>
-</div>
+                <!-- More Menu -->
+                <div class="dropdown dropdown-hover dropdown-top sm:dropdown-bottom">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2 hover:bg-base-200">
+                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+                        <span class="hidden sm:inline">Mehr</span>
+                    </div>
+                    
+                    <ul tabindex="0" class="dropdown-content z-30 menu p-4 shadow-2xl bg-base-100/95 backdrop-blur-md rounded-2xl w-64 border border-base-300/50">
+                        <li class="menu-title mb-2">
+                            <span class="text-base-content/70 font-semibold">Schnellzugriff</span>
+                        </li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-primary/10" onclick="document.getElementById('edit-goals-btn')?.click?.()">
+                            <i data-lucide="flag" class="w-4 h-4 text-primary"></i>
+                            Ziele anpassen
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-secondary/10" onclick="document.getElementById('theme-toggle')?.click?.()">
+                            <i data-lucide="palette" class="w-4 h-4 text-secondary"></i>
+                            Theme ändern
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-accent/10" onclick="showInstallPrompt?.()">
+                            <i data-lucide="download" class="w-4 h-4 text-accent"></i>
+                            App installieren
+                        </a></li>
+                        
+                        <div class="divider my-2"></div>
+                        
+                        <li class="menu-title">
+                            <span class="text-base-content/70 font-semibold">Einstellungen</span>
+                        </li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-info/10" onclick="healthTracker?.showImportExport?.()">
+                            <i data-lucide="download-cloud" class="w-4 h-4 text-info"></i>
+                            Import/Export
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-warning/10" onclick="healthTracker?.showDataPrivacy?.()">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-warning"></i>
+                            Datenschutz
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-success/10" onclick="healthTracker?.showAbout?.()">
+                            <i data-lucide="info" class="w-4 h-4 text-success"></i>
+                            Über die App
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-error/10" onclick="healthTracker?.showHelp?.()">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-error"></i>
+                            Hilfe
+                        </a></li>
+                        <li><a class="gap-3 py-2 rounded-lg hover:bg-primary/10" onclick="healthTracker?.showSettings?.()">
+                            <i data-lucide="settings" class="w-4 h-4 text-primary"></i>
+                            Einstellungen
+                        </a></li>
+                    </ul>
+                </div>
             </div>
 
             <!-- Feature Highlights -->
-            <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                            <i data-lucide="wifi-off" class="w-6 h-6 text-primary"></i>
+            <div class="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+                <!-- Offline Feature -->
+                <div class="group cursor-pointer" onclick="healthTracker?.showDataPrivacy?.()">
+                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-primary/30">
+                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
+                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl flex items-center justify-center group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-300">
+                                <i data-lucide="wifi-off" class="w-8 h-8 lg:w-10 lg:h-10 text-primary group-hover:scale-110 transition-transform"></i>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="card-title text-lg lg:text-xl font-bold">Offline-First</h3>
+                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
+                                    Vollständige Funktionalität ohne Internet. Automatische Sync bei Verbindung.
+                                </p>
+                            </div>
+                            <div class="badge badge-primary badge-sm opacity-75 group-hover:opacity-100">
+                                Verfügbar
+                            </div>
                         </div>
-                        <h3 class="card-title text-lg">Offline-First</h3>
-                        <p class="text-sm text-base-content/70">Funktioniert auch ohne Internetverbindung. Deine Daten sind immer verfügbar.</p>
                     </div>
                 </div>
                 
-                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mb-4">
-                            <i data-lucide="brain" class="w-6 h-6 text-secondary"></i>
+                <!-- AI Feature -->
+                <div class="group cursor-pointer" onclick="document.getElementById('analytics')?.scrollIntoView({behavior: 'smooth'})">
+                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-secondary/30">
+                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
+                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-2xl flex items-center justify-center group-hover:from-secondary/20 group-hover:to-secondary/10 transition-all duration-300">
+                                <i data-lucide="brain" class="w-8 h-8 lg:w-10 lg:h-10 text-secondary group-hover:scale-110 transition-transform"></i>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="card-title text-lg lg:text-xl font-bold">KI-Analytics</h3>
+                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
+                                    Intelligente Muster-Erkennung und personalisierte Empfehlungen.
+                                </p>
+                            </div>
+                            <div class="badge badge-secondary badge-sm opacity-75 group-hover:opacity-100">
+                                Beta
+                            </div>
                         </div>
-                        <h3 class="card-title text-lg">KI-Insights</h3>
-                        <p class="text-sm text-base-content/70">Intelligente Analyse deiner Gesundheitsdaten mit personalisierten Empfehlungen.</p>
                     </div>
                 </div>
                 
-                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="card-body items-center text-center p-6">
-                        <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
-                            <i data-lucide="shield-check" class="w-6 h-6 text-accent"></i>
+                <!-- Privacy Feature -->
+                <div class="group cursor-pointer" onclick="healthTracker?.showDataPrivacy?.()">
+                    <div class="card bg-gradient-to-br from-base-100/80 to-base-100/60 backdrop-blur-md border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-accent/30">
+                        <div class="card-body items-center text-center p-6 lg:p-8 space-y-4">
+                            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl flex items-center justify-center group-hover:from-accent/20 group-hover:to-accent/10 transition-all duration-300">
+                                <i data-lucide="shield-check" class="w-8 h-8 lg:w-10 lg:h-10 text-accent group-hover:scale-110 transition-transform"></i>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="card-title text-lg lg:text-xl font-bold">Privacy-First</h3>
+                                <p class="text-sm lg:text-base text-base-content/70 leading-relaxed">
+                                    Deine Gesundheitsdaten bleiben ausschließlich auf deinem Gerät.
+                                </p>
+                            </div>
+                            <div class="badge badge-accent badge-sm opacity-75 group-hover:opacity-100">
+                                GDPR
+                            </div>
                         </div>
-                        <h3 class="card-title text-lg">Datenschutz</h3>
-                        <p class="text-sm text-base-content/70">Deine Gesundheitsdaten bleiben privat und sicher auf deinem Gerät.</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Scroll Indicator -->
-    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <i data-lucide="chevron-down" class="w-6 h-6 text-base-content/50"></i>
+
+        <!-- Enhanced Scroll Indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 cursor-pointer group" 
+             onclick="document.getElementById('dashboard')?.scrollIntoView({behavior: 'smooth'})">
+            <div class="text-xs font-medium text-base-content/60 group-hover:text-base-content/80 transition-colors">
+                Entdecke mehr
+            </div>
+            <div class="animate-bounce">
+                <i data-lucide="chevron-down" class="w-5 h-5 text-base-content/40 group-hover:text-base-content/60"></i>
+            </div>
+        </div>
     </div>
 </section>
 

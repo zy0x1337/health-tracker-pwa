@@ -163,39 +163,65 @@ initializeComponents() {
     }
     
     setupProgressHubTabs() {
-const bind = (id, view) => {
-const el = document.getElementById(id);
-if (!el) return;
-const clone = el.cloneNode(true);
-el.parentNode.replaceChild(clone, el);
-clone.addEventListener('click', async (e) => {
-e.preventDefault();
-if (!this.progressHub) return;
+  const bind = (id, view) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    
+    clone.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!this.progressHub) return;
 
-  // 1) View setzen und richtige View-Methode aufrufen (ohne Fallback auf today)
-  this.progressHub.currentView = view;
-  if (typeof this.progressHub.showView === 'function') {
-    this.progressHub.showView(view);
-  } else {
-    // Direkter Aufruf der existierenden View-Methoden, falls showView minimal ist
-    if (view === 'today' && typeof this.progressHub.showTodayView === 'function') this.progressHub.showTodayView();
-    if (view === 'week' && typeof this.progressHub.showWeeklyView === 'function') this.progressHub.showWeeklyView();
-    if (view === 'goals' && typeof this.progressHub.showGoalsView === 'function') this.progressHub.showGoalsView();
-    if (view === 'achievements' && typeof this.progressHub.showAchievementsView === 'function') this.progressHub.showAchievementsView();
-  }
+      // Update tab active states
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
+      clone.classList.add('tab-active');
+      
+      console.log(`📊 Switching to view: ${view}`);
+      
+      // Set current view BEFORE calling showView
+      this.progressHub.currentView = view;
+      
+      // Call the specific view method directly
+      switch(view) {
+        case 'today':
+          if (typeof this.progressHub.showTodayView === 'function') {
+            this.progressHub.showTodayView();
+          }
+          break;
+        case 'week':
+          if (typeof this.progressHub.showWeeklyView === 'function') {
+            this.progressHub.showWeeklyView();
+          }
+          break;
+        case 'goals':
+          if (typeof this.progressHub.showGoalsView === 'function') {
+            this.progressHub.showGoalsView();
+          }
+          break;
+        case 'achievements':
+          if (typeof this.progressHub.showAchievementsView === 'function') {
+            this.progressHub.showAchievementsView();
+          }
+          break;
+      }
+      
+      // Load data for the selected view
+      if (typeof this.progressHub.loadViewData === 'function') {
+        try {
+          await this.progressHub.loadViewData();
+        } catch (err) {
+          console.error('❌ ProgressHub Tab-Ladefehler:', err);
+        }
+      }
+    });
+  };
 
-  // 2) Daten für diese View laden (respektiert currentView)
-  if (typeof this.progressHub.loadViewData === 'function') {
-    try { await this.progressHub.loadViewData(); }
-    catch (err) { console.error('❌ ProgressHub Tab-Ladefehler:', err); }
-  }
-});
-};
-
-bind('tab-today', 'today');
-bind('tab-week', 'week');
-bind('tab-goals', 'goals');
-bind('tab-achievements', 'achievements');
+  bind('tab-today', 'today');
+  bind('tab-week', 'week'); 
+  bind('tab-goals', 'goals');
+  bind('tab-achievements', 'achievements');
 }
     
     /**
@@ -2431,73 +2457,51 @@ class ProgressHub {
  * Load data for Progress Hub views using existing showTodayView/showWeeklyView methods
  */
 async loadViewData() {
-  const contentEl = document.getElementById('progress-content');
-
-  // Loader-Fallback nur via XPath (kein :contains in CSS!)
-  const textLoaderNode = contentEl
-    ? document.evaluate(
-        ".//*[contains(text(),'Progress Hub wird geladen')]",
-        contentEl,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      ).singleNodeValue
-    : null;
-
+  console.log(`📊 Loading view data for: ${this.currentView || 'undefined'}`);
+  
+  if (!this.currentView) {
+    console.log('⚠️ No current view set, defaulting to today');
+    this.currentView = 'today';
+  }
+  
   try {
-    // Daten laden
-    const allData = await this.healthTracker.getAllHealthData();
-
-    // Week-Cache vorbereiten
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    this.weekData = Array.isArray(allData)
-      ? allData
-          .filter(entry => {
-            if (!entry?.date) return false;
-            const d = typeof entry.date === 'string' ? new Date(entry.date) : new Date(entry.date);
-            return d >= oneWeekAgo && d <= now;
-          })
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-      : [];
-
-    // View bestimmen (IDs in HTML: #tab-today, #tab-week, #tab-goals, #tab-achievements)
-    const view = this.currentView || 'today'; // respektiere aktuelle Auswahl
-// Nur die passende View aktualisieren, kein Zwangs-Fallback
-if (view === 'today' && typeof this.showTodayView === 'function') {
-this.showTodayView();
-} else if (view === 'week' && typeof this.showWeeklyView === 'function') {
-this.showWeeklyView();
-} else if (view === 'goals' && typeof this.showGoalsView === 'function') {
-this.showGoalsView();
-} else if (view === 'achievements' && typeof this.showAchievementsView === 'function') {
-this.showAchievementsView();
-}
-
-    // Inhalt rendern: vorhandene Methoden nutzen
-    if (view === 'today' && typeof this.showTodayView === 'function') {
-      this.showTodayView();
-    } else if (view === 'week' && typeof this.showWeeklyView === 'function') {
-      this.showWeeklyView();
-    } else if (typeof this.showTodayView === 'function') {
-      this.currentView = 'today';
-      this.showTodayView();
+    // Show loading state
+    this.showLoading(true);
+    
+    // Load fresh data from HealthTracker
+    this.allData = await this.healthTracker.getAllHealthData();
+    this.todayData = this.healthTracker.getTodayData(this.allData);
+    this.weekData = this.healthTracker.getWeekData(this.allData);
+    
+    console.log(`📈 Loaded data - Total: ${this.allData.length}, Today: ${Object.keys(this.todayData).length}, Week: ${this.weekData.length}`);
+    
+    // Update the current view with fresh data
+    switch(this.currentView) {
+      case 'today':
+        this.showTodayView();
+        break;
+      case 'week':
+        this.showWeeklyView();
+        break;
+      case 'goals':
+        this.showGoalsView();
+        break;
+      case 'achievements':
+        this.showAchievementsView();
+        break;
+      default:
+        console.log(`⚠️ Unknown view: ${this.currentView}, showing today view as fallback`);
+        this.currentView = 'today';
+        this.showTodayView();
     }
-  } catch (err) {
-    console.error('❌ ProgressHub loadViewData Fehler:', err);
-    if (contentEl) {
-      contentEl.innerHTML = `
-        <div class="text-center py-12">
-          <div class="text-4xl mb-4">⚠️</div>
-          <p class="text-base-content/70">Fehler beim Laden des Fortschrittshubs</p>
-        </div>
-      `;
-    }
-  } finally {
-    // Textbasierter Loader (falls noch vorhanden) ausblenden
-    if (textLoaderNode && textLoaderNode.parentElement) {
-      textLoaderNode.parentElement.classList.add('hidden');
-    }
+    
+    // Hide loading state
+    this.showLoading(false);
+    
+  } catch (error) {
+    console.error('❌ ProgressHub loadViewData error:', error);
+    this.showError('Fehler beim Laden der Fortschrittsdaten');
+    this.showLoading(false);
   }
 }
 
@@ -2517,25 +2521,70 @@ this.showAchievementsView();
     /**
 Show a specific Progress Hub view and toggle tab states
 */
-showView(viewName) {
-this.currentView = viewName;
-
-// Tabs togglen
-const tabToday = document.getElementById('tab-today');
-const tabWeek = document.getElementById('tab-week');
-const tabGoals = document.getElementById('tab-goals');
-const tabAchievements = document.getElementById('tab-achievements');
-
-tabToday?.classList.toggle('tab-active', viewName === 'today');
-tabWeek?.classList.toggle('tab-active', viewName === 'week');
-tabGoals?.classList.toggle('tab-active', viewName === 'goals');
-tabAchievements?.classList.toggle('tab-active', viewName === 'achievements');
-
-// Exakt gewünschte View rendern (kein Fallback auf today)
-if (viewName === 'today' && typeof this.showTodayView === 'function') return this.showTodayView();
-if (viewName === 'week' && typeof this.showWeeklyView === 'function') return this.showWeeklyView();
-if (viewName === 'goals' && typeof this.showGoalsView === 'function') return this.showGoalsView();
-if (viewName === 'achievements' && typeof this.showAchievementsView === 'function') return this.showAchievementsView();
+showView(view) {
+  console.log(`🎯 ProgressHub showView called with: ${view}`);
+  
+  // Set current view
+  this.currentView = view;
+  
+  // Hide all view containers
+  const containers = [
+    'progress-today-view',
+    'progress-weekly-view', 
+    'progress-goals-view',
+    'progress-achievements-view'
+  ];
+  
+  containers.forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.style.display = 'none';
+    }
+  });
+  
+  // Show the selected view container and call corresponding method
+  switch(view) {
+    case 'today':
+      const todayContainer = document.getElementById('progress-today-view');
+      if (todayContainer) {
+        todayContainer.style.display = 'block';
+        this.showTodayView();
+      }
+      break;
+      
+    case 'week':
+      const weekContainer = document.getElementById('progress-weekly-view');
+      if (weekContainer) {
+        weekContainer.style.display = 'block';
+        this.showWeeklyView();
+      }
+      break;
+      
+    case 'goals':
+      const goalsContainer = document.getElementById('progress-goals-view');
+      if (goalsContainer) {
+        goalsContainer.style.display = 'block';
+        this.showGoalsView();
+      }
+      break;
+      
+    case 'achievements':
+      const achievementsContainer = document.getElementById('progress-achievements-view');
+      if (achievementsContainer) {
+        achievementsContainer.style.display = 'block';
+        this.showAchievementsView();
+      }
+      break;
+      
+    default:
+      console.log(`⚠️ Unknown view: ${view}, showing today view as fallback`);
+      const defaultContainer = document.getElementById('progress-today-view');
+      if (defaultContainer) {
+        defaultContainer.style.display = 'block';
+        this.currentView = 'today';
+        this.showTodayView();
+      }
+  }
 }
 
 /** Show today's overview with modern DaisyUI layout */

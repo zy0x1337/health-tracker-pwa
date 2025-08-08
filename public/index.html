@@ -188,6 +188,83 @@ function fallbackShowSettings() {
     transform: translateY(-2px);
 }
 
+/* Dropdown enhancements */
+.dropdown-content {
+    animation: fadeInUp 0.2s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced Hero Section Animations */
+.hero {
+    position: relative;
+}
+
+/* Floating Animation Delays */
+.animation-delay-1000 {
+    animation-delay: 1s;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+/* Button Hover Enhancements */
+.btn:hover {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Card Hover Effects */
+.card:hover {
+    transform: translateY(-4px);
+}
+
+/* Text Gradient Animation */
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.bg-gradient-to-r {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+}
+
+/* Badge Pulse Effect */
+.badge .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom Shadow Classes */
+.shadow-3xl {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Backdrop Blur Enhancement */
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Enhanced Responsive Typography */
+@media (max-width: 640px) {
+    .text-6xl {
+        font-size: 3rem;
+    }
+    .text-7xl {
+        font-size: 3.5rem;
+    }
+}
+
 /* Enhanced Footer Animations */
 .footer {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -896,790 +973,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 #toast-container .alert:nth-last-child(n+6) {
     display: none;
 }
-
-/* ================================================= */
-/* HERO SECTION */
-/* ================================================= */
-
-/* Background System */
-.hero-background {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-}
-
-.hero-gradient-primary {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, 
-        hsl(var(--p) / 0.05) 0%, 
-        hsl(var(--s) / 0.03) 40%,
-        hsl(var(--a) / 0.05) 100%);
-}
-
-.hero-gradient-mesh {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 20% 80%, hsl(var(--p) / 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, hsl(var(--s) / 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, hsl(var(--a) / 0.06) 0%, transparent 50%);
-    animation: hero-mesh-move 20s ease-in-out infinite;
-}
-
-.hero-pattern {
-    position: absolute;
-    inset: 0;
-    opacity: 0.02;
-    background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23000" fill-opacity="1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
-}
-
-/* Floating Orbs */
-.hero-orbs {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-.hero-orb {
-    position: absolute;
-    border-radius: 50%;
-    background: radial-gradient(circle, hsl(var(--p) / 0.1) 0%, transparent 70%);
-    animation: hero-orb-float 15s ease-in-out infinite;
-}
-
-.hero-orb-1 {
-    width: 200px;
-    height: 200px;
-    top: 10%;
-    left: 10%;
-    animation-delay: 0s;
-}
-
-.hero-orb-2 {
-    width: 150px;
-    height: 150px;
-    top: 60%;
-    right: 15%;
-    animation-delay: 5s;
-    background: radial-gradient(circle, hsl(var(--s) / 0.1) 0%, transparent 70%);
-}
-
-.hero-orb-3 {
-    width: 100px;
-    height: 100px;
-    bottom: 20%;
-    left: 20%;
-    animation-delay: 10s;
-    background: radial-gradient(circle, hsl(var(--a) / 0.1) 0%, transparent 70%);
-}
-
-.hero-glass-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 0%, hsl(var(--b1) / 0.05) 100%);
-    backdrop-filter: blur(0.5px);
-}
-
-/* Status Bar */
-.hero-status-bar {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    right: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 30;
-}
-
-.hero-status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: hsl(var(--b1) / 0.9);
-    backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--b3) / 0.3);
-    border-radius: 2rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.hero-status-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    background: hsl(var(--su));
-    border-radius: 50%;
-    animation: hero-status-pulse 2s ease-in-out infinite;
-}
-
-.hero-performance-badge {
-    display: none;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: hsl(var(--b1) / 0.9);
-    backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--b3) / 0.3);
-    border-radius: 2rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-/* Brand Section */
-.hero-brand-section {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.hero-logo-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-    cursor: pointer;
-}
-
-.hero-logo-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 6rem;
-    height: 6rem;
-    border-radius: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-logo-container:hover {
-    transform: translateY(-2px) scale(1.05);
-}
-
-.hero-logo-bg {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, 
-        hsl(var(--p) / 0.1) 0%, 
-        hsl(var(--p) / 0.05) 50%,
-        hsl(var(--s) / 0.1) 100%);
-    border: 1px solid hsl(var(--p) / 0.2);
-    border-radius: 1.5rem;
-    backdrop-filter: blur(12px);
-}
-
-.hero-logo-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    color: hsl(var(--p));
-    z-index: 10;
-    transition: all 0.3s ease;
-}
-
-.hero-logo-container:hover .hero-logo-icon {
-    transform: scale(1.1);
-    color: hsl(var(--s));
-}
-
-.hero-logo-pulse-1,
-.hero-logo-pulse-2 {
-    position: absolute;
-    inset: 0;
-    border: 2px solid hsl(var(--p) / 0.3);
-    border-radius: 1.5rem;
-    animation: hero-logo-pulse 3s ease-in-out infinite;
-}
-
-.hero-logo-pulse-2 {
-    inset: 0.5rem;
-    border: 1px solid hsl(var(--s) / 0.2);
-    border-radius: 1rem;
-    animation-delay: 1s;
-}
-
-.hero-logo-tooltip {
-    position: absolute;
-    top: -3rem;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 0.5rem 1rem;
-    background: hsl(var(--b1));
-    color: hsl(var(--bc));
-    font-size: 0.75rem;
-    border-radius: 0.5rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
-.hero-logo-wrapper:hover .hero-logo-tooltip {
-    opacity: 1;
-}
-
-/* Typography */
-.hero-title-section {
-    margin-bottom: 2rem;
-}
-
-.hero-main-title {
-    margin-bottom: 1rem;
-}
-
-.hero-title-primary {
-    display: block;
-    font-size: clamp(3rem, 8vw, 7rem);
-    font-weight: 900;
-    line-height: 0.9;
-    background: linear-gradient(135deg, hsl(var(--p)) 0%, hsl(var(--s)) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    animation: hero-title-gradient 6s ease-in-out infinite;
-}
-
-.hero-title-secondary {
-    display: block;
-    font-size: clamp(2rem, 5vw, 4rem);
-    font-weight: 700;
-    color: hsl(var(--bc) / 0.7);
-    margin-top: 0.5rem;
-}
-
-.hero-version-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: hsl(var(--p));
-    color: hsl(var(--pc));
-    border-radius: 2rem;
-    font-weight: 600;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 20px hsl(var(--p) / 0.3);
-    transition: all 0.3s ease;
-}
-
-.hero-version-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px hsl(var(--p) / 0.4);
-}
-
-.hero-sparkle-icon {
-    animation: hero-sparkle-spin 4s linear infinite;
-}
-
-.hero-beta-badge {
-    padding: 0.25rem 0.5rem;
-    background: hsl(var(--su));
-    color: hsl(var(--suc));
-    border-radius: 1rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-
-/* Description */
-.hero-description {
-    max-width: 42rem;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.hero-description-text {
-    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-    line-height: 1.6;
-    color: hsl(var(--bc) / 0.8);
-    margin-bottom: 1.5rem;
-}
-
-.hero-highlight-primary {
-    color: hsl(var(--p));
-}
-
-.hero-highlight-secondary {
-    color: hsl(var(--s));
-}
-
-.hero-feature-tags {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.75rem;
-}
-
-.hero-tag {
-    padding: 0.5rem 1rem;
-    border-radius: 2rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border: 1px solid transparent;
-    transition: all 0.3s ease;
-}
-
-.hero-tag-ai {
-    background: hsl(var(--p) / 0.1);
-    color: hsl(var(--p));
-    border-color: hsl(var(--p) / 0.2);
-}
-
-.hero-tag-offline {
-    background: hsl(var(--s) / 0.1);
-    color: hsl(var(--s));
-    border-color: hsl(var(--s) / 0.2);
-}
-
-.hero-tag-privacy {
-    background: hsl(var(--a) / 0.1);
-    color: hsl(var(--a));
-    border-color: hsl(var(--a) / 0.2);
-}
-
-.hero-tag-sync {
-    background: hsl(var(--in) / 0.1);
-    color: hsl(var(--in));
-    border-color: hsl(var(--in) / 0.2);
-}
-
-/* Stats Grid */
-.hero-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-    max-width: 64rem;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.hero-stat-card {
-    position: relative;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, hsl(var(--b1) / 0.9) 0%, hsl(var(--b1) / 0.7) 100%);
-    backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--b3) / 0.5);
-    border-radius: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-}
-
-.hero-stat-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 0%, hsl(var(--p) / 0.05) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.hero-stat-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 10px 40px hsl(var(--b3) / 0.3);
-    border-color: hsl(var(--p) / 0.3);
-}
-
-.hero-stat-card:hover::before {
-    opacity: 1;
-}
-
-.hero-stat-icon-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 1rem;
-}
-
-.hero-stat-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    z-index: 10;
-}
-
-.hero-stat-goals .hero-stat-icon { color: hsl(var(--p)); }
-.hero-stat-streak .hero-stat-icon { color: hsl(var(--s)); }
-.hero-stat-improvement .hero-stat-icon { color: hsl(var(--a)); }
-.hero-stat-entries .hero-stat-icon { color: hsl(var(--in)); }
-
-.hero-stat-content {
-    text-align: left;
-}
-
-.hero-stat-title {
-    font-size: 0.75rem;
-    color: hsl(var(--bc) / 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-}
-
-.hero-stat-value {
-    font-size: 2rem;
-    font-weight: 900;
-    margin-bottom: 0.25rem;
-}
-
-.hero-stat-desc {
-    font-size: 0.75rem;
-    color: hsl(var(--bc) / 0.5);
-}
-
-/* Loading Animation */
-.hero-loading-dots {
-    display: inline-block;
-    width: 2rem;
-    height: 0.5rem;
-    position: relative;
-}
-
-.hero-loading-dots::before,
-.hero-loading-dots::after,
-.hero-loading-dots {
-    animation: hero-loading-dots 1.5s ease-in-out infinite;
-}
-
-.hero-loading-dots::before,
-.hero-loading-dots::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0.25rem;
-    height: 0.25rem;
-    background: currentColor;
-    border-radius: 50%;
-}
-
-.hero-loading-dots::before {
-    left: 0;
-    animation-delay: -0.32s;
-}
-
-.hero-loading-dots::after {
-    right: 0;
-    animation-delay: -0.16s;
-}
-
-/* Action Center */
-.hero-action-center {
-    margin-bottom: 3rem;
-}
-
-.hero-primary-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-}
-
-.hero-cta-primary {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, hsl(var(--p)) 0%, hsl(var(--s)) 100%);
-    color: hsl(var(--pc));
-    border: none;
-    border-radius: 1rem;
-    font-size: 1.125rem;
-    font-weight: 700;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-cta-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px hsl(var(--p) / 0.4);
-}
-
-.hero-cta-bg {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(45deg, transparent, hsl(var(--pc) / 0.1), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-}
-
-.hero-cta-primary:hover .hero-cta-bg {
-    transform: translateX(100%);
-}
-
-.hero-cta-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2rem;
-    background: transparent;
-    color: hsl(var(--s));
-    border: 2px solid hsl(var(--s));
-    border-radius: 1rem;
-    font-size: 1.125rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.hero-cta-secondary:hover {
-    background: hsl(var(--s));
-    color: hsl(var(--sc));
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px hsl(var(--s) / 0.3);
-}
-
-/* Features Grid */
-.hero-features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-bottom: 4rem;
-    max-width: 72rem;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.hero-feature-card {
-    position: relative;
-    padding: 2rem;
-    background: linear-gradient(135deg, hsl(var(--b1) / 0.8) 0%, hsl(var(--b1) / 0.6) 100%);
-    backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--b3) / 0.5);
-    border-radius: 1.5rem;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    overflow: hidden;
-}
-
-.hero-feature-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 60px hsl(var(--b3) / 0.3);
-}
-
-.hero-feature-icon-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1.5rem;
-}
-
-.hero-feature-icon {
-    width: 2rem;
-    height: 2rem;
-    z-index: 10;
-}
-
-.hero-feature-offline .hero-feature-icon { color: hsl(var(--p)); }
-.hero-feature-ai .hero-feature-icon { color: hsl(var(--s)); }
-.hero-feature-privacy .hero-feature-icon { color: hsl(var(--a)); }
-
-.hero-feature-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-}
-
-.hero-feature-description {
-    color: hsl(var(--bc) / 0.7);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-}
-
-.hero-feature-status {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    background: hsl(var(--su) / 0.2);
-    color: hsl(var(--su));
-    border-radius: 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.hero-status-beta {
-    background: hsl(var(--wa) / 0.2);
-    color: hsl(var(--wa));
-}
-
-.hero-status-verified {
-    background: hsl(var(--su) / 0.2);
-    color: hsl(var(--su));
-}
-
-/* Scroll Indicator */
-.hero-scroll-indicator {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.hero-scroll-indicator:hover {
-    transform: translateX(-50%) translateY(-4px);
-}
-
-.hero-scroll-text {
-    font-size: 0.75rem;
-    color: hsl(var(--bc) / 0.6);
-    font-weight: 500;
-}
-
-.hero-scroll-arrows {
-    display: flex;
-    flex-direction: column;
-    gap: -0.5rem;
-}
-
-.hero-scroll-arrow-1,
-.hero-scroll-arrow-2 {
-    width: 1rem;
-    height: 1rem;
-    color: hsl(var(--bc) / 0.4);
-    animation: hero-scroll-bounce 2s ease-in-out infinite;
-}
-
-.hero-scroll-arrow-2 {
-    animation-delay: 0.2s;
-    opacity: 0.6;
-}
-
-/* Animations */
-@keyframes hero-mesh-move {
-    0%, 100% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(2deg) scale(1.05); }
-}
-
-@keyframes hero-orb-float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    33% { transform: translateY(-20px) rotate(1deg); }
-    66% { transform: translateY(10px) rotate(-1deg); }
-}
-
-@keyframes hero-status-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-@keyframes hero-logo-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.3; }
-    50% { transform: scale(1.05); opacity: 0.1; }
-}
-
-@keyframes hero-title-gradient {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-@keyframes hero-sparkle-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes hero-loading-dots {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-    40% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes hero-scroll-bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-8px); }
-    60% { transform: translateY(-4px); }
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .hero-performance-badge { display: none; }
-    
-    .hero-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-    
-    .hero-stat-card {
-        padding: 1rem;
-    }
-    
-    .hero-primary-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .hero-features-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .hero-feature-card {
-        padding: 1.5rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .hero-performance-badge {
-        display: flex;
-    }
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-@media (prefers-contrast: high) {
-    .hero-stat-card,
-    .hero-feature-card {
-        border-width: 2px;
-    }
-}
-
-/* About Modal Tab Panels */
-.tab-panel {
-    display: none;
-}
-
-.tab-panel.block {
-    display: block !important;
-}
-
-.tab-panel:not(.hidden) {
-    display: block;
-}
-
-/* Tab Content Container */
-.tab-content {
-    min-height: 400px;
-}
-
-/* About Modal specific styles */
-.about-modal .tab-panel {
-    padding: 1rem 0;
-}
-
-.about-modal .tabs {
-    margin-bottom: 1rem;
-}
-
-.about-modal .tab {
-    transition: all 0.3s ease;
-}
-
-.about-modal .tab-active {
-    background-color: hsl(var(--p));
-    color: hsl(var(--pc));
-}
     </style>
 </head>
 
@@ -1947,274 +1240,163 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
 </div>
 
     <!-- Optimierte Hero Section -->
-<section class="hero min-h-screen relative overflow-hidden" id="hero-section">
-    <!-- Advanced Background System -->
-    <div class="hero-background">
-        <!-- Primary Gradient -->
-        <div class="hero-gradient-primary"></div>
-        <!-- Secondary Mesh -->
-        <div class="hero-gradient-mesh"></div>
-        <!-- Subtle Pattern -->
-        <div class="hero-pattern"></div>
-        <!-- Floating Orbs -->
-        <div class="hero-orbs">
-            <div class="hero-orb hero-orb-1"></div>
-            <div class="hero-orb hero-orb-2"></div>
-            <div class="hero-orb hero-orb-3"></div>
+<section class="hero min-h-[50vh] bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/20 relative overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.03" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="3"/%3E%3C/g%3E%3C/svg%3E')]"></div>
+    
+    <div class="hero-content text-center relative z-10 max-w-6xl mx-auto px-4">
+        <div class="w-full">
+            <!-- Main Heading -->
+            <div class="mb-8">
+                <div class="flex justify-center mb-4">
+                    <div class="p-4 bg-primary/10 rounded-2xl backdrop-blur-sm border border-primary/20">
+                        <i data-lucide="heart-pulse" class="w-16 h-16 text-primary"></i>
+                    </div>
+                </div>
+                
+                <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+                    Health Tracker Pro
+                </h1>
+                
+                <div class="badge badge-primary badge-lg gap-2 mb-6">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    Progressive Web App
+                </div>
+                
+                <p class="text-lg md:text-xl text-base-content/80 max-w-2xl mx-auto leading-relaxed">
+                    Verfolge deine Gesundheitsziele intelligent und erreiche mehr Wohlbefinden durch 
+                    <span class="font-semibold text-primary">datenbasierte Einblicke</span> und 
+                    <span class="font-semibold text-secondary">personalisierte Empfehlungen</span>.
+                </p>
+            </div>
+
+            <!-- Quick Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-primary">
+                        <i data-lucide="target" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title text-xs">Heutige Ziele</div>
+                    <div class="stat-value text-2xl" id="hero-goals-today">—</div>
+                    <div class="stat-desc text-xs">erreicht</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-secondary">
+                        <i data-lucide="calendar-days" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title text-xs">Aktueller Streak</div>
+                    <div class="stat-value text-2xl" id="hero-current-streak">—</div>
+                    <div class="stat-desc text-xs">Tage in Folge</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-accent">
+                        <i data-lucide="trending-up" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title text-xs">Verbesserung</div>
+                    <div class="stat-value text-2xl" id="hero-improvement">—</div>
+                    <div class="stat-desc text-xs">diese Woche</div>
+                </div>
+                
+                <div class="stat bg-base-100/80 backdrop-blur-sm rounded-2xl border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="stat-figure text-info">
+                        <i data-lucide="database" class="w-8 h-8"></i>
+                    </div>
+                    <div class="stat-title text-xs">Gesamt Einträge</div>
+                    <div class="stat-value text-2xl" id="hero-total-entries">—</div>
+                    <div class="stat-desc text-xs">erfasst</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <button class="btn btn-primary btn-lg gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    Daten eingeben
+                </button>
+                
+                <button class="btn btn-outline btn-secondary btn-lg gap-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('progress-hub').scrollIntoView({behavior: 'smooth'})">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    Fortschritt ansehen
+                </button>
+                
+                <div class="dropdown dropdown-top sm:dropdown-bottom">
+    <div tabindex="0" role="button" class="btn btn-ghost btn-lg gap-2">
+        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+        Mehr
+    </div>
+    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
+        <li><a onclick="document.getElementById('edit-goals-btn').click()">
+    <i data-lucide="flag" class="w-4 h-4"></i>
+    Ziele anpassen
+</a></li>
+        <li><a onclick="showInstallPrompt()">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            App installieren
+        </a></li>
+        <li><a onclick="healthTracker.showImportExport()">
+            <i data-lucide="download-cloud" class="w-4 h-4"></i>
+            Import/Export
+        </a></li>
+        <li><a onclick="healthTracker.showDataPrivacy()">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            Datenschutz
+        </a></li>
+        <li><a onclick="healthTracker.showAbout()">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            Über die App
+        </a></li>
+        <li><a onclick="healthTracker.showHelp()">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            Hilfe
+        </a></li>
+        <li><a onclick="healthTracker.showSettings()">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            Einstellungen
+        </a></li>
+    </ul>
+</div>
+            </div>
+
+            <!-- Feature Highlights -->
+            <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="wifi-off" class="w-6 h-6 text-primary"></i>
+                        </div>
+                        <h3 class="card-title text-lg">Offline-First</h3>
+                        <p class="text-sm text-base-content/70">Funktioniert auch ohne Internetverbindung. Deine Daten sind immer verfügbar.</p>
+                    </div>
+                </div>
+                
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="brain" class="w-6 h-6 text-secondary"></i>
+                        </div>
+                        <h3 class="card-title text-lg">KI-Insights</h3>
+                        <p class="text-sm text-base-content/70">Intelligente Analyse deiner Gesundheitsdaten mit personalisierten Empfehlungen.</p>
+                    </div>
+                </div>
+                
+                <div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="card-body items-center text-center p-6">
+                        <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-accent"></i>
+                        </div>
+                        <h3 class="card-title text-lg">Datenschutz</h3>
+                        <p class="text-sm text-base-content/70">Deine Gesundheitsdaten bleiben privat und sicher auf deinem Gerät.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <!-- Glass Overlay -->
-    <div class="hero-glass-overlay"></div>
-    
-    <!-- Main Content -->
-    <div class="hero-content relative z-20 min-h-screen flex flex-col justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Status Bar -->
-        <div class="hero-status-bar">
-            <div class="hero-status-indicator" id="hero-connection-status">
-                <div class="hero-status-dot"></div>
-                <span class="hero-status-text">Bereit</span>
-            </div>
-            <div class="hero-performance-badge" id="hero-performance">
-                <i data-lucide="zap" class="w-3 h-3"></i>
-                <span>Laden...</span>
-            </div>
-        </div>
-
-        <!-- Brand Identity Section -->
-        <div class="hero-brand-section">
-            <!-- Logo Container with Advanced Effects -->
-            <div class="hero-logo-wrapper" onclick="healthTracker?.showQuickAddModal?.()">
-                <div class="hero-logo-container">
-                    <div class="hero-logo-bg"></div>
-                    <i data-lucide="heart-pulse" class="hero-logo-icon"></i>
-                    <div class="hero-logo-pulse-1"></div>
-                    <div class="hero-logo-pulse-2"></div>
-                </div>
-                <div class="hero-logo-tooltip">
-                    Schnell-Eingabe öffnen
-                </div>
-            </div>
-            
-            <!-- Main Title with Typography Animation -->
-            <div class="hero-title-section">
-                <h1 class="hero-main-title">
-                    <span class="hero-title-primary">Health Tracker</span>
-                    <span class="hero-title-secondary">Professional</span>
-                </h1>
-                
-                <!-- Version Badge -->
-                <div class="hero-version-badge">
-                    <i data-lucide="sparkles" class="hero-sparkle-icon"></i>
-                    <span class="hero-version-text">PWA 2.1</span>
-                    <div class="hero-beta-badge">Beta</div>
-                </div>
-                
-                <!-- Description -->
-                <div class="hero-description">
-                    <p class="hero-description-text">
-                        Die <strong class="hero-highlight-primary">modernste</strong> Gesundheitsplattform für 
-                        <strong class="hero-highlight-secondary">professionelles</strong> Wellness-Management
-                    </p>
-                    
-                    <!-- Feature Tags -->
-                    <div class="hero-feature-tags">
-                        <span class="hero-tag hero-tag-ai">🧠 KI-Analytics</span>
-                        <span class="hero-tag hero-tag-offline">📱 Offline-First</span>
-                        <span class="hero-tag hero-tag-privacy">🔒 Privacy-First</span>
-                        <span class="hero-tag hero-tag-sync">⚡ Real-time</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dynamic Stats Dashboard -->
-        <div class="hero-stats-grid">
-            <!-- Goals Card -->
-            <div class="hero-stat-card hero-stat-goals" onclick="document.getElementById('progress-hub').scrollIntoView({behavior: 'smooth'})">
-                <div class="hero-stat-icon-wrapper">
-                    <i data-lucide="target" class="hero-stat-icon"></i>
-                    <div class="hero-stat-progress-ring">
-                        <svg class="hero-progress-svg" viewBox="0 0 32 32">
-                            <circle cx="16" cy="16" r="14" class="hero-progress-bg"/>
-                            <circle cx="16" cy="16" r="14" class="hero-progress-fill" id="hero-goals-progress"/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="hero-stat-content">
-                    <div class="hero-stat-title">Heutige Ziele</div>
-                    <div class="hero-stat-value" id="hero-goals-today">
-                        <span class="hero-loading-dots"></span>
-                    </div>
-                    <div class="hero-stat-desc">von 5 erreicht</div>
-                </div>
-            </div>
-            
-            <!-- Streak Card -->
-            <div class="hero-stat-card hero-stat-streak" onclick="healthTracker?.showStreakDetails?.()">
-                <div class="hero-stat-icon-wrapper">
-                    <i data-lucide="calendar-days" class="hero-stat-icon"></i>
-                    <div class="hero-streak-flame">🔥</div>
-                </div>
-                <div class="hero-stat-content">
-                    <div class="hero-stat-title">Streak</div>
-                    <div class="hero-stat-value" id="hero-current-streak">
-                        <span class="hero-loading-dots"></span>
-                    </div>
-                    <div class="hero-stat-desc">Tage in Folge</div>
-                </div>
-            </div>
-            
-            <!-- Improvement Card -->
-            <div class="hero-stat-card hero-stat-improvement" onclick="document.getElementById('analytics').scrollIntoView({behavior: 'smooth'})">
-                <div class="hero-stat-icon-wrapper">
-                    <i data-lucide="trending-up" class="hero-stat-icon"></i>
-                    <div class="hero-trend-arrow">
-                        <i data-lucide="arrow-up" class="hero-trend-icon"></i>
-                    </div>
-                </div>
-                <div class="hero-stat-content">
-                    <div class="hero-stat-title">Verbesserung</div>
-                    <div class="hero-stat-value" id="hero-improvement">
-                        <span class="hero-loading-dots"></span>
-                    </div>
-                    <div class="hero-stat-desc">diese Woche</div>
-                </div>
-            </div>
-            
-            <!-- Total Entries Card -->
-            <div class="hero-stat-card hero-stat-entries" onclick="healthTracker?.showDataUsage?.()">
-                <div class="hero-stat-icon-wrapper">
-                    <i data-lucide="database" class="hero-stat-icon"></i>
-                    <div class="hero-data-viz">
-                        <div class="hero-data-bar hero-bar-1"></div>
-                        <div class="hero-data-bar hero-bar-2"></div>
-                        <div class="hero-data-bar hero-bar-3"></div>
-                    </div>
-                </div>
-                <div class="hero-stat-content">
-                    <div class="hero-stat-title">Einträge</div>
-                    <div class="hero-stat-value" id="hero-total-entries">
-                        <span class="hero-loading-dots"></span>
-                    </div>
-                    <div class="hero-stat-desc">erfasst</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Action Center -->
-        <div class="hero-action-center">
-            <!-- Primary Actions -->
-            <div class="hero-primary-actions">
-                <button class="hero-cta-primary" onclick="healthTracker?.showQuickAddModal?.()">
-                    <div class="hero-cta-bg"></div>
-                    <i data-lucide="plus-circle" class="hero-cta-icon"></i>
-                    <span class="hero-cta-text">Daten erfassen</span>
-                    <div class="hero-cta-badge">Schnell</div>
-                </button>
-                
-                <button class="hero-cta-secondary" onclick="document.getElementById('progress-hub').scrollIntoView({behavior: 'smooth'})">
-                    <i data-lucide="bar-chart-3" class="hero-cta-icon"></i>
-                    <span class="hero-cta-text">Analytics</span>
-                </button>
-            </div>
-            
-            <!-- More Options -->
-            <div class="hero-more-menu">
-                <div class="dropdown dropdown-hover dropdown-top sm:dropdown-bottom">
-                    <div tabindex="0" role="button" class="hero-more-trigger">
-                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-                        <span class="hidden sm:inline">Mehr</span>
-                    </div>
-                    
-                    <ul tabindex="0" class="hero-dropdown-menu">
-                        <li class="hero-dropdown-header">Schnellzugriff</li>
-                        <li><a class="hero-dropdown-item" onclick="document.getElementById('edit-goals-btn').click()">
-                            <i data-lucide="flag" class="w-4 h-4 text-primary"></i>
-                            Ziele anpassen
-                        </a></li>
-                        <li><a class="hero-dropdown-item" onclick="healthTracker?.showThemeSelector?.()">
-                            <i data-lucide="palette" class="w-4 h-4 text-secondary"></i>
-                            Design
-                        </a></li>
-                        <li><a class="hero-dropdown-item" onclick="showInstallPrompt()">
-                            <i data-lucide="download" class="w-4 h-4 text-accent"></i>
-                            App installieren
-                        </a></li>
-                        
-                        <div class="hero-dropdown-divider"></div>
-                        
-                        <li class="hero-dropdown-header">Einstellungen</li>
-                        <li><a class="hero-dropdown-item" onclick="healthTracker?.showImportExport?.()">
-                            <i data-lucide="download-cloud" class="w-4 h-4 text-info"></i>
-                            Import/Export
-                        </a></li>
-                        <li><a class="hero-dropdown-item" onclick="healthTracker?.showDataPrivacy?.()">
-                            <i data-lucide="shield-check" class="w-4 h-4 text-warning"></i>
-                            Datenschutz
-                        </a></li>
-                        <li><a class="hero-dropdown-item" onclick="healthTracker?.showHelp?.()">
-                            <i data-lucide="help-circle" class="w-4 h-4 text-success"></i>
-                            Hilfe
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feature Showcase -->
-        <div class="hero-features-grid">
-            <div class="hero-feature-card hero-feature-offline" onclick="healthTracker?.showOfflineFeatures?.()">
-                <div class="hero-feature-icon-wrapper">
-                    <i data-lucide="wifi-off" class="hero-feature-icon"></i>
-                    <div class="hero-feature-glow"></div>
-                </div>
-                <div class="hero-feature-content">
-                    <h3 class="hero-feature-title">Offline-First</h3>
-                    <p class="hero-feature-description">
-                        Vollständige Funktionalität ohne Internet. Automatische Sync bei Verbindung.
-                    </p>
-                    <div class="hero-feature-status">Verfügbar</div>
-                </div>
-            </div>
-            
-            <div class="hero-feature-card hero-feature-ai" onclick="healthTracker?.showAIFeatures?.()">
-                <div class="hero-feature-icon-wrapper">
-                    <i data-lucide="brain" class="hero-feature-icon"></i>
-                    <div class="hero-feature-pulse-ring"></div>
-                </div>
-                <div class="hero-feature-content">
-                    <h3 class="hero-feature-title">KI-Analytics</h3>
-                    <p class="hero-feature-description">
-                        Intelligente Muster-Erkennung und personalisierte Empfehlungen.
-                    </p>
-                    <div class="hero-feature-status hero-status-beta">Beta</div>
-                </div>
-            </div>
-            
-            <div class="hero-feature-card hero-feature-privacy" onclick="healthTracker?.showDataPrivacy?.()">
-                <div class="hero-feature-icon-wrapper">
-                    <i data-lucide="shield-check" class="hero-feature-icon"></i>
-                    <div class="hero-feature-shield"></div>
-                </div>
-                <div class="hero-feature-content">
-                    <h3 class="hero-feature-title">Privacy-First</h3>
-                    <p class="hero-feature-description">
-                        Deine Gesundheitsdaten bleiben ausschließlich auf deinem Gerät.
-                    </p>
-                    <div class="hero-feature-status hero-status-verified">GDPR</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Enhanced Scroll Indicator -->
-        <div class="hero-scroll-indicator" onclick="document.getElementById('dashboard').scrollIntoView({behavior: 'smooth'})">
-            <div class="hero-scroll-text">Entdecke mehr</div>
-            <div class="hero-scroll-arrows">
-                <i data-lucide="chevron-down" class="hero-scroll-arrow-1"></i>
-                <i data-lucide="chevron-down" class="hero-scroll-arrow-2"></i>
-            </div>
-        </div>
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <i data-lucide="chevron-down" class="w-6 h-6 text-base-content/50"></i>
     </div>
 </section>
 
@@ -2423,7 +1605,7 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                 <div class="card-body p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="card-title text-xl flex items-center gap-2">
-                            <i data-lucide="calendar-days" class="w-5 h-5 text-warning"></i>
+                            <i data-lucide="flame" class="w-5 h-5 text-warning"></i>
                             Aktivitäts-Heatmap
                         </h3>
                         <div class="tooltip tooltip-left" data-tip="Zeigt deine Aktivitätsmuster über Zeit">

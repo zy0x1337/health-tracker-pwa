@@ -171,11 +171,25 @@ el.parentNode.replaceChild(clone, el);
 clone.addEventListener('click', async (e) => {
 e.preventDefault();
 if (!this.progressHub) return;
-if (typeof this.progressHub.showView === 'function') this.progressHub.showView(view);
-if (typeof this.progressHub.loadViewData === 'function') {
-try { await this.progressHub.loadViewData(); }
-catch (err) { console.error('❌ ProgressHub Tab-Ladefehler:', err); }
-}
+
+text
+  // 1) View setzen und richtige View-Methode aufrufen (ohne Fallback auf today)
+  this.progressHub.currentView = view;
+  if (typeof this.progressHub.showView === 'function') {
+    this.progressHub.showView(view);
+  } else {
+    // Direkter Aufruf der existierenden View-Methoden, falls showView minimal ist
+    if (view === 'today' && typeof this.progressHub.showTodayView === 'function') this.progressHub.showTodayView();
+    if (view === 'week' && typeof this.progressHub.showWeeklyView === 'function') this.progressHub.showWeeklyView();
+    if (view === 'goals' && typeof this.progressHub.showGoalsView === 'function') this.progressHub.showGoalsView();
+    if (view === 'achievements' && typeof this.progressHub.showAchievementsView === 'function') this.progressHub.showAchievementsView();
+  }
+
+  // 2) Daten für diese View laden (respektiert currentView)
+  if (typeof this.progressHub.loadViewData === 'function') {
+    try { await this.progressHub.loadViewData(); }
+    catch (err) { console.error('❌ ProgressHub Tab-Ladefehler:', err); }
+  }
 });
 };
 
@@ -2448,9 +2462,18 @@ async loadViewData() {
           .sort((a, b) => new Date(a.date) - new Date(b.date))
       : [];
 
-    // View bestimmen (IDs in HTML: #tab-today, #tab-week)
-    const view = this.currentView || 'today';
-    this.currentView = view;
+    // View bestimmen (IDs in HTML: #tab-today, #tab-week, #tab-goals, #tab-achievements)
+    const view = this.currentView || 'today'; // respektiere aktuelle Auswahl
+// Nur die passende View aktualisieren, kein Zwangs-Fallback
+if (view === 'today' && typeof this.showTodayView === 'function') {
+this.showTodayView();
+} else if (view === 'week' && typeof this.showWeeklyView === 'function') {
+this.showWeeklyView();
+} else if (view === 'goals' && typeof this.showGoalsView === 'function') {
+this.showGoalsView();
+} else if (view === 'achievements' && typeof this.showAchievementsView === 'function') {
+this.showAchievementsView();
+}
 
     // Inhalt rendern: vorhandene Methoden nutzen
     if (view === 'today' && typeof this.showTodayView === 'function') {
@@ -2493,25 +2516,27 @@ async loadViewData() {
     }
 
     /**
- * Show a specific Progress Hub view and toggle tab states
- */
+Show a specific Progress Hub view and toggle tab states
+*/
 showView(viewName) {
-  this.currentView = viewName;
+this.currentView = viewName;
 
-  const tabToday = document.getElementById('tab-today');
-  const tabWeek = document.getElementById('tab-week');
+// Tabs togglen
+const tabToday = document.getElementById('tab-today');
+const tabWeek = document.getElementById('tab-week');
+const tabGoals = document.getElementById('tab-goals');
+const tabAchievements = document.getElementById('tab-achievements');
 
-  if (tabToday) tabToday.classList.toggle('tab-active', viewName === 'today');
-  if (tabWeek) tabWeek.classList.toggle('tab-active', viewName === 'week');
+tabToday?.classList.toggle('tab-active', viewName === 'today');
+tabWeek?.classList.toggle('tab-active', viewName === 'week');
+tabGoals?.classList.toggle('tab-active', viewName === 'goals');
+tabAchievements?.classList.toggle('tab-active', viewName === 'achievements');
 
-  if (viewName === 'today' && typeof this.showTodayView === 'function') {
-    this.showTodayView();
-  } else if (viewName === 'week' && typeof this.showWeeklyView === 'function') {
-    this.showWeeklyView();
-  } else if (typeof this.showTodayView === 'function') {
-    this.currentView = 'today';
-    this.showTodayView();
-  }
+// Exakt gewünschte View rendern (kein Fallback auf today)
+if (viewName === 'today' && typeof this.showTodayView === 'function') return this.showTodayView();
+if (viewName === 'week' && typeof this.showWeeklyView === 'function') return this.showWeeklyView();
+if (viewName === 'goals' && typeof this.showGoalsView === 'function') return this.showGoalsView();
+if (viewName === 'achievements' && typeof this.showAchievementsView === 'function') return this.showAchievementsView();
 }
 
 /** Show today's overview with modern DaisyUI layout */

@@ -6,6 +6,9 @@
     <title>Health Tracker Pro - Dein persönlicher Gesundheits-Tracker</title>
     
     <!-- PWA Meta Tags -->
+    <meta name="app-version" content="2.1.0">
+    <meta name="app-build" content="2025.08.08">
+    <meta name="data-retention-default" content="365">
     <meta name="description" content="Verfolge deine Gesundheitsziele mit diesem modernen, professionellen Health Tracker. Offline-fähig und benutzerfreundlich.">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1362,6 +1365,83 @@ function fallbackShowSettings() {
         </form>
     </dialog>
 
+    <!-- Data Retention Modal -->
+<dialog id="data-retention-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">
+            <i data-lucide="clock" class="w-6 h-6 inline mr-2"></i>
+            Automatische Datenbereinigung
+        </h3>
+        
+        <div class="alert alert-info mb-4">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <div>
+                <strong>Datenbereinigung wurde ausgeführt</strong>
+                <p class="text-sm mt-1" id="retention-details">Alte Einträge wurden automatisch entfernt</p>
+            </div>
+        </div>
+
+        <div class="stats stats-vertical w-full mb-4">
+            <div class="stat">
+                <div class="stat-title">Entfernte Einträge</div>
+                <div class="stat-value text-sm" id="removed-entries">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Cutoff-Datum</div>
+                <div class="stat-value text-sm" id="cutoff-date">-</div>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn btn-primary" onclick="this.closest('.modal').close()">Verstanden</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Biometric Setup Modal -->
+<dialog id="biometric-setup-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">
+            <i data-lucide="fingerprint" class="w-6 h-6 inline mr-2"></i>
+            Biometrische Entsperrung einrichten
+        </h3>
+        
+        <div class="space-y-4">
+            <div class="alert alert-warning">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                <div>
+                    <strong>Sicherheitshinweis</strong>
+                    <p class="text-sm mt-1">Dein Gerät muss biometrische Authentifizierung unterstützen (Fingerabdruck, Face ID, etc.)</p>
+                </div>
+            </div>
+
+            <div class="steps steps-vertical lg:steps-horizontal w-full">
+                <div class="step step-primary" id="step-1">Berechtigung</div>
+                <div class="step" id="step-2">Registrierung</div>
+                <div class="step" id="step-3">Aktivierung</div>
+            </div>
+
+            <div id="biometric-status" class="text-center py-4">
+                <div class="loading loading-spinner loading-md text-primary"></div>
+                <p class="mt-2 text-sm text-base-content/70">Biometrische Fähigkeiten werden geprüft...</p>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn" onclick="this.closest('.modal').close()">Abbrechen</button>
+            <button class="btn btn-primary" id="setup-biometric-btn" onclick="healthTracker.setupBiometric()" disabled>
+                <i data-lucide="fingerprint" class="w-4 h-4 mr-2"></i>
+                Einrichten
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Settings Validation Toast Container -->
+<div id="settings-toast-container" class="toast toast-top toast-end z-50">
+    <!-- Toasts werden hier dynamisch eingefügt -->
+</div>
+
     <!-- Notification Permission Modal -->
     <dialog id="notification-permission-modal" class="modal">
         <div class="modal-box">
@@ -1596,8 +1676,86 @@ function fallbackShowSettings() {
     </div>
 </footer>
 
+<!-- Startup Loading Indicator -->
+<div id="startup-loader" class="fixed inset-0 bg-base-100 z-50 flex items-center justify-center">
+    <div class="text-center">
+        <div class="loading loading-spinner loading-lg text-primary mb-4"></div>
+        <p class="text-base-content/70">Einstellungen werden initialisiert...</p>
+    </div>
+</div>
+
+<!-- Hidden Settings Initialization Tracker -->
+<div id="settings-init-status" class="hidden" 
+     data-theme-loaded="false" 
+     data-retention-checked="false" 
+     data-permissions-checked="false">
+</div>
+
     <!-- JavaScript -->
     <script src="/js/app.js"></script>
+    <script>
+// === STARTUP INITIALIZATION ===
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 App startup initialization');
+    
+    // Startup Loader anzeigen
+    const loader = document.getElementById('startup-loader');
+    const initStatus = document.getElementById('settings-init-status');
+    
+    // Theme sofort laden (vor Health Tracker Init)
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    initStatus.setAttribute('data-theme-loaded', 'true');
+    
+    // Retention Check Status setzen
+    const lastCheck = localStorage.getItem('lastRetentionCheck');
+    const today = new Date().toDateString();
+    initStatus.setAttribute('data-retention-checked', lastCheck === today);
+    
+    // Permission Status prüfen
+    if ('Notification' in window) {
+        initStatus.setAttribute('data-permissions-checked', Notification.permission !== 'default');
+    }
+    
+    // Startup Loader nach kurzer Zeit ausblenden
+    setTimeout(() => {
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => loader.remove(), 300);
+        }
+    }, 1000);
+});
+
+// === SETTINGS VALIDATION HELPER ===
+function validateSettingsInput(inputElement, validationRules) {
+    const value = inputElement.value;
+    const isValid = validationRules.test ? validationRules.test(value) : true;
+    
+    // Visual Feedback
+    if (isValid) {
+        inputElement.classList.remove('input-error');
+        inputElement.classList.add('input-success');
+    } else {
+        inputElement.classList.remove('input-success');
+        inputElement.classList.add('input-error');
+    }
+    
+    return isValid;
+}
+
+// === ERROR BOUNDARY FÜR EINSTELLUNGEN ===
+window.addEventListener('error', function(e) {
+    if (e.error && e.error.message.includes('settings')) {
+        console.error('⚠️ Settings Error:', e.error);
+        
+        // Fallback Settings anwenden
+        if (typeof healthTracker !== 'undefined' && healthTracker.applyFallbackSettings) {
+            healthTracker.applyFallbackSettings();
+        }
+    }
+});
+</script>
     <script>
         // Initialize Lucide Icons
         if (typeof lucide !== 'undefined') {

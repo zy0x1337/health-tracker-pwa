@@ -848,6 +848,131 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
         overflow-y: auto;
     }
 }
+
+/* === ENHANCED TOAST STYLES === */
+#toast-container {
+    position: fixed !important;
+    bottom: 1rem !important;
+    right: 1rem !important;
+    z-index: 60 !important;
+    pointer-events: none;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overflow-x: visible;
+}
+
+#toast-container .alert {
+    pointer-events: auto;
+    margin-bottom: 0.5rem;
+    position: relative;
+    backdrop-filter: blur(8px);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress Bar Animation */
+@keyframes progress-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Toast Slide Animations */
+.toast-slide-in {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+.toast-slide-out {
+    animation: slideOutToRight 0.3s ease-in;
+}
+
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Toast Hover Effects */
+#toast-container .alert:hover {
+    transform: scale(1.02);
+    box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.15), 0 10px 15px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    #toast-container {
+        left: 1rem;
+        right: 1rem;
+        bottom: calc(70px + 1rem); /* Above mobile navigation */
+    }
+    
+    #toast-container .alert {
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    #toast-container .alert {
+        backdrop-filter: blur(12px);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    #toast-container .alert {
+        border-width: 2px;
+        box-shadow: none;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    #toast-container .alert,
+    .toast-slide-in,
+    .toast-slide-out {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    @keyframes progress-shrink {
+        from { width: 100%; }
+        to { width: 100%; }
+    }
+}
+
+/* Focus management for accessibility */
+#toast-container .alert:focus-within {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Stack behavior for multiple toasts */
+#toast-container .alert:nth-last-child(n+4) {
+    opacity: 0.8;
+    transform: scale(0.95);
+}
+
+#toast-container .alert:nth-last-child(n+6) {
+    display: none;
+}
     </style>
 </head>
 
@@ -1979,9 +2104,14 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
     </div>
 </dialog>
 
-<!-- Settings Validation Toast Container -->
-<div id="settings-toast-container" class="toast toast-top toast-end z-50">
+<!-- Enhanced Toast/Notification Container - Unten rechts -->
+<div id="toast-container" class="toast toast-end toast-bottom z-50 space-y-2">
     <!-- Toasts werden hier dynamisch eingefügt -->
+</div>
+
+<!-- Settings Validation Toast Container -->
+<div id="settings-toast-container" class="toast toast-end toast-bottom z-50">
+    <!-- Settings-spezifische Toasts -->
 </div>
 
     <!-- Notification Permission Modal -->

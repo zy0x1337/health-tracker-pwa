@@ -2192,26 +2192,232 @@ calculateWeeklyAverages(weekData) {
     /**
      * Show toast notification
      */
-    showToast(message, type = 'info', duration = 4000) {
+    /**
+ * Erweiterte Toast-Funktion für Notifikationen unten rechts
+ */
+showToast(message, type = 'info', duration = 4000, options = {}) {
+    try {
+        // Toast Container finden oder erstellen
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast toast-end toast-bottom z-50 space-y-2';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Toast Element erstellen
         const toast = document.createElement('div');
-        const bgClass = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            warning: 'bg-yellow-500',
-            info: 'bg-blue-500'
-        }[type] || 'bg-gray-500';
+        const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        toast.id = toastId;
         
-        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 transform ${bgClass}`;
-        toast.textContent = message;
+        // Type-spezifische Klassen und Icons
+        const typeConfig = {
+            success: {
+                alertClass: 'alert-success',
+                icon: 'check-circle',
+                bgClass: 'bg-success',
+                textClass: 'text-success-content'
+            },
+            error: {
+                alertClass: 'alert-error', 
+                icon: 'x-circle',
+                bgClass: 'bg-error',
+                textClass: 'text-error-content'
+            },
+            warning: {
+                alertClass: 'alert-warning',
+                icon: 'alert-triangle', 
+                bgClass: 'bg-warning',
+                textClass: 'text-warning-content'
+            },
+            info: {
+                alertClass: 'alert-info',
+                icon: 'info',
+                bgClass: 'bg-info', 
+                textClass: 'text-info-content'
+            }
+        };
+
+        const config = typeConfig[type] || typeConfig.info;
         
-        document.body.appendChild(toast);
+        // Enhanced Toast HTML
+        toast.className = `alert ${config.alertClass} shadow-lg backdrop-blur-sm border border-base-300/50 transform transition-all duration-300 ease-in-out translate-x-full opacity-0 min-w-80 max-w-96`;
         
-        // Auto remove
-        setTimeout(() => {
-            toast.style.transform = 'translateY(-100%)';
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
+        toast.innerHTML = `
+            <div class="flex items-start gap-3 w-full">
+                <i data-lucide="${config.icon}" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm leading-tight">${message}</div>
+                    ${options.subtitle ? `<div class="text-xs opacity-80 mt-1">${options.subtitle}</div>` : ''}
+                </div>
+                ${options.closable !== false ? `
+                    <button class="btn btn-ghost btn-xs btn-circle ml-2 opacity-70 hover:opacity-100" onclick="this.closest('.alert').remove()">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                ` : ''}
+            </div>
+            ${options.progress !== false && duration > 0 ? `
+                <div class="absolute bottom-0 left-0 h-1 bg-base-content/20 w-full rounded-b-lg overflow-hidden">
+                    <div class="h-full ${config.bgClass} opacity-50 transition-all duration-${duration} ease-linear" 
+                         style="width: 100%; animation: progress-shrink ${duration}ms linear;"></div>
+                </div>
+            ` : ''}
+        `;
+
+        // Toast zum Container hinzufügen
+        toastContainer.appendChild(toast);
+
+        // Icons initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Slide-in Animation
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            toast.classList.add('translate-x-0', 'opacity-100');
+        });
+
+        // Auto-remove nach Duration
+        let autoRemoveTimer;
+        if (duration > 0) {
+            autoRemoveTimer = setTimeout(() => {
+                this.removeToast(toastId);
+            }, duration);
+        }
+
+        // Click Handler für manuelle Entfernung
+        toast.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) {
+                this.removeToast(toastId);
+                if (autoRemoveTimer) clearTimeout(autoRemoveTimer);
+            }
+        });
+
+        // Hover: Animation pausieren
+        if (duration > 0) {
+            toast.addEventListener('mouseenter', () => {
+                const progressBar = toast.querySelector('[style*="animation"]');
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'paused';
+                }
+                if (autoRemoveTimer) {
+                    clearTimeout(autoRemoveTimer);
+                }
+            });
+
+            toast.addEventListener('mouseleave', () => {
+                const progressBar = toast.querySelector('[style*="animation"]');
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'running';
+                }
+                const remainingTime = duration; // Vereinfacht, könnte berechnet werden
+                autoRemoveTimer = setTimeout(() => {
+                    this.removeToast(toastId);
+                }, remainingTime);
+            });
+        }
+
+        // Sound-Feedback (optional)
+        if (options.sound !== false && localStorage.getItem('soundFeedback') === 'true') {
+            this.playNotificationSound(type);
+        }
+
+        // Haptic Feedback
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            const vibrationPattern = {
+                success: [50, 30, 50],
+                error: [100, 50, 100],
+                warning: [80],
+                info: [30]
+            };
+            navigator.vibrate(vibrationPattern[type] || [30]);
+        }
+
+        // Max Toasts Limit (verhindert Spam)
+        this.limitToastCount();
+
+        console.log(`📢 Toast angezeigt: ${type} - ${message}`);
+        return toastId;
+
+    } catch (error) {
+        console.error('❌ Toast Error:', error);
+        // Fallback: Nativer Alert
+        alert(`${type.toUpperCase()}: ${message}`);
     }
+}
+
+/**
+ * Toast entfernen mit Animation
+ */
+removeToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+        // Slide-out Animation
+        toast.classList.add('translate-x-full', 'opacity-0');
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }
+}
+
+/**
+ * Begrenze Anzahl der gleichzeitigen Toasts
+ */
+limitToastCount(maxToasts = 5) {
+    const container = document.getElementById('toast-container');
+    if (container) {
+        const toasts = container.querySelectorAll('.alert');
+        if (toasts.length > maxToasts) {
+            // Älteste Toasts entfernen
+            for (let i = 0; i < toasts.length - maxToasts; i++) {
+                this.removeToast(toasts[i].id);
+            }
+        }
+    }
+}
+
+/**
+ * Notification Sound abspielen
+ */
+playNotificationSound(type) {
+    try {
+        // Web Audio API Context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const frequencies = {
+            success: [523, 659, 784], // C-E-G Major Chord
+            error: [220, 277, 330],   // A-C#-E Minor Chord  
+            warning: [440, 554],      // A-C# 
+            info: [440]               // A
+        };
+
+        const freqs = frequencies[type] || frequencies.info;
+        
+        freqs.forEach((freq, index) => {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime + index * 0.1);
+            oscillator.stop(audioContext.currentTime + 0.3 + index * 0.1);
+        });
+        
+    } catch (error) {
+        console.warn('Sound playback not supported:', error);
+    }
+}
     
     /**
      * Populate goals form with current values
@@ -5511,6 +5717,83 @@ getMetricRecommendation(metric, score) {
     };
     
     return recommendations[metric] || null;
+}
+
+/**
+ * Enhanced Notification Integration
+ */
+async initializeNotifications() {
+    try {
+        if (!this.notificationManager) {
+            this.notificationManager = new SmartNotificationManager(this);
+        }
+        
+        // Toast-Container sicherstellen
+        this.ensureToastContainer();
+        
+        // Notification permission prüfen
+        await this.checkNotificationPermission();
+        
+        console.log('✅ Notifications initialisiert');
+        
+    } catch (error) {
+        console.error('❌ Notification Init Fehler:', error);
+        this.showToast('⚠️ Benachrichtigungen konnten nicht initialisiert werden', 'warning');
+    }
+}
+
+/**
+ * Toast Container sicherstellen
+ */
+ensureToastContainer() {
+    if (!document.getElementById('toast-container')) {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast toast-end toast-bottom z-50 space-y-2';
+        document.body.appendChild(container);
+        
+        console.log('📢 Toast Container erstellt');
+    }
+}
+
+/**
+ * Erweiterte Toast-Wrapper für verschiedene Use Cases
+ */
+showSuccessToast(message, subtitle = null, duration = 4000) {
+    return this.showToast(message, 'success', duration, { subtitle });
+}
+
+showErrorToast(message, subtitle = null, duration = 6000) {
+    return this.showToast(message, 'error', duration, { subtitle, sound: true });
+}
+
+showWarningToast(message, subtitle = null, duration = 5000) {
+    return this.showToast(message, 'warning', duration, { subtitle });
+}
+
+showInfoToast(message, subtitle = null, duration = 3000) {
+    return this.showToast(message, 'info', duration, { subtitle });
+}
+
+/**
+ * Persistent Toast (manuelles Schließen erforderlich)
+ */
+showPersistentToast(message, type = 'info', options = {}) {
+    return this.showToast(message, type, 0, { 
+        ...options, 
+        closable: true,
+        progress: false 
+    });
+}
+
+/**
+ * Quick Toast für kurze Bestätigungen
+ */
+showQuickToast(message, type = 'success') {
+    return this.showToast(message, type, 2000, { 
+        closable: false,
+        sound: false 
+    });
 }
 }
 

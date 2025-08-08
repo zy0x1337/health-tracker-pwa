@@ -4078,6 +4078,174 @@ class PerformanceEngine {
         this.startRealTimeMonitoring();
     }
 
+    // === ADVANCED SERVICE WORKER INTEGRATION ===
+async initAdvancedServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            console.log('🔧 Advanced Service Worker wird registriert');
+            
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/',
+                updateViaCache: 'none'
+            });
+            
+            // Service Worker Update Handling
+            registration.addEventListener('updatefound', () => {
+                console.log('🔄 Service Worker Update gefunden');
+                this.handleServiceWorkerUpdate(registration);
+            });
+            
+            // Background Sync Registration
+            if ('sync' in registration) {
+                this.setupBackgroundSync(registration);
+            }
+            
+            // Push Notifications Setup
+            if ('pushManager' in registration) {
+                await this.setupAdvancedPushNotifications(registration);
+            }
+            
+            // Service Worker Communication
+            this.setupServiceWorkerCommunication();
+            
+            // Periodic Background Sync (if supported)
+            if ('periodicSync' in registration) {
+                await this.setupPeriodicSync(registration);
+            }
+            
+            console.log('✅ Advanced Service Worker erfolgreich initialisiert');
+            
+        } catch (error) {
+            console.error('❌ Service Worker Registrierung fehlgeschlagen:', error);
+        }
+    } else {
+        console.warn('⚠️ Service Worker nicht unterstützt');
+    }
+}
+
+setupBackgroundSync(registration) {
+    // Queue data for background sync when offline
+    window.addEventListener('online', () => {
+        console.log('🌐 Verbindung wiederhergestellt - Background Sync wird ausgelöst');
+        registration.sync.register('health-data-sync');
+        registration.sync.register('analytics-sync');
+        registration.sync.register('goals-sync');
+    });
+    
+    // Register sync when data changes
+    this.onDataChange = (data) => {
+        if (!navigator.onLine) {
+            console.log('📴 Offline - Daten für Background Sync vorgemerkt');
+            this.queueForBackgroundSync(data);
+        }
+    };
+}
+
+async setupAdvancedPushNotifications(registration) {
+    try {
+        console.log('🔔 Advanced Push Notifications werden eingerichtet');
+        
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            // Subscribe to push notifications with advanced options
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.getVAPIDPublicKey()
+            });
+            
+            // Send subscription to server
+            await this.sendSubscriptionToServer(subscription);
+            
+            // Setup intelligent notification scheduling
+            this.setupIntelligentNotifications(registration);
+            
+            console.log('✅ Push Notifications erfolgreich eingerichtet');
+            
+        } else {
+            console.warn('⚠️ Push Notifications Berechtigung verweigert');
+        }
+        
+    } catch (error) {
+        console.error('❌ Push Notifications Setup fehlgeschlagen:', error);
+    }
+}
+
+setupIntelligentNotifications(registration) {
+    // Context-aware notifications based on user behavior
+    const scheduleIntelligentReminder = (type, context) => {
+        const now = new Date();
+        const optimalTime = this.calculateOptimalNotificationTime(type, context);
+        
+        if (optimalTime > now) {
+            setTimeout(() => {
+                this.sendContextualNotification(type, context);
+            }, optimalTime - now);
+        }
+    };
+    
+    // Schedule based on user patterns
+    const userPatterns = this.analyzeUserBehavior();
+    
+    if (userPatterns.waterIntakePattern) {
+        scheduleIntelligentReminder('water', userPatterns.waterIntakePattern);
+    }
+    
+    if (userPatterns.exercisePattern) {
+        scheduleIntelligentReminder('exercise', userPatterns.exercisePattern);
+    }
+}
+
+setupServiceWorkerCommunication() {
+    // Listen for messages from Service Worker
+    navigator.serviceWorker.addEventListener('message', event => {
+        const { type, data } = event.data;
+        
+        switch (type) {
+            case 'SYNC_COMPLETE':
+                console.log('✅ Background Sync abgeschlossen:', data);
+                this.showToast(`📡 ${data.synced} Einträge synchronisiert`, 'success');
+                break;
+                
+            case 'PERFORMANCE_METRICS':
+                if (this.performanceEngine) {
+                    this.performanceEngine.updateServiceWorkerMetrics(data.metrics);
+                }
+                break;
+                
+            case 'SELF_HEALING_COMPLETE':
+                console.log('🔧 Service Worker Self-Healing abgeschlossen');
+                this.showToast('🔧 App automatisch repariert', 'info');
+                break;
+                
+            default:
+                console.log('SW Message:', type, data);
+        }
+    });
+    
+    // Send messages to Service Worker
+    this.sendMessageToSW = (message) => {
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage(message);
+        }
+    };
+}
+
+async setupPeriodicSync(registration) {
+    try {
+        // Register periodic background sync (Chrome 80+)
+        await registration.periodicSync.register('health-data-backup', {
+            minInterval: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        
+        console.log('🔄 Periodic Background Sync registriert');
+        
+    } catch (error) {
+        console.warn('⚠️ Periodic Sync nicht unterstützt:', error);
+    }
+}
+
     // === CORE WEB VITALS MONITORING ===
     initCoreWebVitals() {
         // Largest Contentful Paint (LCP)

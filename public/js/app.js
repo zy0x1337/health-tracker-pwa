@@ -2546,8 +2546,6 @@ async loadViewData() {
   }
   
   try {
-    // Show loading state
-    this.showLoading(true);
     
     // Load fresh data from HealthTracker
     this.allData = await this.healthTracker.getAllHealthData();
@@ -2576,53 +2574,9 @@ async loadViewData() {
         this.showTodayView();
     }
     
-    // Hide loading state
-    this.showLoading(false);
-    
   } catch (error) {
     console.error('❌ ProgressHub loadViewData error:', error);
-    this.showError('Fehler beim Laden der Fortschrittsdaten');
-    this.showLoading(false);
   }
-}
-
-/**
- * Show loading state for ProgressHub
- */
-showLoading(message = 'Daten werden geladen...') {
-    const progressContent = document.getElementById('progress-content');
-    if (progressContent) {
-        progressContent.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 text-center">
-                <div class="loading loading-spinner loading-lg text-primary mb-4"></div>
-                <p class="text-base-content/70">${message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Show error state for ProgressHub
- */
-showError(message = 'Fehler beim Laden der Daten', error = null) {
-    console.error('❌ ProgressHub Error:', message, error);
-    const progressContent = document.getElementById('progress-content');
-    if (progressContent) {
-        progressContent.innerHTML = `
-            <div class="alert alert-error">
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                    <h3 class="font-bold">Fehler!</h3>
-                    <div class="text-xs">${message}</div>
-                </div>
-                <button class="btn btn-sm btn-ghost" onclick="window.location.reload()">
-                    🔄 Neu laden
-                </button>
-            </div>
-        `;
-    }
 }
 
     /**

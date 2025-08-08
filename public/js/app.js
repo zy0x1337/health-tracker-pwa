@@ -86,35 +86,79 @@ class HealthTracker {
 
 /** * Navbar-spezifische Funktionen */
 
-// Quick Add Modal anzeigen
+/**
+ * Quick Add Modal
+ */
 showQuickAddModal() {
     const modal = document.createElement('div');
-    modal.className = 'modal modal-open';
+    modal.className = 'modal modal-open quick-add-modal';
     modal.innerHTML = `
-        <div class="modal-box">
+        <div class="modal-box max-w-md">
             <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
                 <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
                 Schnell hinzufügen
             </h3>
+            
+            <!-- Quick Add Grid -->
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('steps').focus();">
-                    <i data-lucide="footprints" class="w-4 h-4"></i>
-                    Schritte
+                <!-- Steps Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-primary transition-all duration-200" 
+                        onclick="healthTracker?.showQuickStepsInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="footprints" class="w-6 h-6 text-primary"></i>
+                    <span class="text-sm font-medium">Schritte</span>
+                    <span class="text-xs opacity-70">Tagesziel: ${this.goals.stepsGoal || 10000}</span>
                 </button>
-                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('waterIntake').focus();">
-                    <i data-lucide="droplets" class="w-4 h-4"></i>
-                    Wasser
+                
+                <!-- Water Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-info transition-all duration-200" 
+                        onclick="healthTracker?.showQuickWaterInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="droplets" class="w-6 h-6 text-info"></i>
+                    <span class="text-sm font-medium">Wasser</span>
+                    <span class="text-xs opacity-70">Ziel: ${this.goals.waterGoal || 2.0}L</span>
                 </button>
-                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('weight').focus();">
-                    <i data-lucide="scale" class="w-4 h-4"></i>
-                    Gewicht
+                
+                <!-- Weight Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-secondary transition-all duration-200" 
+                        onclick="healthTracker?.showQuickWeightInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="scale" class="w-6 h-6 text-secondary"></i>
+                    <span class="text-sm font-medium">Gewicht</span>
+                    <span class="text-xs opacity-70">Aktuelle Eingabe</span>
                 </button>
-                <button class="btn btn-outline gap-2" onclick="this.closest('.modal').remove(); document.getElementById('sleepHours').focus();">
-                    <i data-lucide="moon" class="w-4 h-4"></i>
-                    Schlaf
+                
+                <!-- Sleep Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-accent transition-all duration-200" 
+                        onclick="healthTracker?.showQuickSleepInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="moon" class="w-6 h-6 text-accent"></i>
+                    <span class="text-sm font-medium">Schlaf</span>
+                    <span class="text-xs opacity-70">Ziel: ${this.goals.sleepGoal || 8}h</span>
+                </button>
+                
+                <!-- Mood Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-warning transition-all duration-200" 
+                        onclick="healthTracker?.showQuickMoodInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="smile" class="w-6 h-6 text-warning"></i>
+                    <span class="text-sm font-medium">Stimmung</span>
+                    <span class="text-xs opacity-70">Wie fühlst du dich?</span>
+                </button>
+                
+                <!-- Notes Quick Add -->
+                <button class="btn btn-outline gap-2 h-20 flex-col hover:btn-success transition-all duration-200" 
+                        onclick="healthTracker?.showQuickNotesInput?.(); this.closest('.modal').remove();">
+                    <i data-lucide="edit-3" class="w-6 h-6 text-success"></i>
+                    <span class="text-sm font-medium">Notiz</span>
+                    <span class="text-xs opacity-70">Schnelle Eingabe</span>
                 </button>
             </div>
-            <div class="modal-action">
+            
+            <!-- Alternative: Vollständiges Formular -->
+            <div class="divider text-xs">oder</div>
+            <button class="btn btn-primary w-full gap-2" 
+                    onclick="healthTracker?.scrollToHealthForm?.(); this.closest('.modal').remove();">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                Vollständiges Formular öffnen
+            </button>
+            
+            <div class="modal-action mt-4">
                 <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">
                     Schließen
                 </button>
@@ -122,11 +166,482 @@ showQuickAddModal() {
         </div>
         <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
     `;
+    
     document.body.appendChild(modal);
     
-    // Lucide Icons neu initialisieren
+    // Icons initialisieren
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+    
+    // Haptic Feedback
+    if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+        navigator.vibrate(10);
+    }
+}
+
+/**
+ * Quick Steps Input Modal
+ */
+showQuickStepsInput() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="footprints" class="w-5 h-5 text-primary"></i>
+                Schritte hinzufügen
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Anzahl Schritte</span>
+                    <span class="label-text-alt">Ziel: ${this.goals.stepsGoal || 10000}</span>
+                </label>
+                <input type="number" id="quick-steps" class="input input-bordered input-primary" 
+                       placeholder="z.B. 5000" min="0" max="100000" step="100" autofocus>
+                <div class="label">
+                    <span class="label-text-alt text-info">Tipp: Bereits vorhandene Schritte werden addiert</span>
+                </div>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-steps').value = 1000">1.000</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-steps').value = 2500">2.500</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-steps').value = 5000">5.000</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-steps').value = 10000">10.000</button>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-primary" onclick="healthTracker?.saveQuickData?.('steps', document.getElementById('quick-steps').value); this.closest('.modal').remove();">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Quick Water Input Modal
+ */
+showQuickWaterInput() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="droplets" class="w-5 h-5 text-info"></i>
+                Wasser hinzufügen
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Wassermenge in Litern</span>
+                    <span class="label-text-alt">Ziel: ${this.goals.waterGoal || 2.0}L</span>
+                </label>
+                <input type="number" id="quick-water" class="input input-bordered input-info" 
+                       placeholder="z.B. 0.3" min="0" max="5" step="0.1" autofocus>
+                <div class="label">
+                    <span class="label-text-alt text-info">Wird zur heutigen Gesamtmenge addiert</span>
+                </div>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-water').value = 0.2">Glas (0.2L)</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-water').value = 0.33">Flasche (0.33L)</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-water').value = 0.5">Groß (0.5L)</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-water').value = 1.0">Liter (1.0L)</button>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-info" onclick="healthTracker?.saveQuickData?.('water', document.getElementById('quick-water').value); this.closest('.modal').remove();">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Quick Weight Input Modal
+ */
+showQuickWeightInput() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="scale" class="w-5 h-5 text-secondary"></i>
+                Gewicht eingeben
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Gewicht in kg</span>
+                    <span class="label-text-alt">${this.goals.weightGoal ? `Ziel: ${this.goals.weightGoal}kg` : 'Aktuelles Gewicht'}</span>
+                </label>
+                <input type="number" id="quick-weight" class="input input-bordered input-secondary" 
+                       placeholder="z.B. 70.5" min="30" max="300" step="0.1" autofocus>
+                <div class="label">
+                    <span class="label-text-alt text-info">Überschreibt das heutige Gewicht</span>
+                </div>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-secondary" onclick="healthTracker?.saveQuickData?.('weight', document.getElementById('quick-weight').value); this.closest('.modal').remove();">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    Speichern
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Quick Sleep Input Modal
+ */
+showQuickSleepInput() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="moon" class="w-5 h-5 text-accent"></i>
+                Schlafzeit hinzufügen
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Schlafstunden</span>
+                    <span class="label-text-alt">Ziel: ${this.goals.sleepGoal || 8}h</span>
+                </label>
+                <input type="number" id="quick-sleep" class="input input-bordered input-accent" 
+                       placeholder="z.B. 7.5" min="0" max="24" step="0.5" autofocus>
+                <div class="label">
+                    <span class="label-text-alt text-info">Wird zur heutigen Schlafzeit addiert</span>
+                </div>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-sleep').value = 0.5">Powernap</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-sleep').value = 1.5">Kurz (1.5h)</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-sleep').value = 8">Vollschlaf (8h)</button>
+                <button class="btn btn-xs btn-outline" onclick="document.getElementById('quick-sleep').value = 9">Lang (9h)</button>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-accent" onclick="healthTracker?.saveQuickData?.('sleep', document.getElementById('quick-sleep').value); this.closest('.modal').remove();">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Quick Mood Input Modal
+ */
+showQuickMoodInput() {
+    const moodOptions = [
+        { value: 'excellent', label: 'Ausgezeichnet', emoji: '😄', color: 'btn-success' },
+        { value: 'good', label: 'Gut', emoji: '😊', color: 'btn-info' },
+        { value: 'neutral', label: 'Neutral', emoji: '😐', color: 'btn-warning' },
+        { value: 'bad', label: 'Schlecht', emoji: '😔', color: 'btn-error' },
+        { value: 'terrible', label: 'Furchtbar', emoji: '😢', color: 'btn-error' }
+    ];
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="smile" class="w-5 h-5 text-warning"></i>
+                Stimmung eingeben
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Wie fühlst du dich heute?</span>
+                </label>
+                
+                <div class="grid grid-cols-1 gap-2 mt-2">
+                    ${moodOptions.map(mood => `
+                        <button class="btn btn-outline ${mood.color} justify-start gap-3 h-14" 
+                                onclick="healthTracker?.saveQuickData?.('mood', '${mood.value}'); this.closest('.modal').remove();">
+                            <span class="text-2xl">${mood.emoji}</span>
+                            <div class="text-left">
+                                <div class="font-semibold">${mood.label}</div>
+                            </div>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Quick Notes Input Modal
+ */
+showQuickNotesInput() {
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-md">
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-5 h-5 text-success"></i>
+                Schnelle Notiz
+            </h3>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Notiz für heute</span>
+                </label>
+                <textarea id="quick-notes" class="textarea textarea-bordered textarea-success h-32" 
+                          placeholder="Was möchtest du festhalten?" autofocus></textarea>
+                <div class="label">
+                    <span class="label-text-alt">Max. 500 Zeichen</span>
+                    <span class="label-text-alt" id="note-counter">0/500</span>
+                </div>
+            </div>
+            
+            <!-- Quick Templates -->
+            <div class="form-control mt-3">
+                <label class="label">
+                    <span class="label-text-alt">Schnellvorlagen:</span>
+                </label>
+                <div class="flex flex-wrap gap-1">
+                    <button class="btn btn-xs btn-ghost" onclick="document.getElementById('quick-notes').value += 'Guter Tag! '; updateNoteCounter();">👍 Guter Tag</button>
+                    <button class="btn btn-xs btn-ghost" onclick="document.getElementById('quick-notes').value += 'Training absolviert. '; updateNoteCounter();">💪 Training</button>
+                    <button class="btn btn-xs btn-ghost" onclick="document.getElementById('quick-notes').value += 'Gesund gegessen. '; updateNoteCounter();">🥗 Gesunde Ernährung</button>
+                    <button class="btn btn-xs btn-ghost" onclick="document.getElementById('quick-notes').value += 'Früh schlafen gegangen. '; updateNoteCounter();">😴 Früh geschlafen</button>
+                </div>
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Abbrechen</button>
+                <button class="btn btn-success" onclick="healthTracker?.saveQuickData?.('notes', document.getElementById('quick-notes').value); this.closest('.modal').remove();">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    Speichern
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        
+        <script>
+            // Note counter
+            const notesTextarea = document.getElementById('quick-notes');
+            const noteCounter = document.getElementById('note-counter');
+            
+            function updateNoteCounter() {
+                const length = notesTextarea.value.length;
+                noteCounter.textContent = length + '/500';
+                if (length > 500) {
+                    noteCounter.classList.add('text-error');
+                    notesTextarea.value = notesTextarea.value.substring(0, 500);
+                } else {
+                    noteCounter.classList.remove('text-error');
+                }
+            }
+            
+            notesTextarea.addEventListener('input', updateNoteCounter);
+        </script>
+    `;
+    
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Scroll zum Gesundheitsformular
+ */
+scrollToHealthForm() {
+    const healthForm = document.getElementById('health-form');
+    if (healthForm) {
+        healthForm.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+        
+        // Fokus auf erstes leeres Feld setzen
+        const inputs = healthForm.querySelectorAll('input:not([readonly]), select, textarea');
+        for (const input of inputs) {
+            if (!input.value || input.value.trim() === '') {
+                setTimeout(() => input.focus(), 500);
+                break;
+            }
+        }
+    }
+}
+
+/**
+ * Speichere Quick Add Daten
+ */
+async saveQuickData(type, value) {
+    if (!value || value.trim() === '') {
+        this.showToast('❌ Bitte einen Wert eingeben', 'error');
+        return;
+    }
+    
+    try {
+        this.setLoadingState(true);
+        
+        // Aktuelle Daten für heute laden
+        const allData = await this.getAllHealthData();
+        const todayData = this.getTodayData(allData);
+        
+        // Heute-Datum
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' + 
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(today.getDate()).padStart(2, '0');
+        
+        // Neue Daten basierend auf Typ erstellen
+        const quickData = {
+            userId: this.userId,
+            date: todayStr,
+            weight: null,
+            steps: null,
+            waterIntake: null,
+            sleepHours: null,
+            mood: null,
+            notes: null,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Type-spezifische Verarbeitung
+        switch(type) {
+            case 'steps':
+                const stepsValue = parseInt(value);
+                if (stepsValue <= 0 || stepsValue > 100000) {
+                    this.showToast('❌ Ungültige Schrittzahl', 'error');
+                    return;
+                }
+                quickData.steps = (todayData.steps || 0) + stepsValue;
+                this.showToast(`🚶‍♂️ ${stepsValue.toLocaleString()} Schritte hinzugefügt`, 'success');
+                break;
+                
+            case 'water':
+                const waterValue = parseFloat(value);
+                if (waterValue <= 0 || waterValue > 5) {
+                    this.showToast('❌ Ungültige Wassermenge', 'error');
+                    return;
+                }
+                quickData.waterIntake = Math.round(((todayData.waterIntake || 0) + waterValue) * 10) / 10;
+                this.showToast(`💧 ${waterValue}L Wasser hinzugefügt`, 'success');
+                break;
+                
+            case 'weight':
+                const weightValue = parseFloat(value);
+                if (weightValue < 30 || weightValue > 300) {
+                    this.showToast('❌ Ungültiges Gewicht (30-300kg)', 'error');
+                    return;
+                }
+                quickData.weight = weightValue;
+                this.showToast(`⚖️ Gewicht auf ${weightValue}kg gesetzt`, 'success');
+                break;
+                
+            case 'sleep':
+                const sleepValue = parseFloat(value);
+                if (sleepValue <= 0 || sleepValue > 24) {
+                    this.showToast('❌ Ungültige Schlafzeit', 'error');
+                    return;
+                }
+                quickData.sleepHours = Math.round(((todayData.sleepHours || 0) + sleepValue) * 10) / 10;
+                this.showToast(`😴 ${sleepValue}h Schlaf hinzugefügt`, 'success');
+                break;
+                
+            case 'mood':
+                const validMoods = ['excellent', 'good', 'neutral', 'bad', 'terrible'];
+                if (!validMoods.includes(value)) {
+                    this.showToast('❌ Ungültige Stimmung', 'error');
+                    return;
+                }
+                quickData.mood = value;
+                const moodLabels = {
+                    'excellent': '😄 Ausgezeichnet',
+                    'good': '😊 Gut',
+                    'neutral': '😐 Neutral',
+                    'bad': '😔 Schlecht',
+                    'terrible': '😢 Furchtbar'
+                };
+                this.showToast(`${moodLabels[value]} gespeichert`, 'success');
+                break;
+                
+            case 'notes':
+                const noteValue = value.trim().substring(0, 500);
+                if (noteValue.length === 0) {
+                    this.showToast('❌ Notiz ist leer', 'error');
+                    return;
+                }
+                // Notizen anhängen wenn bereits vorhanden
+                const existingNotes = todayData.notes || '';
+                quickData.notes = existingNotes 
+                    ? `${existingNotes}\n${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}: ${noteValue}`
+                    : noteValue;
+                this.showToast(`📝 Notiz hinzugefügt`, 'success');
+                break;
+                
+            default:
+                this.showToast('❌ Unbekannter Datentyp', 'error');
+                return;
+        }
+        
+        // Daten speichern
+        const success = await this.saveHealthData(quickData);
+        
+        if (success) {
+            // Komponenten aktualisieren
+            await this.refreshAllComponents();
+            
+            // Event für andere Komponenten
+            this.dispatchHealthDataEvent('quick-data-saved', { type, value, data: quickData });
+            
+            // Haptic Feedback
+            if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+                navigator.vibrate([50, 30, 50]);
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Quick Add Fehler:', error);
+        this.showToast('❌ Speichern fehlgeschlagen', 'error');
+    } finally {
+        this.setLoadingState(false);
     }
 }
 

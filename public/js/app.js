@@ -2424,18 +2424,13 @@ class ProgressHub {
     }
 
     /**
- * Load data for Progress Hub views
+ * Load data for Progress Hub views using existing showTodayView/showWeeklyView methods
  */
 async loadViewData() {
   const contentEl = document.getElementById('progress-content');
 
-  // Loader-Fallback: das Start-HTML im contentEl enthält den Text "Progress Hub wird geladen..."
-  const loaderFallback = contentEl
-    ? contentEl.querySelector("*:contains('Progress Hub wird geladen...')") || null
-    : null;
-
-  // Fallback ohne :contains via XPath
-  const textLoaderNode = !loaderFallback && contentEl
+  // Loader-Fallback nur via XPath (kein :contains in CSS!)
+  const textLoaderNode = contentEl
     ? document.evaluate(
         ".//*[contains(text(),'Progress Hub wird geladen')]",
         contentEl,
@@ -2445,16 +2440,11 @@ async loadViewData() {
       ).singleNodeValue
     : null;
 
-  // Loader einblenden (in unserem Setup ist es nur der Text im Content)
-  if (contentEl) {
-    // nichts verstecken, da der Text als Loader dient
-  }
-
   try {
     // Daten laden
     const allData = await this.healthTracker.getAllHealthData();
 
-    // Weekly Cache vorbereiten
+    // Week-Cache vorbereiten
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     this.weekData = Array.isArray(allData)
@@ -2471,7 +2461,7 @@ async loadViewData() {
     const view = this.currentView || 'today';
     this.currentView = view;
 
-    // Inhalt rendern: Deine vorhandenen Methoden verwenden
+    // Inhalt rendern: vorhandene Methoden nutzen
     if (view === 'today' && typeof this.showTodayView === 'function') {
       this.showTodayView();
     } else if (view === 'week' && typeof this.showWeeklyView === 'function') {
@@ -2480,7 +2470,6 @@ async loadViewData() {
       this.currentView = 'today';
       this.showTodayView();
     }
-
   } catch (err) {
     console.error('❌ ProgressHub loadViewData Fehler:', err);
     if (contentEl) {
@@ -2493,9 +2482,8 @@ async loadViewData() {
     }
   } finally {
     // Textbasierter Loader (falls noch vorhanden) ausblenden
-    const node = loaderFallback || textLoaderNode;
-    if (node && node.parentElement) {
-      node.parentElement.classList.add('hidden');
+    if (textLoaderNode && textLoaderNode.parentElement) {
+      textLoaderNode.parentElement.classList.add('hidden');
     }
   }
 }
@@ -2522,11 +2510,9 @@ showView(viewName) {
   const tabToday = document.getElementById('tab-today');
   const tabWeek = document.getElementById('tab-week');
 
-  // Tab-Zustände setzen gemäß daisyUI tabs
   if (tabToday) tabToday.classList.toggle('tab-active', viewName === 'today');
   if (tabWeek) tabWeek.classList.toggle('tab-active', viewName === 'week');
 
-  // Inhalt in #progress-content durch bestehende Methoden rendern
   if (viewName === 'today' && typeof this.showTodayView === 'function') {
     this.showTodayView();
   } else if (viewName === 'week' && typeof this.showWeeklyView === 'function') {

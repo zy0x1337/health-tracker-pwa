@@ -2977,7 +2977,6 @@ Bearbeiten
 </div>
 </div>
 
-text
   <!-- Goals KPI Grid -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="goals-kpi-grid">
     ${['steps','water','sleep','weight'].map(k => `

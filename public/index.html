@@ -966,8 +966,9 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
         <!-- Goals Button - Optimiert -->
         <div class="indicator tooltip tooltip-bottom" data-tip="Ziele verwalten">
             <span class="indicator-item indicator-top indicator-end badge badge-secondary badge-xs animate-bounce" id="goals-indicator"></span>
-            <button class="btn btn-ghost btn-sm gap-2 hover:bg-secondary/10 hover:text-secondary hover:scale-105 transition-all duration-200 group" 
-                    onclick="healthTracker?.showGoalsModal?.()">
+            <button class="btn btn-ghost btn-sm gap-2 hover:btn-secondary hover:text-secondary-content transition-all duration-200 tooltip tooltip-bottom"
+                    data-tip="Ziele verwalten"
+                    onclick="document.getElementById('goals-modal').showModal()">
                 <i data-lucide="target" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
                 <span class="hidden xl:inline font-medium">Ziele</span>
             </button>

@@ -162,36 +162,27 @@ initializeComponents() {
         });
     }
     
-    /**
- * Setup Progress Hub tab navigation
- */
-setupProgressHubTabs() {
-  const tabToday = document.getElementById('tab-today');
-  const tabWeek = document.getElementById('tab-week');
+    setupProgressHubTabs() {
+const bind = (id, view) => {
+const el = document.getElementById(id);
+if (!el) return;
+const clone = el.cloneNode(true);
+el.parentNode.replaceChild(clone, el);
+clone.addEventListener('click', async (e) => {
+e.preventDefault();
+if (!this.progressHub) return;
+if (typeof this.progressHub.showView === 'function') this.progressHub.showView(view);
+if (typeof this.progressHub.loadViewData === 'function') {
+try { await this.progressHub.loadViewData(); }
+catch (err) { console.error('❌ ProgressHub Tab-Ladefehler:', err); }
+}
+});
+};
 
-  const bind = (btn, view) => {
-    if (!btn) return;
-    const clone = btn.cloneNode(true);
-    btn.parentNode.replaceChild(clone, btn);
-    clone.addEventListener('click', async (e) => {
-      e.preventDefault();
-      if (!this.progressHub) return;
-      // Erst View schalten (für DOM), dann Daten laden
-      if (typeof this.progressHub.showView === 'function') {
-        this.progressHub.showView(view);
-      }
-      if (typeof this.progressHub.loadViewData === 'function') {
-        try {
-          await this.progressHub.loadViewData();
-        } catch (err) {
-          console.error('❌ ProgressHub Tab-Ladefehler:', err);
-        }
-      }
-    });
-  };
-
-  bind(tabToday, 'today');
-  bind(tabWeek, 'week');
+bind('tab-today', 'today');
+bind('tab-week', 'week');
+bind('tab-goals', 'goals');
+bind('tab-achievements', 'achievements');
 }
     
     /**
@@ -2927,22 +2918,152 @@ showWeeklyView() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-/** Show goals view with goal progress */
+/** Show goals view with modern DaisyUI layout and live progress */
 showGoalsView() {
-    const goalsView = document.getElementById('goals-view');
-    if (goalsView) {
-        goalsView.classList.remove('hidden');
-        this.populateGoalsView();
-    }
+const content = document.getElementById('progress-content');
+if (!content) return;
+
+// Tab-State
+document.getElementById('tab-today')?.classList.remove('tab-active');
+document.getElementById('tab-week')?.classList.remove('tab-active');
+document.getElementById('tab-goals')?.classList.add('tab-active');
+document.getElementById('tab-achievements')?.classList.remove('tab-active');
+this.currentView = 'goals';
+
+// Bootstrap Layout in #progress-content
+content.innerHTML = `
+<div class="space-y-6">
+<!-- Header -->
+<div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+<div class="card-body p-5 md:p-6">
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<i data-lucide="target" class="w-5 h-5 text-primary"></i>
+<div>
+<div class="text-sm text-base-content/70">Ziele</div>
+<div class="text-lg font-semibold">Aktuelle Zielübersicht</div>
+</div>
+</div>
+<button id="edit-goals-btn" class="btn btn-sm btn-primary">
+<i data-lucide="edit-3" class="w-4 h-4"></i>
+Bearbeiten
+</button>
+</div>
+</div>
+</div>
+
+text
+  <!-- Goals KPI Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="goals-kpi-grid">
+    ${['steps','water','sleep','weight'].map(k => `
+      <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow transition">
+        <div class="card-body p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              ${k==='steps'?'<i data-lucide="footprints" class="w-4 h-4 text-primary"></i>':''}
+              ${k==='water'?'<i data-lucide="droplets" class="w-4 h-4 text-info"></i>':''}
+              ${k==='sleep'?'<i data-lucide="moon" class="w-4 h-4 text-warning"></i>':''}
+              ${k==='weight'?'<i data-lucide="scale" class="w-4 h-4 text-secondary"></i>':''}
+              <span class="text-sm text-base-content/70">${k==='steps'?'Schritte':k==='water'?'Wasser':k==='sleep'?'Schlaf':'Gewicht'}</span>
+            </div>
+            <div id="goal-${k}-target" class="badge badge-ghost text-xs">Ziel: —</div>
+          </div>
+          <div class="mt-2">
+            <div class="text-2xl font-bold ${k==='steps'?'text-primary':k==='water'?'text-info':k==='sleep'?'text-warning':'text-secondary'}" id="goal-${k}-current">—</div>
+            ${k!=='weight' ? `<progress id="goal-${k}-progress" class="progress ${k==='steps'?'progress-primary':k==='water'?'progress-info':'progress-warning'} w-full mt-3" value="0" max="100"></progress>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  </div>
+
+  <!-- Insights -->
+  <div class="card bg-base-100 border border-base-300">
+    <div class="card-body p-5">
+      <h4 class="card-title text-base flex items-center gap-2">
+        <i data-lucide="lightbulb" class="w-4 h-4 text-accent"></i>
+        Empfehlungen
+      </h4>
+      <ul id="goals-insights" class="text-sm space-y-2"></ul>
+    </div>
+  </div>
+</div>
+`;
+
+if (typeof lucide !== 'undefined') lucide.createIcons();
+
+// Inhalte befüllen
+this.populateGoalsView?.();
+
+// Edit-Ziele Modal Hook (falls vorhanden)
+document.getElementById('edit-goals-btn')?.addEventListener('click', () => {
+document.getElementById('goals-modal')?.showModal?.();
+});
 }
 
-/** Show achievements view with milestones */
+/** Show achievements view with modern DaisyUI layout and milestones */
 showAchievementsView() {
-    const achievementsView = document.getElementById('achievements-view');
-    if (achievementsView) {
-        achievementsView.classList.remove('hidden');
-        this.populateAchievementsView();
-    }
+const content = document.getElementById('progress-content');
+if (!content) return;
+
+// Tab-State
+document.getElementById('tab-today')?.classList.remove('tab-active');
+document.getElementById('tab-week')?.classList.remove('tab-active');
+document.getElementById('tab-goals')?.classList.remove('tab-active');
+document.getElementById('tab-achievements')?.classList.add('tab-active');
+this.currentView = 'achievements';
+
+// Bootstrap Layout
+content.innerHTML = `
+<div class="space-y-6">
+<!-- Header -->
+<div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-md">
+<div class="card-body p-5 md:p-6">
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<i data-lucide="trophy" class="w-5 h-5 text-warning"></i>
+<div>
+<div class="text-sm text-base-content/70">Erfolge</div>
+<div class="text-lg font-semibold">Meilensteine & Auszeichnungen</div>
+</div>
+</div>
+<div id="achievements-summary" class="badge badge-ghost text-xs">— Auszeichnungen</div>
+</div>
+</div>
+</div>
+
+text
+  <!-- Milestones Grid -->
+  <div id="achievements-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+  <!-- Streak Highlight -->
+  <div class="card bg-base-100 border border-base-300">
+    <div class="card-body p-5">
+      <h4 class="card-title text-base flex items-center gap-2">
+        <i data-lucide="flame" class="w-4 h-4 text-error"></i>
+        Aktueller Streak
+      </h4>
+      <div class="flex items-center gap-3">
+        <div class="stat">
+          <div class="stat-value text-error" id="achievements-streak">0</div>
+          <div class="stat-desc">Tage in Folge</div>
+        </div>
+        <div class="divider divider-horizontal"></div>
+        <div class="space-y-2 text-sm">
+          <div class="badge">7 Tage</div>
+          <div class="badge">14 Tage</div>
+          <div class="badge">30 Tage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+if (typeof lucide !== 'undefined') lucide.createIcons();
+
+// Inhalte befüllen
+this.populateAchievementsView?.();
 }
 
 /** Populate weekly view with actual weekly data */

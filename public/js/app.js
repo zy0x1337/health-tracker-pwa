@@ -2717,7 +2717,10 @@ applyThemeSpecificStyles(theme) {
     const body = document.body;
     
     // Alle Theme-Klassen entfernen
-    const themeClasses = ['theme-health', 'theme-medical', 'theme-wellness', 'theme-corporate', 'theme-dark', 'theme-retro'];
+    const themeClasses = [
+        'theme-health', 'theme-medical', 'theme-wellness', 'theme-corporate', 
+        'theme-dark', 'theme-retro', 'theme-neon', 'theme-nature', 'theme-luxury'
+    ];
     body.classList.remove(...themeClasses);
     
     // Theme-spezifische Klassen hinzufügen
@@ -2731,7 +2734,7 @@ applyThemeSpecificStyles(theme) {
         case 'emerald':
         case 'garden':
         case 'forest':
-            body.classList.add('theme-wellness');
+            body.classList.add('theme-nature');
             break;
         case 'corporate':
         case 'business':
@@ -2741,6 +2744,15 @@ applyThemeSpecificStyles(theme) {
         case 'synthwave':
         case 'cyberpunk':
             body.classList.add('theme-retro');
+            break;
+        case 'luxury':
+        case 'valentine':
+            body.classList.add('theme-luxury');
+            break;
+        case 'halloween':
+        case 'acid':
+        case 'cyberpunk':
+            body.classList.add('theme-neon');
             break;
         default:
             // Standard-Styles beibehalten
@@ -3177,42 +3189,33 @@ previewTheme(themeName) {
 
 getAvailableThemes() {
     return [
-        { 
-            value: 'light', 
-            name: 'Hell', 
-            icon: '☀️',
-            description: 'Klassisches helles Design'
-        },
-        { 
-            value: 'dark', 
-            name: 'Dunkel', 
-            icon: '🌙',
-            description: 'Augenschonendes dunkles Design'
-        },
-        { 
-            value: 'healthtracker', 
-            name: 'Health Tracker', 
-            icon: '🏥',
-            description: 'Spezielles medizinisches Design'
-        },
-        { 
-            value: 'cupcake', 
-            name: 'Cupcake', 
-            icon: '🧁',
-            description: 'Freundliches rosa Design'
-        },
-        { 
-            value: 'emerald', 
-            name: 'Emerald', 
-            icon: '💎',
-            description: 'Beruhigendes grünes Design'
-        },
-        { 
-            value: 'corporate', 
-            name: 'Corporate', 
-            icon: '💼',
-            description: 'Professionelles Business-Design'
-        }
+        { value: 'light', name: 'Hell', icon: '☀️', description: 'Klassisches helles Design' },
+        { value: 'dark', name: 'Dunkel', icon: '🌙', description: 'Augenschonendes dunkles Design' },
+        { value: 'cupcake', name: 'Cupcake', icon: '🧁', description: 'Freundliches rosa Design' },
+        { value: 'emerald', name: 'Emerald', icon: '💎', description: 'Beruhigendes grünes Design' },
+        { value: 'corporate', name: 'Corporate', icon: '💼', description: 'Professionelles Business-Design' },
+        { value: 'synthwave', name: 'Synthwave', icon: '🌆', description: 'Retro-futuristisches Design' },
+        { value: 'retro', name: 'Retro', icon: '📻', description: 'Nostalgisches 80er Design' },
+        { value: 'cyberpunk', name: 'Cyberpunk', icon: '🤖', description: 'Futuristisches Neon-Design' },
+        { value: 'valentine', name: 'Valentine', icon: '💖', description: 'Romantisches Design' },
+        { value: 'halloween', name: 'Halloween', icon: '🎃', description: 'Gruseliges Halloween-Design' },
+        { value: 'garden', name: 'Garden', icon: '🌻', description: 'Natürliches Garten-Design' },
+        { value: 'aqua', name: 'Aqua', icon: '🌊', description: 'Frisches Wasser-Design' },
+        { value: 'lofi', name: 'Lo-Fi', icon: '🎵', description: 'Entspanntes Design' },
+        { value: 'pastel', name: 'Pastel', icon: '🎨', description: 'Sanfte Pastellfarben' },
+        { value: 'fantasy', name: 'Fantasy', icon: '🧙‍♀️', description: 'Magisches Fantasy-Design' },
+        { value: 'wireframe', name: 'Wireframe', icon: '📐', description: 'Minimalistisches Wireframe' },
+        { value: 'black', name: 'Black', icon: '⚫', description: 'Elegantes schwarzes Design' },
+        { value: 'luxury', name: 'Luxury', icon: '💰', description: 'Luxuriöses Gold-Design' },
+        { value: 'dracula', name: 'Dracula', icon: '🧛', description: 'Elegantes dunkles Design' },
+        { value: 'cmyk', name: 'CMYK', icon: '🖨️', description: 'Druckfarben-Palette' },
+        { value: 'autumn', name: 'Autumn', icon: '🍂', description: 'Warme Herbstfarben' },
+        { value: 'business', name: 'Business', icon: '📊', description: 'Seriöses Business-Design' },
+        { value: 'acid', name: 'Acid', icon: '🟢', description: 'Knalliges Acid-Design' },
+        { value: 'lemonade', name: 'Lemonade', icon: '🍋', description: 'Frisches Zitronen-Design' },
+        { value: 'night', name: 'Night', icon: '🌃', description: 'Nächtliches Design' },
+        { value: 'coffee', name: 'Coffee', icon: '☕', description: 'Gemütliches Kaffee-Design' },
+        { value: 'winter', name: 'Winter', icon: '❄️', description: 'Kühles Winter-Design' }
     ];
 }
 }

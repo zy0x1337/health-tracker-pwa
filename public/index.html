@@ -395,6 +395,67 @@ function fallbackShowSettings() {
         grid-template-columns: 1fr;
     }
 }
+
+/* Theme-Vorschau Effekte */
+.modal .card {
+    transition: all 0.3s ease;
+}
+
+.modal .card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.modal .card.ring-2 {
+    transform: scale(1.02);
+}
+
+/* Theme-spezifische Verbesserungen */
+.theme-health .hero {
+    background: linear-gradient(135deg, oklch(65% 0.25 145), oklch(70% 0.2 160));
+}
+
+.theme-wellness .card {
+    box-shadow: 0 4px 12px oklch(70% 0.15 140 / 0.2);
+}
+
+.theme-corporate .btn-primary {
+    background: linear-gradient(135deg, oklch(45% 0.1 220), oklch(50% 0.15 200));
+}
+
+/* Smooth Theme Transitions */
+* {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+/* Erweiterte Theme-spezifische Anpassungen */
+.theme-nature {
+    --nature-gradient: linear-gradient(135deg, oklch(70% 0.25 140), oklch(75% 0.2 160));
+}
+
+.theme-nature .hero {
+    background: var(--nature-gradient);
+}
+
+.theme-retro .btn-primary {
+    background: linear-gradient(135deg, oklch(65% 0.3 320), oklch(70% 0.35 340));
+    border: none;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+.theme-luxury .card {
+    background: linear-gradient(135deg, oklch(95% 0.02 80), oklch(98% 0.01 60));
+    border: 1px solid oklch(85% 0.05 80);
+}
+
+.theme-neon .btn:hover {
+    box-shadow: 0 0 30px currentColor;
+    animation: neonPulse 1.5s infinite alternate;
+}
+
+@keyframes neonPulse {
+    0% { box-shadow: 0 0 5px currentColor; }
+    100% { box-shadow: 0 0 30px currentColor, 0 0 40px currentColor; }
+}
     </style>
 </head>
 

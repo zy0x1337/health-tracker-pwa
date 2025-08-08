@@ -974,52 +974,50 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
     display: none;
 }
 
-/* About Modal Tab Panel Fixes */
+/* ABOUT MODAL TAB FIXES */
 .about-modal .tab-panel {
-    padding: 1rem 0;
     min-height: 200px;
+    padding: 1rem 0;
 }
 
 .about-modal .tab-panel.hidden {
     display: none !important;
+    opacity: 0;
 }
 
-.about-modal .tab-panel.block {
-    display: block !important;
-}
-
+.about-modal .tab-panel.block,
 .about-modal .tab-panel.active {
     display: block !important;
     opacity: 1;
 }
 
-/* Initial State Override */
+/* Force initial visibility for overview */
 .about-modal #about-overview {
     display: block !important;
 }
 
+/* Hide other panels initially */
 .about-modal #about-features,
 .about-modal #about-stats,
 .about-modal #about-tech {
     display: none !important;
 }
 
-/* Tab Active State */
+/* Tab active state */
 .about-modal .tab-active {
     background-color: hsl(var(--p));
     color: hsl(var(--pc));
     border-color: hsl(var(--p));
 }
 
-/* Smooth Transitions */
-.about-modal .tab-panel {
-    transition: opacity 0.3s ease;
+/* Content visibility */
+.about-modal .tab-content {
+    min-height: 400px;
 }
 
-/* Force Visibility für Debug */
+/* Debug helper (nur in development) */
 .about-modal .tab-panel[style*="display: block"] {
-    opacity: 1 !important;
-    visibility: visible !important;
+    border: 2px solid green !important; /* Nur zum Debuggen */
 }
     </style>
 </head>

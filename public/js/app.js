@@ -2105,17 +2105,31 @@ showSettings() {
 
                 <!-- Allgemeine Einstellungen -->
                 <div id="general-settings" class="space-y-4">
+
+                    <!-- Theme-Auswahl -->
                     <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <span class="label-text flex items-center">
-                                <i data-lucide="moon" class="w-4 h-4 mr-2"></i>
-                                Dark Mode
-                            </span> 
-                            <input type="checkbox" class="toggle toggle-primary" id="theme-toggle" 
-                                ${document.documentElement.getAttribute('data-theme') === 'dark' ? 'checked' : ''} 
-                                onchange="healthTracker.toggleTheme()">
+                        <label class="label">
+                             <span class="label-text flex items-center">
+                                <i data-lucide="palette" class="w-4 h-4 mr-2"></i>
+                                Theme
+                            </span>
                         </label>
-                    </div>
+                    <div class="join w-full">
+                <select class="select select-bordered join-item flex-1" id="theme-selector" onchange="healthTracker.setTheme(this.value)">
+                    ${this.getAvailableThemes().map(theme => `
+                <option value="${theme.value}" ${document.documentElement.getAttribute('data-theme') === theme.value ? 'selected' : ''}>
+                    ${theme.icon} ${theme.name}
+                </option>
+                    `).join('')}
+                </select>
+                    <button class="btn btn-outline join-item" onclick="healthTracker.showThemeSelector()">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            <label class="label">
+                <span class="label-text-alt text-base-content/60">Wähle dein bevorzugtes Design</span>
+            </label>
+                </div>
 
                     <div class="form-control">
                         <label class="label cursor-pointer">
@@ -2345,9 +2359,9 @@ showSettings() {
                             Speicherverbrauch
                         </button>
                         <button class="btn btn-outline btn-warning" onclick="healthTracker.showDataCleanupModal()">
-    <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
-    Daten bereinigen
-</button>
+                            <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
+                            Daten bereinigen
+                        </button>
                     </div>
                 </div>
 
@@ -2801,7 +2815,6 @@ updateChartsTheme(theme) {
     });
 }
 
-// === MANUELLES DATENBEREINIGUNG-MODAL ===
 showDataCleanupModal() {
     console.log('🧹 Datenbereinigung-Modal wird geöffnet');
     
@@ -2974,6 +2987,132 @@ showDataCleanupResult(removedEntries, cutoffDate, cacheCleared) {
     }
     
     console.log(`✅ Datenbereinigung abgeschlossen: ${removedEntries} Einträge entfernt`);
+}
+
+// === THEME-SELECTOR MODAL ===
+showThemeSelector() {
+    console.log('🎨 Theme-Selector wird geöffnet');
+    
+    try {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const availableThemes = this.getAvailableThemes();
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open';
+        modal.innerHTML = `
+            <div class="modal-box max-w-2xl">
+                <h3 class="font-bold text-lg mb-6">
+                    <i data-lucide="palette" class="w-6 h-6 inline mr-2"></i>
+                    Design ändern
+                </h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    ${availableThemes.map(theme => `
+                        <div class="card bg-base-200 cursor-pointer transition-all hover:scale-105 ${currentTheme === theme.value ? 'ring-2 ring-primary' : ''}" 
+                             onclick="healthTracker.previewTheme('${theme.value}')">
+                            <div class="card-body text-center p-4">
+                                <div class="text-4xl mb-2">${theme.icon}</div>
+                                <h4 class="font-semibold">${theme.name}</h4>
+                                <p class="text-sm text-base-content/70">${theme.description}</p>
+                                ${currentTheme === theme.value ? `
+                                    <div class="badge badge-primary badge-sm mt-2">Aktiv</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="alert alert-info mb-4">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                    <div>
+                        <strong>Tipp:</strong>
+                        <p class="text-sm mt-1">Klicke auf ein Theme für eine Vorschau. Das Theme wird automatisch gespeichert.</p>
+                    </div>
+                </div>
+
+                <div class="modal-action">
+                    <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+                </div>
+            </div>
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        `;
+
+        document.body.appendChild(modal);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+    } catch (error) {
+        console.error('❌ Fehler beim Öffnen des Theme-Selectors:', error);
+        this.showToast('❌ Fehler beim Öffnen der Theme-Auswahl', 'error');
+    }
+}
+
+previewTheme(themeName) {
+    // Theme sofort anwenden
+    this.setTheme(themeName);
+    
+    // Visual Feedback
+    const cards = document.querySelectorAll('.modal-open .card');
+    cards.forEach(card => {
+        card.classList.remove('ring-2', 'ring-primary');
+        const badge = card.querySelector('.badge');
+        if (badge) badge.remove();
+    });
+    
+    const selectedCard = document.querySelector(`[onclick*="'${themeName}'"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('ring-2', 'ring-primary');
+        const cardBody = selectedCard.querySelector('.card-body');
+        cardBody.insertAdjacentHTML('beforeend', '<div class="badge badge-primary badge-sm mt-2">Aktiv</div>');
+    }
+    
+    // Haptic Feedback falls aktiviert
+    if (JSON.parse(localStorage.getItem('hapticFeedback') || 'false') && navigator.vibrate) {
+        navigator.vibrate(30);
+    }
+}
+
+getAvailableThemes() {
+    return [
+        { 
+            value: 'light', 
+            name: 'Hell', 
+            icon: '☀️',
+            description: 'Klassisches helles Design'
+        },
+        { 
+            value: 'dark', 
+            name: 'Dunkel', 
+            icon: '🌙',
+            description: 'Augenschonendes dunkles Design'
+        },
+        { 
+            value: 'healthtracker', 
+            name: 'Health Tracker', 
+            icon: '🏥',
+            description: 'Spezielles medizinisches Design'
+        },
+        { 
+            value: 'cupcake', 
+            name: 'Cupcake', 
+            icon: '🧁',
+            description: 'Freundliches rosa Design'
+        },
+        { 
+            value: 'emerald', 
+            name: 'Emerald', 
+            icon: '💎',
+            description: 'Beruhigendes grünes Design'
+        },
+        { 
+            value: 'corporate', 
+            name: 'Corporate', 
+            icon: '💼',
+            description: 'Professionelles Business-Design'
+        }
+    ];
 }
 }
 

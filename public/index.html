@@ -40,6 +40,30 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
+    <script>
+// === GLOBAL ERROR HANDLER ===
+window.addEventListener('error', function(e) {
+    console.error('🚨 JavaScript Fehler:', e.error);
+    if (e.error.message.includes('healthTracker')) {
+        console.warn('⚠️ HealthTracker nicht verfügbar - wird nachgeladen...');
+    }
+});
+
+// === FALLBACK FÜR DROPDOWN-FUNKTIONEN ===
+function fallbackShowSettings() {
+    if (window.healthTracker && typeof window.healthTracker.showSettings === 'function') {
+        window.healthTracker.showSettings();
+    } else {
+        alert('⚠️ Einstellungen werden geladen...');
+        setTimeout(() => {
+            if (window.healthTracker) {
+                window.healthTracker.showSettings();
+            }
+        }, 1000);
+    }
+}
+</script>
+
     <style>
         /* Custom CSS für optimale Performance */
         .input-error {
@@ -633,7 +657,7 @@
         Mehr
     </div>
     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-300">
-        <li><a onclick="document.getElementById('goals-form').scrollIntoView({behavior: 'smooth'})">
+        <li><a onclick="document.getElementById('goals-modal').scrollIntoView({behavior: 'smooth'})">
             <i data-lucide="flag" class="w-4 h-4"></i>
             Ziele anpassen
         </a></li>

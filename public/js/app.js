@@ -2051,46 +2051,81 @@ showHelp() {
 
 showSettings() {
     console.log('⚙️ Einstellungen werden geöffnet');
-    const modal = document.createElement('div');
-    modal.className = 'modal modal-open';
-    modal.innerHTML = `
-        <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg mb-4">⚙️ Einstellungen</h3>
-            
-            <div class="form-control mb-4">
-                <label class="label cursor-pointer">
-                    <span class="label-text">🌙 Dark Mode</span> 
-                    <input type="checkbox" class="toggle" id="theme-toggle" ${document.documentElement.getAttribute('data-theme') === 'dark' ? 'checked' : ''} onchange="healthTracker.toggleTheme()">
-                </label>
-            </div>
+    
+    try {
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open';
+        modal.innerHTML = `
+            <div class="modal-box max-w-2xl">
+                <h3 class="font-bold text-lg mb-4">
+                    <i data-lucide="settings" class="w-6 h-6 inline mr-2"></i>
+                    Einstellungen
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="moon" class="w-4 h-4 mr-2"></i>
+                                Dark Mode
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="theme-toggle" 
+                                ${document.documentElement.getAttribute('data-theme') === 'dark' ? 'checked' : ''} 
+                                onchange="healthTracker.toggleTheme()">
+                        </label>
+                    </div>
 
-            <div class="form-control mb-4">
-                <label class="label cursor-pointer">
-                    <span class="label-text">🔔 Push-Benachrichtigungen</span> 
-                    <input type="checkbox" class="toggle" id="notifications-toggle" ${this.smartNotificationManager.isEnabled ? 'checked' : ''} onchange="healthTracker.toggleNotifications()">
-                </label>
-            </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="bell" class="w-4 h-4 mr-2"></i>
+                                Push-Benachrichtigungen
+                            </span> 
+                            <input type="checkbox" class="toggle toggle-primary" id="notifications-toggle" 
+                                ${this.smartNotificationManager?.isEnabled ? 'checked' : ''} 
+                                onchange="healthTracker.toggleNotifications()">
+                        </label>
+                    </div>
 
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">🌍 Sprache</span>
-                </label>
-                <select class="select select-bordered w-full">
-                    <option selected>Deutsch</option>
-                    <option disabled>English (Coming soon)</option>
-                </select>
-            </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text flex items-center">
+                                <i data-lucide="globe" class="w-4 h-4 mr-2"></i>
+                                Sprache
+                            </span>
+                        </label>
+                        <select class="select select-bordered w-full">
+                            <option selected>Deutsch</option>
+                            <option disabled>English (Coming soon)</option>
+                        </select>
+                    </div>
 
-            <div class="divider"></div>
-            
-            <button class="btn btn-error btn-outline w-full" onclick="healthTracker.resetApp()">🔄 App zurücksetzen</button>
+                    <div class="divider"></div>
+                    
+                    <button class="btn btn-error btn-outline w-full" onclick="healthTracker.resetApp()">
+                        <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2"></i>
+                        App zurücksetzen
+                    </button>
+                </div>
 
-            <div class="modal-action">
-                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+                <div class="modal-action">
+                    <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
+                </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Lucide Icons für das Modal neu initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Öffnen der Einstellungen:', error);
+        this.showToast('❌ Fehler beim Öffnen der Einstellungen', 'error');
+    }
 }
 
 // === HILFSMETHODEN FÜR MEHR-MENÜ ===
@@ -2168,6 +2203,20 @@ resetApp() {
     }
 }
 }
+
+// === GLOBALE HEALTHTRACKER INSTANZ ===
+let healthTracker;
+
+// Initialisierung beim DOM-Ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Health Tracker wird initialisiert');
+    healthTracker = new HealthTracker();
+    
+    // Überprüfung ob alle Methoden verfügbar sind
+    if (typeof healthTracker.showSettings !== 'function') {
+        console.error('❌ showSettings Methode nicht gefunden');
+    }
+});
 
 // ====================================================================
 // SMART NOTIFICATION MANAGER

@@ -1,29 +1,12 @@
 [build]
-  publish = "public"
-  command = ""
-
-[functions]
-  directory = "netlify/functions"
+  functions = "netlify/functions"
+  # command = ""
 
 [[redirects]]
-  from = "/api/health-data"
-  to = "/.netlify/functions/health-data"
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
   status = 200
-
-[[redirects]]
-  from = "/api/goals"
-  to = "/.netlify/functions/goals"
-  status = 200
-
-[[redirects]]
-  from = "/api/goals/*"
-  to = "/.netlify/functions/goals"
-  status = 200
-
-[[redirects]]
-  from = "/api/health-data/*"
-  to = "/.netlify/functions/health-data"
-  status = 200
+  force = true
 
 [build.environment]
 NODE_VERSION = "20.12.2"

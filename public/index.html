@@ -2242,45 +2242,6 @@ window.addEventListener('error', function(e) {
     }
 });
 </script>
-<!-- Navbar Scroll Behavior Script -->
-<script>
-// Navbar scroll behavior
-let lastScrollY = 0;
-const navbar = document.querySelector('.navbar');
-
-window.addEventListener('scroll', () => {
-    const currentScrollY = window.scrollY;
-    
-    if (navbar) {
-        if (currentScrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-        
-        // Auto-hide navbar on scroll down (mobile)
-        if (window.innerWidth <= 768) {
-            if (currentScrollY > lastScrollY && currentScrollY > 200) {
-                navbar.style.transform = 'translateY(-100%)';
-            } else {
-                navbar.style.transform = 'translateY(0)';
-            }
-        }
-    }
-    
-    lastScrollY = currentScrollY;
-}, { passive: true });
-
-// Enhanced click handlers with haptic feedback
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.btn')) {
-        // Haptic feedback für unterstützte Geräte
-        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-            navigator.vibrate(10);
-        }
-    }
-});
-</script>
     <script>
         // Initialize Lucide Icons
         if (typeof lucide !== 'undefined') {

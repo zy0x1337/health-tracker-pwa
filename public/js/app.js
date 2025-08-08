@@ -45,9 +45,6 @@ class HealthTracker {
     async initialize() {
     try {
         console.log('🚀 Health Tracker Pro wird initialisiert...');
-
-        // PWA Install Button Debugging
-        this.debugInstallState();
         
         // Load user goals first
         await this.loadUserGoals();

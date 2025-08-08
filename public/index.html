@@ -1028,6 +1028,13 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                 </div>
             </div>
 
+            <!-- UnDraw SVG Illustration -->
+            <div class="flex justify-center">
+                <img src="/images/health-dashboard.svg" 
+                     alt="Gesundheits-Dashboard Illustration" 
+                     class="max-w-md w-full h-auto">
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
                 <button class="btn btn-primary btn-lg gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200" onclick="document.getElementById('health-form').scrollIntoView({behavior: 'smooth'})">
@@ -1611,12 +1618,23 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                         <!-- Activities werden hier eingefügt -->
                     </div>
 
-                    <!-- Empty State -->
-                    <div id="activities-empty" class="text-center py-8">
-                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
-                        <p class="font-medium text-base-content/70">Noch keine Aktivitäten</p>
-                        <p class="text-sm text-base-content/60">Füge deine ersten Gesundheitsdaten hinzu!</p>
-                    </div>
+                    <!-- Enhanced Empty State mit SVG -->
+<div class="text-center py-12" id="activity-empty-state">
+    <div class="flex flex-col items-center space-y-4">
+        <img src="/images/no-data.svg" 
+             alt="Keine Daten verfügbar" 
+             class="w-64 h-auto opacity-80">
+        <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">
+            Noch keine Aktivitäten
+        </h3>
+        <p class="text-gray-500 max-w-md">
+            Füge deine ersten Gesundheitsdaten hinzu und verfolge deine Fortschritte!
+        </p>
+        <button class="btn btn-primary" onclick="document.getElementById('health-form').scrollIntoView()">
+            📊 Erste Daten hinzufügen
+        </button>
+    </div>
+</div>
                 </div>
             </div>
         </div>

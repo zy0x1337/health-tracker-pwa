@@ -516,6 +516,267 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
         animation: none;
     }
 }
+
+/* === FEHLENDE THEME-KATEGORIEN === */
+.theme-dark {
+    --dark-accent: oklch(80% 0.2 200);
+    --dark-glow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.theme-corporate {
+    --corporate-primary: oklch(45% 0.1 220);
+    --corporate-secondary: oklch(50% 0.15 200);
+    --corporate-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.theme-retro {
+    --retro-neon: oklch(65% 0.3 320);
+    --retro-glow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+/* === THEME-SPEZIFISCHE KOMPONENTEN === */
+.theme-health .progress {
+    background: linear-gradient(90deg, oklch(65% 0.25 145), oklch(70% 0.2 160));
+}
+
+.theme-nature .stats {
+    background: var(--nature-gradient);
+    border: 1px solid oklch(60% 0.2 140);
+}
+
+.theme-luxury .modal-box {
+    background: var(--luxury-gradient);
+    border: var(--luxury-border);
+    backdrop-filter: blur(10px);
+}
+
+.theme-corporate .navbar {
+    background: linear-gradient(135deg, var(--corporate-primary), var(--corporate-secondary));
+    box-shadow: var(--corporate-shadow);
+}
+
+.theme-retro .alert {
+    border: 2px solid var(--retro-neon);
+    box-shadow: var(--retro-glow);
+}
+
+.theme-dark .card {
+    background: oklch(20% 0.02 240);
+    border: 1px solid oklch(30% 0.05 240);
+    box-shadow: var(--dark-glow);
+}
+
+/* === LOADING ANIMATIONS PER THEME === */
+.theme-neon .loading {
+    color: oklch(70% 0.3 200);
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.theme-luxury .loading {
+    color: oklch(60% 0.2 80);
+}
+
+.theme-nature .loading {
+    color: oklch(65% 0.25 145);
+}
+
+/* === INTERACTIVE ELEMENTS === */
+.theme-neon .btn-primary:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 40px currentColor, 0 0 60px currentColor;
+}
+
+.theme-luxury .btn:hover {
+    background: linear-gradient(135deg, oklch(85% 0.05 80), oklch(90% 0.03 60));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px oklch(85% 0.05 80 / 0.3);
+}
+
+.theme-corporate .input:focus {
+    border-color: var(--corporate-primary);
+    box-shadow: 0 0 0 3px oklch(45% 0.1 220 / 0.1);
+}
+
+/* === TOAST/NOTIFICATION STYLES === */
+.theme-neon .toast .alert {
+    backdrop-filter: blur(10px);
+    border: 1px solid currentColor;
+    box-shadow: 0 0 20px currentColor;
+}
+
+.theme-luxury .toast .alert {
+    background: var(--luxury-gradient);
+    border: var(--luxury-border);
+    backdrop-filter: blur(8px);
+}
+
+/* === SCROLLBAR THEMING === */
+.theme-dark ::-webkit-scrollbar {
+    width: 8px;
+    background: oklch(25% 0.02 240);
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+    background: oklch(40% 0.05 240);
+    border-radius: 4px;
+}
+
+.theme-luxury ::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, oklch(75% 0.05 80), oklch(80% 0.03 60));
+}
+
+/* === SELECTION STYLING === */
+.theme-neon ::selection {
+    background: oklch(70% 0.3 200 / 0.3);
+    color: oklch(100% 0 0);
+    text-shadow: 0 0 10px currentColor;
+}
+
+.theme-luxury ::selection {
+    background: oklch(85% 0.05 80 / 0.4);
+    color: oklch(20% 0.02 80);
+}
+
+.theme-nature ::selection {
+    background: oklch(70% 0.25 140 / 0.3);
+    color: oklch(100% 0 0);
+}
+
+/* === FOCUS INDICATORS === */
+.theme-neon .btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    box-shadow: 0 0 20px currentColor;
+}
+
+.theme-corporate .btn:focus-visible {
+    outline: 2px solid var(--corporate-primary);
+    outline-offset: 2px;
+}
+
+/* === ENHANCED BACKDROP EFFECTS === */
+.theme-luxury .modal::backdrop {
+    backdrop-filter: blur(12px) saturate(1.2);
+    background: oklch(50% 0.02 80 / 0.2);
+}
+
+.theme-neon .modal::backdrop {
+    backdrop-filter: blur(8px) hue-rotate(45deg);
+    background: oklch(20% 0.1 200 / 0.3);
+}
+
+/* === SPECIAL HEALTH TRACKER STYLES === */
+.theme-health .hero .btn {
+    background: linear-gradient(135deg, oklch(70% 0.2 145), oklch(75% 0.25 160));
+    border: none;
+    color: oklch(100% 0 0);
+    font-weight: 600;
+}
+
+.theme-health .stats .stat-value {
+    background: linear-gradient(135deg, oklch(65% 0.25 145), oklch(70% 0.2 160));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+/* === ERROR STATES === */
+.theme-neon .input-error {
+    border-color: oklch(70% 0.3 0);
+    box-shadow: 0 0 15px oklch(70% 0.3 0 / 0.5);
+}
+
+.theme-luxury .alert-error {
+    background: linear-gradient(135deg, oklch(95% 0.02 0), oklch(98% 0.01 20));
+    border: 1px solid oklch(70% 0.25 0);
+}
+
+/* === HIGH CONTRAST MODE SUPPORT === */
+@media (prefers-contrast: high) {
+    .theme-luxury .card,
+    .theme-nature .card {
+        border-width: 2px;
+        border-color: currentColor;
+    }
+    
+    .theme-neon .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* === PRINT STYLES === */
+@media print {
+    .theme-dark,
+    .theme-neon,
+    .theme-luxury {
+        filter: none !important;
+        background: white !important;
+        color: black !important;
+    }
+    
+    .theme-animation-neon *,
+    .theme-animation-luxury * {
+        animation: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* === RTL SUPPORT === */
+[dir="rtl"] .theme-luxury .card {
+    background: linear-gradient(-135deg, oklch(95% 0.02 80), oklch(98% 0.01 60));
+}
+
+[dir="rtl"] .theme-retro .btn-primary {
+    background: linear-gradient(-135deg, oklch(65% 0.3 320), oklch(70% 0.35 340));
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+.theme-animation-neon .btn,
+.theme-animation-luxury .card {
+    transform: translateZ(0); /* Force hardware acceleration */
+}
+
+.theme-neon .modal,
+.theme-luxury .modal {
+    contain: layout style paint;
+}
+
+/* === DROPDOWN THEMING === */
+.theme-neon .dropdown-content {
+    background: oklch(15% 0.05 240);
+    border: 1px solid oklch(70% 0.3 200);
+    box-shadow: 0 0 25px oklch(70% 0.3 200 / 0.4);
+}
+
+.theme-luxury .dropdown-content {
+    background: var(--luxury-gradient);
+    border: var(--luxury-border);
+    backdrop-filter: blur(10px);
+}
+
+/* === TABS THEMING === */
+.theme-corporate .tabs .tab-active {
+    background: var(--corporate-primary);
+    color: oklch(100% 0 0);
+}
+
+.theme-neon .tabs .tab-active {
+    background: transparent;
+    border-bottom: 2px solid oklch(70% 0.3 200);
+    box-shadow: 0 2px 10px oklch(70% 0.3 200 / 0.5);
+}
+
+/* === BADGE THEMING === */
+.theme-luxury .badge {
+    background: linear-gradient(135deg, oklch(75% 0.05 80), oklch(80% 0.03 60));
+    border: 1px solid oklch(65% 0.08 80);
+}
+
+.theme-neon .badge {
+    background: oklch(70% 0.3 200);
+    color: oklch(100% 0 0);
+    box-shadow: 0 0 10px currentColor;
+}
     </style>
 </head>
 

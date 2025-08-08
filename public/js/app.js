@@ -170,7 +170,6 @@ setupProgressHubTabs() {
   console.log('🔧 Setting up progress hub tabs:', tabs.length);
 
   tabs.forEach(tab => {
-    // Bestehende Listener entfernen und durch neu gebundenes Element ersetzen
     const newTab = tab.cloneNode(true);
     tab.parentNode.replaceChild(newTab, tab);
 
@@ -183,7 +182,6 @@ setupProgressHubTabs() {
         this.progressHub.showView(viewName);
       }
 
-      // Beim Tab-Wechsel Daten nachladen
       if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
         try {
           await this.progressHub.loadViewData();
@@ -878,28 +876,24 @@ getTodayData(allData) {
  */
 async refreshAllComponents() {
   try {
-    // Cache invalidieren (falls vorhanden)
     this.cache?.delete?.('allHealthData');
 
-    // Dashboard + Hero aktualisieren
     await this.updateDashboardStats?.();
     await this.updateHeroStats?.();
 
-    // Activity Feed neu laden
     if (this.activityFeed && typeof this.activityFeed.load === 'function') {
       await this.activityFeed.load();
     }
 
-    // ProgressHub Daten neu laden und aktuellen View beibehalten
     if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
-      await this.progressHub.loadViewData();
       const viewToShow = this.progressHub.currentView || 'overview';
+      // erst View setzen, dann laden (wichtig für DOM-Container)
       if (typeof this.progressHub.showView === 'function') {
         this.progressHub.showView(viewToShow);
       }
+      await this.progressHub.loadViewData();
     }
 
-    // Analytics aktualisieren (bereinigt von entfernten Charts)
     if (this.analyticsEngine && typeof this.analyticsEngine.updateAllAnalytics === 'function') {
       await this.analyticsEngine.updateAllAnalytics();
     }
@@ -2429,44 +2423,66 @@ class ProgressHub {
     }
 
     /**
- * Load data for Progress Hub views using existing view methods
+ * Load data for Progress Hub views using existing showXxxView methods
  */
 async loadViewData() {
-  // Selektoren (Loader/Content/Empty)
-  const loaderEl = document.querySelector('#progresshub-loading, [data-progresshub-loading]') 
-                || document.evaluate("//*[contains(text(),'Progress Hub wird geladen')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.parentElement;
-  const contentEl = document.getElementById('progress-hub-content') || document.querySelector('[data-progresshub-content]');
-  const emptyEl = document.getElementById('progress-hub-empty') || document.querySelector('[data-progresshub-empty]');
+  // Container-Selektoren
+  const loaderEl =
+    document.querySelector('#progresshub-loading, [data-progresshub-loading]') ||
+    document.evaluate(
+      "//*[contains(text(),'Progress Hub wird geladen')]",
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue?.parentElement;
 
-  // Loader einblenden, Content/Empty verstecken
+  // Content-Container: versuche feste ID, sonst fallback auf den ersten Card-Body nach der Überschrift "Fortschrittshub"
+  let contentEl =
+    document.getElementById('progress-hub-content') ||
+    document.querySelector('[data-progresshub-content]');
+  if (!contentEl) {
+    const heading = Array.from(document.querySelectorAll('h2,h3'))
+      .find(h => /fortschrittshub/i.test(h.textContent || ''));
+    contentEl = heading ? heading.closest('.card') || heading.parentElement : null;
+  }
+
+  const emptyEl =
+    document.getElementById('progress-hub-empty') ||
+    document.querySelector('[data-progresshub-empty]');
+
+  // Loader an, Content/Empty aus
   if (loaderEl) loaderEl.classList.remove('hidden');
   if (contentEl) contentEl.classList.add('hidden');
   if (emptyEl) emptyEl.classList.add('hidden');
 
   try {
-    // Daten laden (Offline-First)
+    // Daten besorgen (Offline-First über HealthTracker)
     const allData = await this.healthTracker.getAllHealthData();
 
-    // Keine Daten -> Empty-State
+    // Keine Daten -> Empty anzeigen
     if (!Array.isArray(allData) || allData.length === 0) {
       if (emptyEl) emptyEl.classList.remove('hidden');
       if (contentEl) contentEl.classList.add('hidden');
       return;
     }
 
-    // Woche cachen (für weekly-view)
+    // Week-Cache für weekly-Ansicht vorbereiten
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     this.weekData = allData
       .filter(entry => {
         if (!entry?.date) return false;
-        const d = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
+        const d = typeof entry.date === 'string' ? new Date(entry.date) : new Date(entry.date);
         return d >= oneWeekAgo && d <= now;
       })
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Gewünschten View bestimmen und anzeigen
+    // currentView sicherstellen
     const view = this.currentView || 'overview';
+    this.currentView = view;
+
+    // Vorhandene View-Methoden aufrufen
     if (view === 'overview' && typeof this.showOverviewView === 'function') {
       this.showOverviewView();
     } else if (view === 'weekly' && typeof this.showWeeklyView === 'function') {
@@ -2481,35 +2497,25 @@ async loadViewData() {
       this.showOverviewView();
     }
 
-    // Content sichtbar, Empty verstecken
+    // Content sichtbar machen
     if (contentEl) contentEl.classList.remove('hidden');
     if (emptyEl) emptyEl.classList.add('hidden');
   } catch (err) {
     console.error('❌ ProgressHub loadViewData Fehler:', err);
-    // Fehler -> Empty-State, kein Dauerspinner
+    // Fehler -> Empty sichtbar, Content aus
     if (emptyEl) emptyEl.classList.remove('hidden');
     if (contentEl) contentEl.classList.add('hidden');
   } finally {
-    // Loader immer ausblenden
+    // Loader immer aus
     if (loaderEl) loaderEl.classList.add('hidden');
 
-    // Fallback: Wenn keine Daten, zeige leeren Zustand statt Loader
-  const data = await this.healthTracker.getAllHealthData();
-  const emptyEl = document.getElementById('progress-hub-empty') || document.querySelector('[data-progresshub-empty]');
-  const contentEl = document.getElementById('progress-hub-content') || document.querySelector('[data-progresshub-content]');
-
-  if (!data || data.length === 0) {
-    if (emptyEl) emptyEl.classList.remove('hidden');
-    if (contentEl) contentEl.classList.add('hidden');
-  } else {
-    if (emptyEl) emptyEl.classList.add('hidden');
-    if (contentEl) contentEl.classList.remove('hidden');
-  }
-
-    // Text-basierter Loader-Fallback sicher ausblenden
+    // Text-Fallback "Progress Hub wird geladen..." sicher verstecken
     const loaderFallback = document.evaluate(
       "//*[contains(text(),'Progress Hub wird geladen')]",
-      document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
     ).singleNodeValue;
     if (loaderFallback && loaderFallback.parentElement) {
       loaderFallback.parentElement.classList.add('hidden');
@@ -2531,50 +2537,67 @@ async loadViewData() {
     }
 
     /**
- * Show specific view in progress hub with proper content switching
+ * Show a specific Progress Hub view and hide others
  */
 showView(viewName) {
-    console.log('🔄 ProgressHub showView called:', viewName);
-    
-    this.currentView = viewName;
-    
-    // Update tab states (DaisyUI tabs)
-    const tabs = document.querySelectorAll('[id^="tab-"]');
-    tabs.forEach(tab => {
-        tab.classList.remove('tab-active');
-    });
-    
-    const activeTab = document.getElementById(`tab-${viewName}`);
-    if (activeTab) {
-        activeTab.classList.add('tab-active');
-    }
+  this.currentView = viewName;
 
-    // Hide all views first
-    const allViews = ['overview-view', 'weekly-view', 'goals-view', 'achievements-view'];
-    allViews.forEach(viewId => {
-        const viewElement = document.getElementById(viewId);
-        if (viewElement) {
-            viewElement.classList.add('hidden');
-        }
-    });
+  // Tab-Active Status setzen (optional, falls Tabs vorhanden)
+  document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+    const isActive = tab.id.replace('tab-', '') === viewName;
+    tab.classList.toggle('tab-active', isActive);
+    tab.classList.toggle('btn-primary', isActive);
+    tab.classList.toggle('btn-ghost', !isActive);
+  });
 
-    // Show the selected view and populate with appropriate content
-    switch (viewName) {
-        case 'overview':
-            this.showOverviewView();
-            break;
-        case 'weekly':
-            this.showWeeklyView();
-            break;
-        case 'goals':
-            this.showGoalsView();
-            break;
-        case 'achievements':
-            this.showAchievementsView();
-            break;
-        default:
-            this.showOverviewView();
-    }
+  // Bereiche finden (robust, falls IDs fehlen)
+  const overviewSection =
+    document.getElementById('progress-overview-section') ||
+    document.querySelector('[data-progress-view="overview"]') ||
+    document.querySelector('#progress-hub-content'); // Fallback: Gesamter Content
+
+  const weeklySection =
+    document.getElementById('progress-weekly-section') ||
+    document.querySelector('[data-progress-view="weekly"]');
+
+  const goalsSection =
+    document.getElementById('progress-goals-section') ||
+    document.querySelector('[data-progress-view="goals"]');
+
+  const achievementsSection =
+    document.getElementById('progress-achievements-section') ||
+    document.querySelector('[data-progress-view="achievements"]');
+
+  // Erst alles verstecken
+  [overviewSection, weeklySection, goalsSection, achievementsSection]
+    .filter(Boolean)
+    .forEach(sec => sec.classList.add('hidden'));
+
+  // Gewählten Bereich zeigen
+  const map = {
+    overview: overviewSection,
+    weekly: weeklySection,
+    goals: goalsSection,
+    achievements: achievementsSection
+  };
+
+  const target = map[viewName] || overviewSection;
+  if (target) target.classList.remove('hidden');
+
+  // Passende View-Rendermethode aufrufen
+  if (viewName === 'overview' && typeof this.showOverviewView === 'function') {
+    this.showOverviewView();
+  } else if (viewName === 'weekly' && typeof this.showWeeklyView === 'function') {
+    this.showWeeklyView();
+  } else if (viewName === 'goals' && typeof this.showGoalsView === 'function') {
+    this.showGoalsView();
+  } else if (viewName === 'achievements' && typeof this.showAchievementsView === 'function') {
+    this.showAchievementsView();
+  } else if (typeof this.showOverviewView === 'function') {
+    this.currentView = 'overview';
+    this.showOverviewView();
+    if (overviewSection) overviewSection.classList.remove('hidden');
+  }
 }
 
 /** Show overview view (existing today view functionality) */

@@ -3271,67 +3271,132 @@ getBuildInfo() {
     };
 }
 
-// DEBUG VERSION - Tab-Funktionalität für About Modal
+/**
+ * Tab-Funktionalität für About Modal
+ */
 initializeAboutTabs(modal) {
-    console.log('🔧 Initialisiere About Tabs...');
+    console.log('🔧 Initialisiere About Tabs - Robuste Version');
     
     const tabs = modal.querySelectorAll('[data-about-tab]');
     const panels = modal.querySelectorAll('.tab-panel');
     
-    console.log('Gefundene Tabs:', tabs.length);
-    console.log('Gefundene Panels:', panels.length);
+    console.log('Tabs gefunden:', tabs.length);
+    console.log('Panels gefunden:', panels.length);
     
-    // Debug: Alle Panels auflisten
-    panels.forEach((panel, index) => {
-        console.log(`Panel ${index}:`, panel.id, 'Klassen:', panel.className);
-    });
+    // ROBUSTE INITIAL-ANZEIGE
+    const showInitialPanel = () => {
+        // Alle Panels verstecken
+        panels.forEach(panel => {
+            panel.style.display = 'none';
+            panel.classList.add('hidden');
+            panel.classList.remove('active', 'block');
+        });
+        
+        // Overview Panel anzeigen
+        const overviewPanel = modal.querySelector('#about-overview');
+        if (overviewPanel) {
+            overviewPanel.style.display = 'block';
+            overviewPanel.classList.remove('hidden');
+            overviewPanel.classList.add('active', 'block');
+            console.log('✅ Overview Panel initial angezeigt');
+        }
+        
+        // Overview Tab aktivieren
+        tabs.forEach(tab => tab.classList.remove('tab-active'));
+        const overviewTab = modal.querySelector('[data-about-tab="overview"]');
+        if (overviewTab) {
+            overviewTab.classList.add('tab-active');
+        }
+    };
     
+    // ROBUSTE TAB-EVENT-HANDLER
     tabs.forEach((tab, index) => {
         const tabName = tab.dataset.aboutTab;
-        console.log(`Tab ${index}:`, tabName);
+        console.log(`Tab ${index}: ${tabName}`);
         
+        // Event Listener mit robuster Fehlerbehandlung
         tab.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('🔄 Tab geklickt:', tabName);
+            console.log(`🔄 Tab-Wechsel zu: ${tabName}`);
             
-            // Alle Tabs deaktivieren
-            tabs.forEach(t => {
-                t.classList.remove('tab-active');
-                console.log('Tab deaktiviert:', t.dataset.aboutTab);
-            });
-            
-            // Aktiven Tab setzen
-            tab.classList.add('tab-active');
-            console.log('Tab aktiviert:', tabName);
-            
-            // Alle Panels verstecken
-            panels.forEach(panel => {
-                panel.style.display = 'none';
-                console.log('Panel versteckt:', panel.id);
-            });
-            
-            // Ziel-Panel anzeigen
-            const targetPanel = modal.querySelector(`#about-${tabName}`);
-            if (targetPanel) {
-                targetPanel.style.display = 'block';
-                console.log('✅ Panel angezeigt:', targetPanel.id);
-            } else {
-                console.error('❌ Panel nicht gefunden für Tab:', tabName);
-                console.log('Gesuchte ID:', `#about-${tabName}`);
+            try {
+                // 1. Alle Tabs deaktivieren
+                tabs.forEach(t => {
+                    t.classList.remove('tab-active');
+                });
+                
+                // 2. Aktuellen Tab aktivieren
+                tab.classList.add('tab-active');
+                
+                // 3. Alle Panels verstecken
+                panels.forEach(panel => {
+                    // CSS Display
+                    panel.style.display = 'none';
+                    // Tailwind Classes
+                    panel.classList.add('hidden');
+                    panel.classList.remove('block', 'active');
+                    // Zusätzliche Sicherheit
+                    panel.setAttribute('aria-hidden', 'true');
+                });
+                
+                // 4. Ziel-Panel anzeigen
+                const targetPanel = modal.querySelector(`#about-${tabName}`);
+                if (targetPanel) {
+                    // CSS Display (höchste Priorität)
+                    targetPanel.style.display = 'block';
+                    // Tailwind Classes
+                    targetPanel.classList.remove('hidden');
+                    targetPanel.classList.add('block', 'active');
+                    // Accessibility
+                    targetPanel.setAttribute('aria-hidden', 'false');
+                    
+                    console.log(`✅ Panel "${targetPanel.id}" angezeigt`);
+                    
+                    // Smooth Transition
+                    targetPanel.style.opacity = '0';
+                    requestAnimationFrame(() => {
+                        targetPanel.style.transition = 'opacity 0.3s ease';
+                        targetPanel.style.opacity = '1';
+                    });
+                    
+                } else {
+                    console.error(`❌ Panel nicht gefunden: #about-${tabName}`);
+                    
+                    // Fallback: Zeige verfügbare Panels
+                    console.log('Verfügbare Panels:', Array.from(panels).map(p => p.id));
+                }
+                
+                // 5. Haptic Feedback
+                if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+                    navigator.vibrate(5);
+                }
+                
+            } catch (error) {
+                console.error('❌ Tab-Wechsel Fehler:', error);
+                // Fallback zu Overview
+                showInitialPanel();
             }
         });
     });
     
-    // Initial Overview anzeigen
+    // INITIAL SETUP mit Verzögerung für DOM-Stabilität
+    setTimeout(showInitialPanel, 50);
+    
+    // Nach weiterer Verzögerung prüfen
     setTimeout(() => {
-        const overviewPanel = modal.querySelector('#about-overview');
-        if (overviewPanel) {
-            overviewPanel.style.display = 'block';
-            console.log('✅ Overview Panel initial angezeigt');
-        } else {
-            console.error('❌ Overview Panel nicht gefunden');
+        const visiblePanels = Array.from(panels).filter(panel => 
+            panel.style.display === 'block' || !panel.classList.contains('hidden')
+        );
+        
+        console.log('Sichtbare Panels nach Init:', visiblePanels.length);
+        
+        if (visiblePanels.length === 0) {
+            console.warn('⚠️ Kein Panel sichtbar - Fallback aktiviert');
+            showInitialPanel();
         }
-    }, 100);
+    }, 200);
+    
+    console.log('✅ About Tabs robuste Initialisierung abgeschlossen');
 }
 
 /**

@@ -3271,55 +3271,65 @@ getBuildInfo() {
     };
 }
 
-/**
- * Tab-Funktionalität für About Modal
- */
+// DEBUG VERSION - Tab-Funktionalität für About Modal
 initializeAboutTabs(modal) {
+    console.log('🔧 Initialisiere About Tabs...');
+    
     const tabs = modal.querySelectorAll('[data-about-tab]');
     const panels = modal.querySelectorAll('.tab-panel');
     
-    console.log('🔧 About Tabs initialisiert:', tabs.length, 'Tabs,', panels.length, 'Panels');
+    console.log('Gefundene Tabs:', tabs.length);
+    console.log('Gefundene Panels:', panels.length);
     
-    tabs.forEach(tab => {
+    // Debug: Alle Panels auflisten
+    panels.forEach((panel, index) => {
+        console.log(`Panel ${index}:`, panel.id, 'Klassen:', panel.className);
+    });
+    
+    tabs.forEach((tab, index) => {
+        const tabName = tab.dataset.aboutTab;
+        console.log(`Tab ${index}:`, tabName);
+        
         tab.addEventListener('click', (e) => {
             e.preventDefault();
+            console.log('🔄 Tab geklickt:', tabName);
             
-            const targetTab = tab.dataset.aboutTab;
-            console.log('🔄 Tab-Wechsel zu:', targetTab);
-            
-            // Update tab states
-            tabs.forEach(t => t.classList.remove('tab-active'));
-            tab.classList.add('tab-active');
-            
-            // Update panel visibility
-            panels.forEach(panel => {
-                panel.classList.add('hidden');
-                panel.classList.remove('block');
+            // Alle Tabs deaktivieren
+            tabs.forEach(t => {
+                t.classList.remove('tab-active');
+                console.log('Tab deaktiviert:', t.dataset.aboutTab);
             });
             
-            const targetPanel = modal.querySelector(`#about-${targetTab}`);
-            if (targetPanel) {
-                targetPanel.classList.remove('hidden');
-                targetPanel.classList.add('block');
-                console.log('✅ Panel sichtbar:', targetPanel.id);
-            } else {
-                console.error('❌ Panel nicht gefunden:', `#about-${targetTab}`);
-            }
+            // Aktiven Tab setzen
+            tab.classList.add('tab-active');
+            console.log('Tab aktiviert:', tabName);
             
-            // Haptic feedback
-            if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-                navigator.vibrate(5);
+            // Alle Panels verstecken
+            panels.forEach(panel => {
+                panel.style.display = 'none';
+                console.log('Panel versteckt:', panel.id);
+            });
+            
+            // Ziel-Panel anzeigen
+            const targetPanel = modal.querySelector(`#about-${tabName}`);
+            if (targetPanel) {
+                targetPanel.style.display = 'block';
+                console.log('✅ Panel angezeigt:', targetPanel.id);
+            } else {
+                console.error('❌ Panel nicht gefunden für Tab:', tabName);
+                console.log('Gesuchte ID:', `#about-${tabName}`);
             }
         });
     });
     
-    // Initial state sicherstellen
+    // Initial Overview anzeigen
     setTimeout(() => {
         const overviewPanel = modal.querySelector('#about-overview');
         if (overviewPanel) {
-            overviewPanel.classList.remove('hidden');
-            overviewPanel.classList.add('block');
-            console.log('✅ Overview Panel initial sichtbar gemacht');
+            overviewPanel.style.display = 'block';
+            console.log('✅ Overview Panel initial angezeigt');
+        } else {
+            console.error('❌ Overview Panel nicht gefunden');
         }
     }, 100);
 }

@@ -11329,7 +11329,7 @@ async updateHeatmapChart(analyticsData) {
         
     } catch (error) {
         console.error('❌ Heatmap update failed:', error);
-        const heatmapContainer = document.getElementById('heatmap-container');
+        const heatmapContainer = document.getElementById('heatmap-chart');
         if (heatmapContainer) {
             heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler: ' + error.message + '</div>';
         }

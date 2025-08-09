@@ -11271,7 +11271,7 @@ prepareTrendsData(data, metricFilter = 'all') {
     /** Update heatmap chart */
 async updateHeatmapChart(analyticsData) {
     try {
-        const heatmapContainer = document.getElementById('heatmap-container');
+        const heatmapContainer = document.getElementById('heatmap-chart');
         if (!heatmapContainer) {
             console.warn('⚠️ Heatmap container not found');
             return;
@@ -11298,7 +11298,7 @@ async updateHeatmapChart(analyticsData) {
         
     } catch (error) {
         console.error('❌ Heatmap update failed:', error);
-        const heatmapContainer = document.getElementById('heatmap-container');
+        const heatmapContainer = document.getElementById('heatmap-chart');
         if (heatmapContainer) {
             heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler aufgetreten</div>';
         }

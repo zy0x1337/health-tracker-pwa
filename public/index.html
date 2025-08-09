@@ -6,7 +6,7 @@
     <title>Health Tracker Pro - Dein persönlicher Gesundheits-Tracker</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="app-version" content="2.1.0">
+    <meta name="app-version" content="2.2.0">
     <meta name="app-build" content="2025.08.08">
     <meta name="data-retention-default" content="365">
     <meta name="description" content="Verfolge deine Gesundheitsziele mit diesem modernen, professionellen Health Tracker. Offline-fähig und benutzerfreundlich.">
@@ -25,6 +25,26 @@
     
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <!-- Mobile-First Responsive Styles -->
+    <link rel="stylesheet" href="css/responsive-styles.css" media="screen">
+    <!-- Critical Mobile Styles Inline -->
+    <style>
+        /* Critical mobile styles für sofortiges Rendering */
+        @media (max-width: 768px) {
+            body { 
+                font-size: 16px !important; 
+                line-height: 1.5;
+                -webkit-text-size-adjust: 100%;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            .container {
+                padding: 0 1rem;
+                max-width: 100%;
+            }
+        }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -1048,11 +1068,6 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <span class="font-medium">Analytics</span>
                 </a>
             </li>
-            <!-- In der Haupt-Navigation -->
-<button class="btn btn-ghost btn-sm" onclick="healthTracker.togglePerformanceDashboard()">
-    <i data-lucide="activity" class="w-4 h-4 mr-1"></i>
-    Performance
-</button>
         </ul>
     </div>
     
@@ -2626,7 +2641,7 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                     <!-- Version Info -->
         <div class="text-center pt-4 border-t border-base-300">
           <p class="text-xs text-base-content opacity-60">
-            Health Tracker Pro v2.1.0 | 
+            Health Tracker Pro v2.2.0 | 
             <span id="footer-build-date">Build: 08.08.2025</span> | 
             <span id="footer-cache-status">Cache: Aktiv</span>
           </p>

@@ -1,8 +1,45 @@
+console.log('🚀 Health Tracker Pro loading...');
+
+// RESPONSIVE LOADER - DIREKTE INTEGRATION
+(function initResponsiveSystem() {
+    function loadResponsiveStyles() {
+        if (document.querySelector('link[href="css/responsive-styles.css"]')) return;
+        
+        if (window.innerWidth <= 768) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'css/responsive-styles.css';
+            link.media = 'screen and (max-width: 768px)';
+            document.head.appendChild(link);
+            console.log('📱 Mobile styles loaded');
+        }
+    }
+    
+    // Sofortiger Load-Check
+    loadResponsiveStyles();
+    
+    // Event Listeners
+    window.addEventListener('resize', debounce(loadResponsiveStyles, 250));
+    window.addEventListener('orientationchange', () => setTimeout(loadResponsiveStyles, 100));
+    
+    // Simple Debounce Helper
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+})();
+
 /**
- * Health Tracker Pro - Advanced Progressive Web Application
- * Vollständige app.js Implementation mit Offline-First Architecture
- * @author Health Tracker Team
- * @version 2.0.0
+ * Health Tracker Pro - Progressive Web Application mit Offline-First Architecture
+ * @author Health Tracker Admin
+ * @version 2.2.0
  */
 
 // ====================================================================
@@ -69,6 +106,9 @@ class HealthTracker {
 
         // Automatische Datenbereinigung starten
         this.implementDataRetention();
+
+        // Mobile Optimierungen initialisieren
+        this.mobileOptimizations = new MobileOptimizations(this);
 
         // Initialize Analytics Dashboard after components are ready
         setTimeout(() => {
@@ -6152,217 +6192,220 @@ showQuickToast(message, type = 'success') {
         sound: false 
     });
 }
-
-/**
- * Performance Monitoring Integration in HealthTracker
- */
-async getPerformanceMetrics() {
-    return new Promise((resolve) => {
-        if (!navigator.serviceWorker) {
-            resolve({ error: 'Service Worker not available' });
-            return;
-        }
-
-        const messageHandler = (event) => {
-            if (event.data.type === 'PERFORMANCE_DATA') {
-                navigator.serviceWorker.removeEventListener('message', messageHandler);
-                resolve(event.data.data);
-            }
-        };
-
-        navigator.serviceWorker.addEventListener('message', messageHandler);
-        
-        navigator.serviceWorker.ready.then(registration => {
-            const sw = registration.active;
-            if (sw) {
-                sw.postMessage({ type: 'GET_PERFORMANCE' });
-            }
-        });
-
-        // Timeout nach 5 Sekunden
-        setTimeout(() => {
-            navigator.serviceWorker.removeEventListener('message', messageHandler);
-            resolve({ error: 'Timeout' });
-        }, 5000);
-    });
 }
 
 /**
- * Performance Dashboard anzeigen
+ * Mobile UI Optimierungen für HealthTracker
  */
-async showPerformanceDashboard() {
-    try {
-        const metrics = await this.getPerformanceMetrics();
-        
-        if (metrics.error) {
-            console.warn('Performance-Daten nicht verfügbar:', metrics.error);
-            return;
-        }
-
-        // Performance-Statistiken berechnen
-        const totalRequests = metrics.cacheHits + metrics.cacheMisses;
-        const cacheHitRate = totalRequests > 0 ? 
-            ((metrics.cacheHits / totalRequests) * 100).toFixed(1) : 0;
-        const uptime = Math.round((Date.now() - metrics.startTime) / 1000);
-
-        // UI-Update oder Console-Output
-        console.log('📊 Health Tracker Performance Dashboard:', {
-            'Cache Hit Rate': `${cacheHitRate}%`,
-            'Total Requests': totalRequests,
-            'Network Requests': metrics.networkRequests,
-            'Offline Requests': metrics.offlineRequests,
-            'Uptime': `${uptime}s`,
-            'Cache Efficiency': cacheHitRate > 80 ? '✅ Excellent' : 
-                              cacheHitRate > 60 ? '⚠️ Good' : '❌ Needs Improvement'
-        });
-
-        return {
-            cacheHitRate: parseFloat(cacheHitRate),
-            totalRequests,
-            uptime,
-            metrics
-        };
-
-    } catch (error) {
-        console.error('❌ Performance Dashboard Fehler:', error);
+class MobileOptimizations {
+    constructor(healthTracker) {
+        this.healthTracker = healthTracker;
+        this.isMobile = window.innerWidth <= 768;
+        this.init();
     }
-}
-
-/**
- * Performance UI-Updates
- */
-async refreshPerformanceData() {
-    try {
-        const data = await this.showPerformanceDashboard();
-        
-        if (data) {
-            // UI-Elemente aktualisieren
-            document.getElementById('cache-hit-rate').textContent = `${data.cacheHitRate}%`;
-            document.getElementById('total-requests').textContent = data.totalRequests;
-            document.getElementById('offline-requests').textContent = data.metrics.offlineRequests;
-            document.getElementById('uptime').textContent = `${data.uptime}s`;
-
-            // Cache Hit Rate Farbe anpassen
-            const hitRateElement = document.getElementById('cache-hit-rate');
-            hitRateElement.className = data.cacheHitRate > 80 ? 'stat-value text-lg text-success' :
-                                      data.cacheHitRate > 60 ? 'stat-value text-lg text-warning' :
-                                      'stat-value text-lg text-error';
-
-            this.showToast('📊 Performance-Daten aktualisiert', 'success');
-        }
-    } catch (error) {
-        this.showToast('❌ Performance-Update fehlgeschlagen', 'error');
-    }
-}
-
-/**
- * Performance-Dashboard ein-/ausblenden
- */
-togglePerformanceDashboard() {
-    const dashboard = document.getElementById('performance-dashboard');
-    const isVisible = dashboard.style.display !== 'none';
     
-    dashboard.style.display = isVisible ? 'none' : 'block';
-    
-    if (!isVisible) {
-        this.refreshPerformanceData();
+    init() {
+        if (this.isMobile) {
+            this.setupMobileFeatures();
+            this.setupTouchGestures();
+            this.optimizeMobileInputs();
+            this.setupPullToRefresh();
+        }
+        
+        // Responsive Event Listener
+        window.addEventListener('resize', () => {
+            this.handleResize();
+        });
     }
-}
-
-/**
- * Performance-Daten zurücksetzen
- */
-async clearPerformanceData() {
-    if (confirm('Performance-Daten wirklich zurücksetzen?')) {
+    
+    /**
+     * Mobile-spezifische Features aktivieren
+     */
+    setupMobileFeatures() {
+        // FAB Button hinzufügen
+        this.addFloatingActionButton();
+        
+        // Quick Actions Panel
+        this.addQuickActionsPanel();
+        
+        // Mobile Navigation
+        this.optimizeMobileNavigation();
+        
+        // Viewport-Fix für iOS
+        this.fixiOSViewport();
+    }
+    
+    /**
+     * Floating Action Button
+     */
+    addFloatingActionButton() {
+        const fab = document.createElement('button');
+        fab.className = 'fab ripple';
+        fab.innerHTML = '<i data-lucide="plus" class="w-6 h-6"></i>';
+        fab.onclick = () => this.openQuickAddDialog();
+        
+        document.body.appendChild(fab);
+        
+        // Lucide Icons aktualisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+    
+    /**
+     * Quick Actions Panel
+     */
+    addQuickActionsPanel() {
+        const panel = document.createElement('div');
+        panel.className = 'quick-actions';
+        panel.innerHTML = `
+            <a href="#health-form" class="quick-action" data-action="add">
+                <i data-lucide="plus-circle" class="w-5 h-5 mb-1"></i>
+                <span>Hinzufügen</span>
+            </a>
+            <a href="#analytics" class="quick-action" data-action="stats">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 mb-1"></i>
+                <span>Statistiken</span>
+            </a>
+            <a href="#goals" class="quick-action" data-action="goals">
+                <i data-lucide="target" class="w-5 h-5 mb-1"></i>
+                <span>Ziele</span>
+            </a>
+            <a href="#settings" class="quick-action" data-action="settings">
+                <i data-lucide="settings" class="w-5 h-5 mb-1"></i>
+                <span>Einstellungen</span>
+            </a>
+        `;
+        
+        document.body.appendChild(panel);
+        
+        // Active State Management
+        this.setupQuickActionsNavigation();
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+    
+    /**
+     * Touch-Gesten Setup
+     */
+    setupTouchGestures() {
+        let touchStartY = 0;
+        let touchEndY = 0;
+        
+        // Pull-to-Refresh Geste
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            touchEndY = e.changedTouches[0].screenY;
+            this.handleGesture();
+        });
+    }
+    
+    handleGesture() {
+        const swipeThreshold = 100;
+        const diff = touchEndY - touchStartY;
+        
+        // Pull-to-Refresh
+        if (diff > swipeThreshold && window.scrollY === 0) {
+            this.triggerRefresh();
+        }
+    }
+    
+    /**
+     * Pull-to-Refresh
+     */
+    setupPullToRefresh() {
+        const pullIndicator = document.createElement('div');
+        pullIndicator.className = 'pull-indicator';
+        pullIndicator.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="loading loading-spinner loading-sm"></span>
+                <span>Aktualisieren...</span>
+            </div>
+        `;
+        
+        document.body.insertBefore(pullIndicator, document.body.firstChild);
+    }
+    
+    async triggerRefresh() {
+        const indicator = document.querySelector('.pull-indicator');
+        indicator.classList.add('visible');
+        
         try {
-            // Message an Service Worker senden
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'RESET_PERFORMANCE'
-                });
-            }
+            // Daten neu laden
+            await this.healthTracker.loadHealthData();
+            await this.healthTracker.analyticsEngine?.updateAllAnalytics();
             
-            // UI zurücksetzen
-            document.getElementById('cache-hit-rate').textContent = '0%';
-            document.getElementById('total-requests').textContent = '0';
-            document.getElementById('offline-requests').textContent = '0';
-            document.getElementById('uptime').textContent = '0s';
-            
-            this.showToast('🗑️ Performance-Daten zurückgesetzt', 'info');
-            
+            this.healthTracker.showToast('🔄 Daten aktualisiert', 'success');
         } catch (error) {
-            this.showToast('❌ Reset fehlgeschlagen', 'error');
+            this.healthTracker.showToast('❌ Aktualisierung fehlgeschlagen', 'error');
         }
-    }
-}
-
-/**
- * Detaillierte Cache-Informationen
- */
-async getCacheStatus() {
-    return new Promise((resolve) => {
-        const messageHandler = (event) => {
-            if (event.data.type === 'CACHE_STATUS') {
-                navigator.serviceWorker.removeEventListener('message', messageHandler);
-                resolve(event.data.data);
-            }
-        };
-
-        navigator.serviceWorker.addEventListener('message', messageHandler);
         
-        navigator.serviceWorker.ready.then(registration => {
-            const sw = registration.active;
-            if (sw) {
-                sw.postMessage({ type: 'GET_CACHE_STATUS' });
+        // Indicator ausblenden
+        setTimeout(() => {
+            indicator.classList.remove('visible');
+        }, 1000);
+    }
+    
+    /**
+     * Mobile Input Optimierungen
+     */
+    optimizeMobileInputs() {
+        // Alle Input-Felder optimieren
+        const inputs = document.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            // Verhindere Zoom bei Focus auf iOS
+            if (input.type !== 'number') {
+                input.style.fontSize = '16px';
             }
+            
+            // Touch-friendly Größen
+            input.classList.add('mobile-optimized');
         });
-    });
-}
-
-/**
- * Cache-Übersicht anzeigen
- */
-async showCacheOverview() {
-    try {
-        const cacheStatus = await this.getCacheStatus();
-        
-        console.log('💾 Cache Overview:', cacheStatus);
-        
-        // Beispiel-Output:
-        // {
-        //   "health-tracker-v3.1": 15,
-        //   "health-tracker-api-v3.1": 8,
-        //   "health-tracker-goals-v3.1": 2
-        // }
-        
-        return cacheStatus;
-    } catch (error) {
-        console.error('❌ Cache Status Fehler:', error);
     }
-}
-
-/**
- * Automatisches Performance-Monitoring initialisieren
- */
-initializePerformanceMonitoring() {
-    // Performance-Dashboard alle 30 Sekunden aktualisieren
-    setInterval(() => {
-        if (document.getElementById('performance-dashboard').style.display !== 'none') {
-            this.refreshPerformanceData();
-        }
-    }, 30000);
-
-    // Performance-Alerts bei kritischen Werten
-    setInterval(async () => {
-        const data = await this.showPerformanceDashboard();
+    
+    /**
+     * iOS Viewport Fix
+     */
+    fixiOSViewport() {
+        // Verhindere Zoom bei Input-Focus
+        const viewport = document.querySelector('meta[name="viewport"]');
         
-        if (data && data.cacheHitRate < 50) {
-            console.warn('⚠️ Low cache hit rate detected:', data.cacheHitRate + '%');
-            // Optional: Toast-Benachrichtigung
-            // this.showToast('⚠️ Cache-Performance niedrig', 'warning');
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            viewport.setAttribute('content', 
+                'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+            );
         }
-    }, 60000); // Alle Minute prüfen
-}
+    }
+    
+    /**
+     * Responsive Layout Anpassungen
+     */
+    handleResize() {
+        const newIsMobile = window.innerWidth <= 768;
+        
+        if (newIsMobile !== this.isMobile) {
+            this.isMobile = newIsMobile;
+            
+            if (this.isMobile) {
+                this.setupMobileFeatures();
+            } else {
+                this.removeMobileFeatures();
+            }
+        }
+    }
+    
+    removeMobileFeatures() {
+        // FAB und Quick Actions entfernen
+        document.querySelector('.fab')?.remove();
+        document.querySelector('.quick-actions')?.remove();
+        document.querySelector('.pull-indicator')?.remove();
+    }
 }
 
 // ====================================================================

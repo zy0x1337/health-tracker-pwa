@@ -4381,10 +4381,6 @@ showHelp() {
                                             <i data-lucide="hard-drive" class="w-4 h-4"></i>
                                             Speicher-Diagnose
                                         </button>
-                                        <button class="btn btn-outline btn-warning btn-sm w-full gap-2" onclick="healthTracker?.exportAppData?.()">
-                                            <i data-lucide="download" class="w-4 h-4"></i>
-                                            Debug-Export
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -4393,18 +4389,6 @@ showHelp() {
                                 <div class="card-body p-4">
                                     <h5 class="font-semibold text-primary mb-3">Hilfreiche Ressourcen</h5>
                                     <div class="space-y-2 text-sm">
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="book-open" class="w-4 h-4 text-primary"></i>
-                                            <span>Online-Dokumentation (Coming Soon)</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="video" class="w-4 h-4 text-primary"></i>
-                                            <span>Video-Tutorials (In Planung)</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="users" class="w-4 h-4 text-primary"></i>
-                                            <span>Community-Forum (Bald verfügbar)</span>
-                                        </div>
                                         <div class="flex items-center gap-2">
                                             <i data-lucide="github" class="w-4 h-4 text-primary"></i>
                                             <span>Open Source auf GitHub</span>
@@ -4434,10 +4418,6 @@ showHelp() {
                             <button class="btn btn-ghost btn-sm gap-2" onclick="window.print()">
                                 <i data-lucide="printer" class="w-4 h-4"></i>
                                 Drucken
-                            </button>
-                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.exportAppData?.()">
-                                <i data-lucide="download" class="w-4 h-4"></i>
-                                Debug-Export
                             </button>
                             <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.showSettings?.()">
                                 <i data-lucide="settings" class="w-4 h-4"></i>

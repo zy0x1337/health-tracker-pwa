@@ -796,11 +796,6 @@ initializeSettings() {
      * Setup all event listeners for forms and UI interactions
      */
     setupEventListeners() {
-        // Health form submission
-        const healthForm = document.getElementById('health-form');
-        if (healthForm) {
-            healthForm.addEventListener('submit', this.handleFormSubmission.bind(this));
-        }
         
         // Goals form submission
         const goalsForm = document.getElementById('goals-form');
@@ -6435,6 +6430,10 @@ class ProgressHub {
      * Setup event listeners for progress hub
      */
     setupEventListeners() {
+        // Listen for health data updates
+        document.addEventListener('health-data-saved', (event) => {
+            this.handleDataUpdate(event.detail);
+        });
         
         document.addEventListener('health-data-saved-offline', (event) => {
             this.handleDataUpdate(event.detail);

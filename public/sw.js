@@ -1,10 +1,10 @@
 // Enhanced Service Worker for Health Tracker PWA v3.1
 // Optimiert für Performance, Sicherheit und Offline-Funktionalität
 
-const CACHE_NAME = 'health-tracker-v3.1';
-const API_CACHE_NAME = 'health-tracker-api-v3.1';
-const GOALS_CACHE_NAME = 'health-tracker-goals-v3.1';
-const STATIC_CACHE_NAME = 'health-tracker-static-v3.1';
+const CACHE_NAME = 'health-tracker-v3.2';
+const API_CACHE_NAME = 'health-tracker-api-v3.2';
+const GOALS_CACHE_NAME = 'health-tracker-goals-v3.2';
+const STATIC_CACHE_NAME = 'health-tracker-static-v3.2';
 
 // Cache-Strategien Konfiguration
 const CACHE_STRATEGIES = {
@@ -28,7 +28,10 @@ const STATIC_ASSETS = [
     '/dist/output.css',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
-    '/images/health-dashboard.svg'
+    '/images/health-dashboard.svg',
+    '/images/analytics-dashboard.svg',
+    '/images/no-data.svg',
+    '/images/progress-hub.svg'
 ];
 
 // Cache-TTL Konfiguration (in Millisunden)

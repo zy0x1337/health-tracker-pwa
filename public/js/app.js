@@ -707,34 +707,44 @@ updateActiveNavigation(activeSection) {
     }
 }
     
-    // initializeComponents method with parent reference
+    /**
+ * Initialize all component classes
+ */
 initializeComponents() {
-    console.log('🔧 Initialisiere Health Tracker Komponenten...');
-    
     try {
-        // Initialize NotificationManager
-        this.notificationManager = new NotificationManager();
-        console.log('✅ NotificationManager initialisiert');
-
-        // Initialize ProgressHub  
+        // Initialize notification manager first (needed by other components)
+        this.notificationManager = new SmartNotificationManager(this);
+        
+        // Initialize other components
         this.progressHub = new ProgressHub(this);
-        console.log('✅ ProgressHub initialisiert');
-
-        // Initialize ActivityFeed
         this.activityFeed = new ActivityFeed(this);
-        console.log('✅ ActivityFeed initialisiert');
-
-        // ERWEITERT: Initialize AnalyticsEngine with parent reference
         this.analyticsEngine = new AnalyticsEngine(this);
-        this.analyticsEngine.parent = this; // CRITICAL: Parent reference für Delegation
-        console.log('✅ AnalyticsEngine mit Parent Reference initialisiert');
-
-        console.log('✅ Alle Komponenten erfolgreich initialisiert');
+        
+        console.log('📦 Alle Komponenten initialisiert');
+        
+        // Setup progress hub tabs AFTER initialization
+        setTimeout(() => {
+            this.setupProgressHubTabs();
+        }, 100);
         
     } catch (error) {
-        console.error('❌ Fehler bei Komponenten-Initialisierung:', error);
-        this.showToast('⚠️ Einige Funktionen sind eingeschränkt verfügbar', 'warning');
+        console.error('❌ Fehler bei Komponenteninitialisierung:', error);
     }
+
+    setTimeout(async () => {
+  try {
+    // Initiales Laden der ProgressHub-Daten sicherstellen
+    if (this.progressHub && typeof this.progressHub.loadViewData === 'function') {
+      await this.progressHub.loadViewData();
+      // Standard-View anzeigen, falls nicht gesetzt
+      if (!this.progressHub.currentView && typeof this.progressHub.showView === 'function') {
+        this.progressHub.showView('overview');
+      }
+    }
+  } catch (e) {
+    console.error('❌ ProgressHub Initial-Ladefehler:', e);
+  }
+}, 250);
 }
 
 initializeSettings() {
@@ -5875,191 +5885,6 @@ showQuickToast(message, type = 'success') {
         sound: false 
     });
 }
-
-async updateTrendsChart() {
-    try {
-        console.log('📈 HealthTracker: Updating trends chart...');
-        
-        // Find the chart container from your new HTML structure
-        const chartContainer = document.querySelector('.card .card-body canvas') || 
-                              document.getElementById('trends-chart-container') ||
-                              document.querySelector('[data-chart="trends"]');
-        
-        if (!chartContainer) {
-            console.error('❌ Trends chart container not found');
-            return;
-        }
-        
-        console.log('✅ Found trends chart container');
-        
-        // Create or find canvas element
-        let canvas;
-        if (chartContainer.tagName === 'CANVAS') {
-            canvas = chartContainer;
-        } else {
-            canvas = chartContainer.querySelector('canvas');
-            if (!canvas) {
-                canvas = document.createElement('canvas');
-                canvas.style.maxHeight = '400px';
-                canvas.style.width = '100%';
-                chartContainer.appendChild(canvas);
-            }
-        }
-        
-        // Destroy existing chart
-        if (this.trendsChart) {
-            this.trendsChart.destroy();
-            this.trendsChart = null;
-        }
-        
-        // Get chart context
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error('❌ Canvas context not available');
-            return;
-        }
-        
-        // Prepare chart data (this method exists in HealthTracker)
-        const chartData = await this.prepareTrendsChartData();
-        
-        if (!chartData || chartData.datasets.length === 0) {
-            this.showEmptyChart(canvas.parentElement, 'Keine Trend-Daten verfügbar');
-            return;
-        }
-        
-        // Create trends chart with DaisyUI theme integration
-        this.trendsChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    title: {
-                        display: false // Title is handled by HTML
-                    },
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: 'oklch(var(--bc))',
-                            usePointStyle: true,
-                            padding: 20,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'oklch(var(--b1))',
-                        titleColor: 'oklch(var(--bc))',
-                        bodyColor: 'oklch(var(--bc))',
-                        borderColor: 'oklch(var(--b3))',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        padding: 12
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { 
-                            color: 'oklch(var(--bc) / 0.6)',
-                            font: { size: 11 }
-                        },
-                        grid: { 
-                            color: 'oklch(var(--bc) / 0.1)',
-                            drawBorder: false
-                        },
-                        border: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        ticks: { 
-                            color: 'oklch(var(--bc) / 0.6)',
-                            font: { size: 11 }
-                        },
-                        grid: { 
-                            color: 'oklch(var(--bc) / 0.1)',
-                            drawBorder: false
-                        },
-                        border: {
-                            display: false
-                        }
-                    }
-                },
-                elements: {
-                    line: {
-                        tension: 0.3,
-                        borderWidth: 2
-                    },
-                    point: {
-                        radius: 4,
-                        hoverRadius: 6,
-                        borderWidth: 2
-                    }
-                }
-            }
-        });
-        
-        // Setup metric filter dropdown functionality
-        this.setupTrendsChartFilters();
-        
-        console.log('✅ Trends chart successfully updated');
-        
-    } catch (error) {
-        console.error('❌ Error updating trends chart:', error);
-        this.showToast('⚠️ Trends Chart konnte nicht geladen werden', 'warning');
-    }
-}
-
-// Setup Trends Chart Filters (auch in HealthTracker)
-setupTrendsChartFilters() {
-    const filterButtons = document.querySelectorAll('[data-metric]');
-    
-    filterButtons.forEach(button => {
-        // Remove existing listeners to prevent duplicates
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-        
-        newButton.addEventListener('click', async (e) => {
-            e.preventDefault();
-            
-            const metric = newButton.dataset.metric;
-            console.log(`🎯 Filtering trends chart for: ${metric}`);
-            
-            // Update chart data for specific metric
-            const filteredData = await this.prepareTrendsChartData(metric);
-            
-            if (this.trendsChart && filteredData) {
-                this.trendsChart.data = filteredData;
-                this.trendsChart.update('active');
-                
-                // Update active state
-                document.querySelectorAll('[data-metric]').forEach(btn => 
-                    btn.classList.remove('active')
-                );
-                newButton.classList.add('active');
-                
-                this.showToast(`📊 Trend-Filter: ${this.getMetricLabel(metric)}`, 'info');
-            }
-        });
-    });
-}
-
-// Get Metric Label
-getMetricLabel(metric) {
-    const labels = {
-        steps: 'Schritte',
-        water: 'Wasserzufuhr', 
-        sleep: 'Schlaf',
-        weight: 'Gewicht'
-    };
-    return labels[metric] || metric;
-}
 }
 
 // ====================================================================
@@ -9249,16 +9074,133 @@ async loadCompleteAnalyticsData() {
         }
     }
 
-    // updateTrendsChart Delegation
-updateTrendsChart() {
-    console.log('📈 AnalyticsEngine: Delegating trends chart to HealthTracker...');
+    /** Update trends chart */
+updateTrendsChart(metric = 'weight') {
+    console.log('📈 Updating trends chart...');
     
-    // Delegate to parent HealthTracker instance
-    if (this.parent && typeof this.parent.updateTrendsChart === 'function') {
-        return this.parent.updateTrendsChart();
-    } else {
-        console.error('❌ AnalyticsEngine: No parent HealthTracker instance found');
-        return Promise.resolve();
+    try {
+        // Bestehende Chart-Instanz zerstören falls vorhanden
+        if (this.currentTrendsChart) {
+            console.log('🗑️ Destroying existing trends chart');
+            this.currentTrendsChart.destroy();
+            this.currentTrendsChart = null;
+        }
+
+        const container = document.getElementById('trends-chart-container');
+        if (!container) {
+            console.error('❌ Trends chart container not found');
+            return;
+        }
+
+        // Canvas komplett neu erstellen
+        const existingCanvas = container.querySelector('#trends-chart');
+        if (existingCanvas) {
+            existingCanvas.remove();
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'trends-chart';
+        canvas.style.maxHeight = '300px';
+        container.appendChild(canvas);
+
+        console.log('📈 Canvas created/recreated for trends chart');
+
+        // Chart-Daten vorbereiten
+        const chartData = this.prepareTrendsData(metric);
+        if (!chartData || !chartData.labels || chartData.labels.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-base-content/60 py-8">
+                    <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                    <p>Nicht genügend Daten für ${this.getMetricLabel(metric)}</p>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            return;
+        }
+
+        // Chart erstellen
+        const ctx = canvas.getContext('2d');
+        this.currentTrendsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: this.getMetricLabel(metric),
+                    data: chartData.data,
+                    borderColor: this.getMetricColor(metric),
+                    backgroundColor: this.getMetricColor(metric, 0.1),
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y}${this.getMetricUnit(metric)}`;
+                            }.bind(this)
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Datum'
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: `${this.getMetricLabel(metric)} (${this.getMetricUnit(metric)})`
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        beginAtZero: metric === 'steps' || metric === 'water'
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+
+        console.log('✅ Trends chart updated successfully');
+
+    } catch (error) {
+        console.error('❌ Trends chart error:', error);
+        
+        // Fallback: Container mit Fehlermeldung anzeigen
+        const container = document.getElementById('trends-chart-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    <span>Fehler beim Laden des Trend-Charts</span>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     }
 }
 

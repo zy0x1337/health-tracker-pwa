@@ -9184,8 +9184,13 @@ formatTimeAgo(dateInput) {
      * Create individual activity item
      */
     createActivityItem(activity, isLatest = false) {
+    try {
         const item = document.createElement('div');
         item.className = 'relative flex items-start gap-4 pb-6 pl-2';
+        
+        // KORRIGIERT: Robuste Label-Generierung
+        const activityLabel = this.generateActivityLabel(activity);
+        const activityTime = this.formatTimeAgo(activity.createdAt || activity.date);
         
         const colorMap = {
             steps: 'success',
@@ -9208,7 +9213,7 @@ formatTimeAgo(dateInput) {
         const color = colorMap[activity.type] || 'primary';
         const icon = iconMap[activity.type] || 'circle';
         
-        // Check if goal was reached
+        // Check if goal was reached (nur wenn Ziel verfügbar)
         const goalReached = activity.goal && activity.value >= activity.goal;
         const goalBadge = goalReached ? '<div class="badge badge-success badge-sm">Ziel erreicht!</div>' : '';
         
@@ -9237,16 +9242,16 @@ formatTimeAgo(dateInput) {
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <h4 class="text-sm font-medium text-base-content">
-                            ${activity.label}
+                            ${activityLabel}
                             ${goalBadge}
                         </h4>
                         <p class="text-xs text-base-content text-opacity-60 mt-1">
-                            ${activity.time}
+                            ${activityTime}
                         </p>
                         ${progressIndicator}
                         ${activity.type === 'note' ? `
                             <p class="text-sm text-base-content text-opacity-80 mt-2 italic">
-                                "${activity.value}${activity.value.length >= 100 ? '...' : ''}"
+                                "${activity.value.substring(0, 100)}${activity.value.length >= 100 ? '...' : ''}"
                             </p>
                         ` : ''}
                     </div>
@@ -9255,7 +9260,100 @@ formatTimeAgo(dateInput) {
         `;
         
         return item;
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Erstellen des Activity Items:', error);
+        return this.createFallbackActivityItem(activity);
     }
+}
+
+/**
+ * NEUE METHODE: Generiere aussagekräftige Activity Labels
+ */
+generateActivityLabel(activity) {
+    try {
+        const { type, value, unit } = activity;
+        
+        // Typ-spezifische Label-Generierung
+        switch (type) {
+            case 'steps':
+                const stepsValue = parseInt(value) || 0;
+                return `${stepsValue.toLocaleString('de-DE')} Schritte aufgezeichnet`;
+                
+            case 'water':
+                const waterValue = parseFloat(value) || 0;
+                return `${waterValue.toFixed(1)}L Wasser getrunken`;
+                
+            case 'sleep':
+                const sleepValue = parseFloat(value) || 0;
+                const hours = Math.floor(sleepValue);
+                const minutes = Math.round((sleepValue - hours) * 60);
+                return `${hours}h${minutes > 0 ? ` ${minutes}min` : ''} geschlafen`;
+                
+            case 'weight':
+                const weightValue = parseFloat(value) || 0;
+                return `Gewicht erfasst: ${weightValue.toFixed(1)}kg`;
+                
+            case 'mood':
+                const moodLabels = {
+                    'excellent': 'Ausgezeichnete Stimmung',
+                    'good': 'Gute Stimmung', 
+                    'neutral': 'Neutrale Stimmung',
+                    'bad': 'Schlechte Stimmung',
+                    'terrible': 'Sehr schlechte Stimmung'
+                };
+                return moodLabels[value] || `Stimmung: ${value}`;
+                
+            case 'note':
+                const notePreview = value ? value.substring(0, 50) : 'Leere Notiz';
+                return `Notiz hinzugefügt: "${notePreview}${value && value.length > 50 ? '...' : ''}"`;
+                
+            default:
+                return `${type}: ${value}${unit ? unit : ''}`;
+        }
+        
+    } catch (error) {
+        console.error('❌ Fehler bei Label-Generierung:', error);
+        return `Aktivität: ${activity.type || 'Unbekannt'}`;
+    }
+}
+
+/**
+ * NEUE METHODE: Fallback Activity Item für Fehlerbehandlung
+ */
+createFallbackActivityItem(activity) {
+    const item = document.createElement('div');
+    item.className = 'relative flex items-start gap-4 pb-6 pl-2';
+    
+    const safeType = activity.type || 'unknown';
+    const safeValue = activity.value || 'N/A';
+    const safeDate = activity.date || new Date().toISOString();
+    
+    item.innerHTML = `
+        <div class="flex-shrink-0 relative">
+            <div class="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center border-2 border-base-300">
+                <i data-lucide="help-circle" class="w-5 h-5 text-base-content/50"></i>
+            </div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h4 class="text-sm font-medium text-base-content">
+                        ${safeType}: ${safeValue}
+                    </h4>
+                    <p class="text-xs text-base-content/60 mt-1">
+                        ${this.formatTimeAgo(safeDate)}
+                    </p>
+                    <p class="text-xs text-warning mt-1">
+                        Darstellungsfehler - Daten unvollständig
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return item;
+}
     
     /**
      * Show empty state

@@ -1009,6 +1009,12 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
                         <span class="font-medium">Einstellungen</span>
                     </button>
                 </li>
+                <li><!-- In der Haupt-Navigation -->
+<button class="btn btn-ghost btn-sm" onclick="healthTracker.togglePerformanceDashboard()">
+    <i data-lucide="activity" class="w-4 h-4 mr-1"></i>
+    Performance
+</button>
+</li>
             </ul>
         </div>
         
@@ -2666,6 +2672,46 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
      data-theme-loaded="false" 
      data-retention-checked="false" 
      data-permissions-checked="false">
+</div>
+
+<!-- Performance Dashboard -->
+<div class="card bg-base-100 shadow-xl" id="performance-dashboard" style="display: none;">
+    <div class="card-body">
+        <h3 class="card-title flex items-center gap-2">
+            <i data-lucide="activity" class="w-5 h-5 text-info"></i>
+            Performance Monitor
+        </h3>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div class="stat bg-base-200/50 rounded-lg p-3">
+                <div class="stat-title text-xs">Cache Hit Rate</div>
+                <div class="stat-value text-lg text-success" id="cache-hit-rate">0%</div>
+            </div>
+            <div class="stat bg-base-200/50 rounded-lg p-3">
+                <div class="stat-title text-xs">Total Requests</div>
+                <div class="stat-value text-lg" id="total-requests">0</div>
+            </div>
+            <div class="stat bg-base-200/50 rounded-lg p-3">
+                <div class="stat-title text-xs">Offline Requests</div>
+                <div class="stat-value text-lg text-warning" id="offline-requests">0</div>
+            </div>
+            <div class="stat bg-base-200/50 rounded-lg p-3">
+                <div class="stat-title text-xs">Uptime</div>
+                <div class="stat-value text-lg text-info" id="uptime">0s</div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-sm btn-outline" onclick="healthTracker.refreshPerformanceData()">
+                <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+                Aktualisieren
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="healthTracker.clearPerformanceData()">
+                <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>
+                Reset
+            </button>
+        </div>
+    </div>
 </div>
 
     <!-- JavaScript -->

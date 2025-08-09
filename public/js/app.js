@@ -6152,6 +6152,217 @@ showQuickToast(message, type = 'success') {
         sound: false 
     });
 }
+
+/**
+ * Performance Monitoring Integration in HealthTracker
+ */
+async getPerformanceMetrics() {
+    return new Promise((resolve) => {
+        if (!navigator.serviceWorker) {
+            resolve({ error: 'Service Worker not available' });
+            return;
+        }
+
+        const messageHandler = (event) => {
+            if (event.data.type === 'PERFORMANCE_DATA') {
+                navigator.serviceWorker.removeEventListener('message', messageHandler);
+                resolve(event.data.data);
+            }
+        };
+
+        navigator.serviceWorker.addEventListener('message', messageHandler);
+        
+        navigator.serviceWorker.ready.then(registration => {
+            const sw = registration.active;
+            if (sw) {
+                sw.postMessage({ type: 'GET_PERFORMANCE' });
+            }
+        });
+
+        // Timeout nach 5 Sekunden
+        setTimeout(() => {
+            navigator.serviceWorker.removeEventListener('message', messageHandler);
+            resolve({ error: 'Timeout' });
+        }, 5000);
+    });
+}
+
+/**
+ * Performance Dashboard anzeigen
+ */
+async showPerformanceDashboard() {
+    try {
+        const metrics = await this.getPerformanceMetrics();
+        
+        if (metrics.error) {
+            console.warn('Performance-Daten nicht verfügbar:', metrics.error);
+            return;
+        }
+
+        // Performance-Statistiken berechnen
+        const totalRequests = metrics.cacheHits + metrics.cacheMisses;
+        const cacheHitRate = totalRequests > 0 ? 
+            ((metrics.cacheHits / totalRequests) * 100).toFixed(1) : 0;
+        const uptime = Math.round((Date.now() - metrics.startTime) / 1000);
+
+        // UI-Update oder Console-Output
+        console.log('📊 Health Tracker Performance Dashboard:', {
+            'Cache Hit Rate': `${cacheHitRate}%`,
+            'Total Requests': totalRequests,
+            'Network Requests': metrics.networkRequests,
+            'Offline Requests': metrics.offlineRequests,
+            'Uptime': `${uptime}s`,
+            'Cache Efficiency': cacheHitRate > 80 ? '✅ Excellent' : 
+                              cacheHitRate > 60 ? '⚠️ Good' : '❌ Needs Improvement'
+        });
+
+        return {
+            cacheHitRate: parseFloat(cacheHitRate),
+            totalRequests,
+            uptime,
+            metrics
+        };
+
+    } catch (error) {
+        console.error('❌ Performance Dashboard Fehler:', error);
+    }
+}
+
+/**
+ * Performance UI-Updates
+ */
+async refreshPerformanceData() {
+    try {
+        const data = await this.showPerformanceDashboard();
+        
+        if (data) {
+            // UI-Elemente aktualisieren
+            document.getElementById('cache-hit-rate').textContent = `${data.cacheHitRate}%`;
+            document.getElementById('total-requests').textContent = data.totalRequests;
+            document.getElementById('offline-requests').textContent = data.metrics.offlineRequests;
+            document.getElementById('uptime').textContent = `${data.uptime}s`;
+
+            // Cache Hit Rate Farbe anpassen
+            const hitRateElement = document.getElementById('cache-hit-rate');
+            hitRateElement.className = data.cacheHitRate > 80 ? 'stat-value text-lg text-success' :
+                                      data.cacheHitRate > 60 ? 'stat-value text-lg text-warning' :
+                                      'stat-value text-lg text-error';
+
+            this.showToast('📊 Performance-Daten aktualisiert', 'success');
+        }
+    } catch (error) {
+        this.showToast('❌ Performance-Update fehlgeschlagen', 'error');
+    }
+}
+
+/**
+ * Performance-Dashboard ein-/ausblenden
+ */
+togglePerformanceDashboard() {
+    const dashboard = document.getElementById('performance-dashboard');
+    const isVisible = dashboard.style.display !== 'none';
+    
+    dashboard.style.display = isVisible ? 'none' : 'block';
+    
+    if (!isVisible) {
+        this.refreshPerformanceData();
+    }
+}
+
+/**
+ * Performance-Daten zurücksetzen
+ */
+async clearPerformanceData() {
+    if (confirm('Performance-Daten wirklich zurücksetzen?')) {
+        try {
+            // Message an Service Worker senden
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'RESET_PERFORMANCE'
+                });
+            }
+            
+            // UI zurücksetzen
+            document.getElementById('cache-hit-rate').textContent = '0%';
+            document.getElementById('total-requests').textContent = '0';
+            document.getElementById('offline-requests').textContent = '0';
+            document.getElementById('uptime').textContent = '0s';
+            
+            this.showToast('🗑️ Performance-Daten zurückgesetzt', 'info');
+            
+        } catch (error) {
+            this.showToast('❌ Reset fehlgeschlagen', 'error');
+        }
+    }
+}
+
+/**
+ * Detaillierte Cache-Informationen
+ */
+async getCacheStatus() {
+    return new Promise((resolve) => {
+        const messageHandler = (event) => {
+            if (event.data.type === 'CACHE_STATUS') {
+                navigator.serviceWorker.removeEventListener('message', messageHandler);
+                resolve(event.data.data);
+            }
+        };
+
+        navigator.serviceWorker.addEventListener('message', messageHandler);
+        
+        navigator.serviceWorker.ready.then(registration => {
+            const sw = registration.active;
+            if (sw) {
+                sw.postMessage({ type: 'GET_CACHE_STATUS' });
+            }
+        });
+    });
+}
+
+/**
+ * Cache-Übersicht anzeigen
+ */
+async showCacheOverview() {
+    try {
+        const cacheStatus = await this.getCacheStatus();
+        
+        console.log('💾 Cache Overview:', cacheStatus);
+        
+        // Beispiel-Output:
+        // {
+        //   "health-tracker-v3.1": 15,
+        //   "health-tracker-api-v3.1": 8,
+        //   "health-tracker-goals-v3.1": 2
+        // }
+        
+        return cacheStatus;
+    } catch (error) {
+        console.error('❌ Cache Status Fehler:', error);
+    }
+}
+
+/**
+ * Automatisches Performance-Monitoring initialisieren
+ */
+initializePerformanceMonitoring() {
+    // Performance-Dashboard alle 30 Sekunden aktualisieren
+    setInterval(() => {
+        if (document.getElementById('performance-dashboard').style.display !== 'none') {
+            this.refreshPerformanceData();
+        }
+    }, 30000);
+
+    // Performance-Alerts bei kritischen Werten
+    setInterval(async () => {
+        const data = await this.showPerformanceDashboard();
+        
+        if (data && data.cacheHitRate < 50) {
+            console.warn('⚠️ Low cache hit rate detected:', data.cacheHitRate + '%');
+            // Optional: Toast-Benachrichtigung
+            // this.showToast('⚠️ Cache-Performance niedrig', 'warning');
+        }
+    }, 60000); // Alle Minute prüfen
+}
 }
 
 // ====================================================================

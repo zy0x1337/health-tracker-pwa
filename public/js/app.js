@@ -11279,7 +11279,7 @@ async updateHeatmapChart(analyticsData) {
     });
     
     try {
-        const heatmapContainer = document.getElementById('heatmap-container');
+        const heatmapContainer = document.getElementById('heatmap-chart');
         if (!heatmapContainer) {
             console.warn('⚠️ Heatmap container not found');
             return;

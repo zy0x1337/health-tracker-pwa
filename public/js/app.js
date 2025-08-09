@@ -12355,10 +12355,12 @@ class PremiumHeroManager {
     
     initTypingEffect() {
         const phrases = [
-            "Powered by Machine Learning",
-            "Real-time Health Analytics", 
-            "Your Privacy, Our Priority",
-            "Offline-First Technology"
+        "Echtzeit-Gesundheitsanalyse", 
+        "Offline-First Technologie",
+        "Personalisierte Gesundheits-Insights",
+        "Datenschutz an erster Stelle",
+        "Verlässliche Datensynchronisation",
+        "Integrität und Sicherheit"
         ];
         
         let currentPhrase = 0;

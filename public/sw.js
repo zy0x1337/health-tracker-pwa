@@ -1,202 +1,99 @@
-// Optimierte Cache-Strategie mit DaisyUI-Assets
-const CACHE_NAME = 'health-tracker-v4';
-const API_CACHE_NAME = 'health-tracker-api-v4'; 
-const STATIC_CACHE_NAME = 'health-tracker-static-v4';
+// Enhanced Service Worker for Health Tracker PWA
 
-// Erweiterte Asset-Liste für bessere Performance
+const CACHE_NAME = 'health-tracker-v3'; // Version erhöht für verbesserte Install-Features
+const API_CACHE_NAME = 'health-tracker-api-v3';
+const GOALS_CACHE_NAME = 'health-tracker-goals-v3';
+
+// Assets to cache on install
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/js/app.js',
-  '/js/pwa.js',
-  '/manifest.json',
-  // DaisyUI & Tailwind CSS (falls lokal gehostet)
-  'https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css',
-  'https://cdn.tailwindcss.com',
-  // Chart.js für Analytics
-  'https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.min.js'
+    '/',
+    '/index.html',
+    '/js/app.js',
+    '/js/pwa.js',
+    '/manifest.json',
 ];
 
-// Verbesserte Fetch-Handler mit Stale-While-Revalidate
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-  
-  // Skip non-HTTP requests
-  if (!request.url.startsWith('http')) return;
-  
-  // API requests - Network First mit 3s Timeout
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(handleAPIRequestOptimized(request));
-    return;
-  }
-  
-  // Static assets - Cache First mit Fallback
-  if (request.destination === 'style' || request.destination === 'script') {
-    event.respondWith(handleStaticAssets(request));
-    return;
-  }
-  
-  // Navigation - App Shell Pattern
-  if (request.mode === 'navigate') {
-    event.respondWith(handleNavigationOptimized(request));
-    return;
-  }
-  
-  // Default: Stale-While-Revalidate
-  event.respondWith(handleDefaultRequest(request));
+// ==================================================================== 
+// SERVICE WORKER INSTALLATION
+// ====================================================================
+
+self.addEventListener('install', (event) => {
+    console.log('🔧 Service Worker Installation gestartet');
+    
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('📦 Cache geöffnet:', CACHE_NAME);
+                return cache.addAll(urlsToCache);
+            })
+            .then(() => {
+                console.log('✅ Alle Assets erfolgreich gecacht');
+                return self.skipWaiting(); // Sofort aktivieren
+            })
+            .catch(error => {
+                console.error('❌ Cache add failed:', error);
+            })
+    );
 });
 
-// Optimized API Handler mit Timeout
-async function handleAPIRequestOptimized(request) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+// ==================================================================== 
+// SERVICE WORKER ACTIVATION
+// ====================================================================
 
-    try {
-        const networkResponse = await fetch(request, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (networkResponse.ok) {
-            // CACHE-FIX: Nur GET requests cachen, nicht POST
-            if (request.method === 'GET') {
-                try {
-                    const cache = await caches.open(API_CACHE_NAME);
-                    const clonedResponse = networkResponse.clone();
-                    await cache.put(request, clonedResponse);
-                    console.log('✅ GET request cached:', request.url);
-                } catch (cacheError) {
-                    console.warn('⚠️ Cache put failed (non-critical):', cacheError.message);
-                    // Cache-Fehler nicht weiterwerfen, Response trotzdem zurückgeben
-                }
-            } else {
-                console.log(`🚫 ${request.method} request not cached (by design):`, request.url);
-            }
-            
-            return networkResponse;
-        }
-        throw new Error(`API Error: ${networkResponse.status}`);
-        
-    } catch (error) {
-        clearTimeout(timeoutId);
-        console.log('🔄 Network failed, serving from cache:', request.url);
-        
-        // Cache-Fallback nur für GET requests
-        if (request.method === 'GET') {
-            const cachedResponse = await caches.match(request);
-            if (cachedResponse) {
-                const headers = new Headers(cachedResponse.headers);
-                headers.set('X-Served-From', 'sw-cache');
-                return new Response(cachedResponse.body, {
-                    status: cachedResponse.status,
-                    statusText: cachedResponse.statusText,
-                    headers
-                });
-            }
-        }
-
-        // Structured offline response
-        return new Response(JSON.stringify({
-            error: 'Offline - Bitte später versuchen',
-            offline: true,
-            timestamp: new Date().toISOString(),
-            retryAfter: 30,
-            method: request.method
-        }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
-}
-
-// Fehlende Handler-Funktionen für optimierte Cache-Strategie
-async function handleStaticAssets(request) {
-  const cache = await caches.open(STATIC_CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    // Cache First - aber auch Network-Update im Hintergrund
-    fetch(request).then(networkResponse => {
-      if (networkResponse.ok) {
-        cache.put(request, networkResponse.clone());
-      }
-    }).catch(() => {
-      // Network failed, aber Cache-Version ist verfügbar
-    });
+self.addEventListener('activate', (event) => {
+    console.log('⚡ Service Worker Aktivierung gestartet');
     
-    return cachedResponse;
-  }
-  
-  // Fallback zu Network
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    // Letzter Fallback für kritische Assets
-    return new Response('/* Asset offline nicht verfügbar */', {
-      status: 503,
-      headers: { 'Content-Type': 'text/css' }
-    });
-  }
-}
+    event.waitUntil(
+        Promise.all([
+            // Clean up old caches
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.map(cacheName => {
+                        if (cacheName !== CACHE_NAME && 
+                            cacheName !== API_CACHE_NAME && 
+                            cacheName !== GOALS_CACHE_NAME) {
+                            console.log('🗑️ Entferne alten Cache:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            }),
+            // Take control of all pages
+            self.clients.claim()
+        ]).then(() => {
+            console.log('✅ Service Worker aktiviert und bereit');
+        })
+    );
+});
 
-async function handleNavigationOptimized(request) {
-  try {
-    // Network First für Navigation
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      return networkResponse;
-    }
-    throw new Error(`Navigation response not ok: ${networkResponse.status}`);
-  } catch (error) {
-    console.log('🌐 Navigation network failed, serving cached app shell');
+// ==================================================================== 
+// FETCH EVENT HANDLING - Robuste Offline-First Strategie
+// ====================================================================
+
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
     
-    // App Shell Pattern - immer index.html zurückgeben
-    const cache = await caches.open(CACHE_NAME);
-    const cachedResponse = await cache.match('/index.html') || await cache.match('/');
-    
-    if (cachedResponse) {
-      return cachedResponse;
+    // Skip non-HTTP requests
+    if (!request.url.startsWith('http')) {
+        return;
     }
     
-    // Ultimate fallback
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Health Tracker - Offline</title></head>
-        <body style="font-family: system-ui; text-align: center; padding: 2rem;">
-          <h1>🏥 Health Tracker Pro</h1>
-          <p>Die App ist momentan offline. Bitte überprüfe deine Internetverbindung.</p>
-          <button onclick="window.location.reload()" style="padding: 1rem 2rem; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            🔄 Erneut versuchen
-          </button>
-        </body>
-      </html>
-    `, {
-      status: 503,
-      headers: { 'Content-Type': 'text/html' }
-    });
-  }
-}
-
-async function handleDefaultRequest(request) {
-  // Stale-While-Revalidate Pattern
-  const cache = await caches.open(CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-  
-  // Background update
-  const fetchPromise = fetch(request).then(networkResponse => {
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+    // Handle API requests
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(handleAPIRequest(request));
+        return;
     }
-    return networkResponse;
-  }).catch(() => cachedResponse);
-  
-  // Return cache immediately if available
-  return cachedResponse || fetchPromise;
-}
+    
+    // Handle navigation requests
+    if (request.mode === 'navigate') {
+        event.respondWith(handleNavigationRequest(request));
+        return;
+    }
+    
+    // Handle other requests (assets, images, etc.)
+    event.respondWith(handleAssetRequest(request));
+});
 
 // ==================================================================== 
 // API REQUEST HANDLING

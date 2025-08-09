@@ -24,21 +24,16 @@ class HealthTracker {
         this.analyticsEngine = null;
         
         // Goals with defaults
-        this.goals = { stepsGoal: 10000, waterGoal: 2.0, sleepGoal: 8, weightGoal: null };
-        this.errorHandler = new ErrorHandler(this);
+        this.goals = {
+            stepsGoal: 10000,
+            waterGoal: 2.0,
+            sleepGoal: 8,
+            weightGoal: null
+        };
         
         // Performance optimization
         this.debounceTimers = new Map();
         this.cache = new Map();
-
-        // Duplicate prevention & debouncing
-        this.activeToasts = new Set();
-        this.boundHealthFormHandler = null;
-        this.boundGoalsFormHandler = null;
-        this.boundSettingsFormHandler = null;
-        
-        // Form submission tracking
-        this.lastSubmissionTime = new Map();
         
         // Initialize application
         this.initialize();
@@ -68,9 +63,6 @@ class HealthTracker {
         
         // Setup periodic sync
         this.setupPeriodicSync();
-
-        // Setup offline handling
-        this.setupOfflineHandling();
 
         // Einstellungen beim App-Start initialisieren
         this.initializeSettings();
@@ -801,221 +793,33 @@ initializeSettings() {
 }
     
     /**
- * Setup event listeners with duplicate prevention
- */
-setupEventListeners() {
-    // Prevent duplicate listeners by removing existing ones first
-    this.removeExistingEventListeners();
-    
-    // Online/Offline status
-    window.addEventListener('online', () => {
-        this.isOnline = true;
-        this.showToast('🌐 Verbindung wiederhergestellt', 'success');
-        this.syncPendingData();
-    });
-
-    window.addEventListener('offline', () => {
-        this.isOnline = false;
-        this.showToast('📴 Offline-Modus aktiv', 'info');
-    });
-
-    // Health data form with debouncing
-    const healthForm = document.getElementById('health-form');
-    if (healthForm) {
-        // Remove any existing listeners
-        healthForm.removeEventListener('submit', this.boundHealthFormHandler);
+     * Setup all event listeners for forms and UI interactions
+     */
+    setupEventListeners() {
+        // Health form submission
+        const healthForm = document.getElementById('health-form');
+        if (healthForm) {
+            healthForm.addEventListener('submit', this.handleFormSubmission.bind(this));
+        }
         
-        // Create bound handler for proper removal later
-        this.boundHealthFormHandler = this.handleHealthFormSubmit.bind(this);
-        healthForm.addEventListener('submit', this.boundHealthFormHandler);
-    }
-
-    // Goals form with debouncing
-    const goalsForm = document.getElementById('goals-form');
-    if (goalsForm) {
-        goalsForm.removeEventListener('submit', this.boundGoalsFormHandler);
-        this.boundGoalsFormHandler = this.handleGoalsFormSubmit.bind(this);
-        goalsForm.addEventListener('submit', this.boundGoalsFormHandler);
-    }
-
-    // Settings form
-    const settingsForm = document.getElementById('settings-form');
-    if (settingsForm) {
-        settingsForm.removeEventListener('submit', this.boundSettingsFormHandler);
-        this.boundSettingsFormHandler = this.handleSettingsFormSubmit.bind(this);
-        settingsForm.addEventListener('submit', this.boundSettingsFormHandler);
-    }
-
-    console.log('✅ Event Listeners eingerichtet (Duplikate verhindert)');
-}
-
-/**
- * Remove existing event listeners to prevent duplicates
- */
-removeExistingEventListeners() {
-    const healthForm = document.getElementById('health-form');
-    const goalsForm = document.getElementById('goals-form');
-    const settingsForm = document.getElementById('settings-form');
-
-    if (healthForm && this.boundHealthFormHandler) {
-        healthForm.removeEventListener('submit', this.boundHealthFormHandler);
-    }
-    
-    if (goalsForm && this.boundGoalsFormHandler) {
-        goalsForm.removeEventListener('submit', this.boundGoalsFormHandler);
-    }
-    
-    if (settingsForm && this.boundSettingsFormHandler) {
-        settingsForm.removeEventListener('submit', this.boundSettingsFormHandler);
-    }
-
-    console.log('🧹 Bestehende Event Listeners entfernt');
-}
-
-/**
- * Debounced health form submit handler
- */
-async handleHealthFormSubmit(e) {
-    e.preventDefault();
-    
-    const formId = 'health-form-submit';
-    
-    // Debouncing: Prevent multiple rapid submissions
-    if (this.debounceTimers.has(formId)) {
-        console.log('🛑 Form submission debounced');
-        return;
-    }
-
-    // Set debounce timer (2 seconds)
-    this.debounceTimers.set(formId, true);
-    setTimeout(() => {
-        this.debounceTimers.delete(formId);
-    }, 2000);
-
-    // Disable submit button to prevent double clicks
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Speichere...';
-    }
-
-    try {
-        await this.saveHealthData(e);
-        console.log('✅ Health data saved successfully');
-    } catch (error) {
-        console.error('❌ Error saving health data:', error);
-        this.showToast('❌ Fehler beim Speichern', 'error');
-    } finally {
-        // Re-enable submit button
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '💾 Daten speichern';
+        // Goals form submission
+        const goalsForm = document.getElementById('goals-form');
+        if (goalsForm) {
+            goalsForm.addEventListener('submit', this.handleGoalsSubmission.bind(this));
         }
+        
+        // Network status changes
+        window.addEventListener('online', this.handleOnlineStatus.bind(this));
+        window.addEventListener('offline', this.handleOfflineStatus.bind(this));
+        
+        // Form input debouncing for better UX
+        this.setupFormInputDebouncing();
+        
+        // Progress Hub tab switching
+        this.setupProgressHubTabs();
+        
+        console.log('👂 Event Listeners konfiguriert');
     }
-}
-
-/**
- * Validate and normalize form data before saving
- */
-validateFormData(formData) {
-    console.log('🔍 Validiere Formulardaten:', formData);
-    
-    const validated = {
-        userId: this.userId,
-        date: new Date(), // Always use current date as default
-        weight: null,
-        steps: null,
-        waterIntake: null,
-        sleepHours: null,
-        mood: null,
-        notes: null
-    };
-
-    // Date validation
-    if (formData.date) {
-        const parsedDate = new Date(formData.date);
-        if (!isNaN(parsedDate.getTime())) {
-            validated.date = parsedDate;
-        } else {
-            console.warn('⚠️ Invalid date in form, using current date');
-        }
-    }
-
-    // Numeric field validation
-    const numericFields = ['weight', 'steps', 'waterIntake', 'sleepHours'];
-    numericFields.forEach(field => {
-        if (formData[field] !== undefined && formData[field] !== null && formData[field] !== '') {
-            const parsed = parseFloat(formData[field]);
-            if (!isNaN(parsed) && parsed >= 0) {
-                validated[field] = parsed;
-            } else {
-                console.warn(`⚠️ Invalid ${field} value:`, formData[field]);
-            }
-        }
-    });
-
-    // String field validation
-    if (formData.mood && typeof formData.mood === 'string') {
-        const validMoods = ['excellent', 'good', 'neutral', 'bad', 'terrible'];
-        if (validMoods.includes(formData.mood)) {
-            validated.mood = formData.mood;
-        }
-    }
-
-    if (formData.notes && typeof formData.notes === 'string') {
-        validated.notes = formData.notes.trim().substring(0, 500); // Max 500 chars
-    }
-
-    console.log('✅ Validierte Daten:', validated);
-    return validated;
-}
-
-/**
- * Debounced goals form submit handler
- */
-async handleGoalsFormSubmit(e) {
-    e.preventDefault();
-    
-    const formId = 'goals-form-submit';
-    
-    if (this.debounceTimers.has(formId)) {
-        console.log('🛑 Goals form submission debounced');
-        return;
-    }
-
-    this.debounceTimers.set(formId, true);
-    setTimeout(() => {
-        this.debounceTimers.delete(formId);
-    }, 2000);
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Speichere...';
-    }
-
-    try {
-        await this.saveGoals(e);
-        console.log('✅ Goals saved successfully');
-    } catch (error) {
-        console.error('❌ Error saving goals:', error);
-        this.showToast('❌ Fehler beim Speichern der Ziele', 'error');
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '🎯 Ziele speichern';
-        }
-    }
-}
-
-/**
- * Settings form submit handler
- */
-async handleSettingsFormSubmit(e) {
-    e.preventDefault();
-    // Existing settings logic here - just wrapped for consistency
-    // This prevents the need to modify existing saveSettings method
-}
     
     /**
      * Setup debounced form inputs for better performance
@@ -1288,128 +1092,42 @@ extractFormData(form) {
     }
     
     /**
- * Save health data with enhanced error handling
- */
-async saveHealthData(event) {
-    if (event) {
-        event.preventDefault();
-    }
-
-    console.log('💾 Speichere Gesundheitsdaten:', event);
-    
-    try {
-        const form = event.target || document.getElementById('health-form');
-        if (!form) {
-            throw new Error('Health form not found');
-        }
-
-        const formData = new FormData(form);
-        
-        // Convert FormData to object with validation
-        const rawData = {};
-        for (let [key, value] of formData.entries()) {
-            rawData[key] = value;
-        }
-
-        // Validate and normalize data BEFORE saving
-        const healthData = this.validateFormData(rawData);
-
-        // Save to localStorage with validated data
+     * Save health data with offline-first strategy
+     */
+    async saveHealthData(data) {
         try {
-            this.saveToLocalStorage(healthData);
-            console.log('✅ Lokale Speicherung erfolgreich');
-        } catch (localError) {
-            console.error('❌ Lokale Speicherung fehlgeschlagen:', localError);
-            this.showToast('⚠️ Lokale Speicherung fehlgeschlagen', 'warning');
-            // Continue with cloud save even if local fails
-        }
-
-        // Save to cloud if online
-        if (this.isOnline) {
-            try {
-                const response = await fetch('/api/health-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(healthData)
-                });
-
-                if (response.ok) {
-                    console.log('✅ Daten erfolgreich in Cloud gespeichert');
-                    this.showToast('✅ Gesundheitsdaten gespeichert!', 'success');
-                } else {
-                    throw new Error(`Cloud save failed: ${response.status}`);
+            // Always save locally first
+            await this.saveToLocalStorage(data);
+            
+            // Try to save to server if online
+            if (this.isOnline) {
+                try {
+                    const response = await this.makeAPICall('/api/health-data', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.success) {
+                        // Mark as synced
+                        await this.markAsSynced(data);
+                        return true;
+                    }
+                } catch (error) {
+                    console.log('Server speichern fehlgeschlagen, lokal gespeichert:', error.message);
                 }
-            } catch (cloudError) {
-                console.error('❌ Cloud-Speicherung fehlgeschlagen:', cloudError);
-                this.showToast('⚠️ Cloud-Speicherung fehlgeschlagen - Daten lokal gesichert', 'warning');
             }
-        } else {
-            this.showToast('📴 Offline gespeichert - Wird später synchronisiert', 'info');
+            
+            // Mark for later sync
+            await this.markForSync(data);
+            this.dispatchHealthDataEvent('health-data-saved-offline', data);
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Speichern komplett fehlgeschlagen:', error);
+            return false;
         }
-
-        // Update displays
-        this.loadTodayData();
-        this.updateProgressHub();
-        this.updateActivityFeed();
-        
-        // Reset form
-        form.reset();
-        
-    } catch (error) {
-        console.error('❌ Fehler beim Speichern:', error);
-        this.showToast('❌ Fehler beim Speichern der Daten', 'error');
-        throw error; // For upstream error handling
     }
-}
-
-// Sync-Status Management für bessere UX
-updateSyncStatus(status) {
-  const syncIndicator = document.querySelector('.sync-status');
-  if (!syncIndicator) return;
-  
-  syncIndicator.className = `sync-status badge badge-sm ${
-    status === 'success' ? 'badge-success' : 
-    status === 'error' ? 'badge-error' : 
-    'badge-warning'
-  }`;
-  
-  syncIndicator.textContent = status === 'success' ? '✅ Sync' : 
-                             status === 'error' ? '❌ Sync' : 
-                             '🔄 Sync';
-}
-
-// Erweiterte Offline-Erkennung
-setupOfflineHandling() {
-  window.addEventListener('online', () => {
-    this.isOnline = true;
-    this.showToast('🌐 Verbindung wiederhergestellt', 'success');
-    this.syncPendingData();
-  });
-  
-  window.addEventListener('offline', () => {
-    this.isOnline = false;
-    this.showToast('📡 Offline-Modus aktiviert', 'info');
-  });
-}
-
-// Automatische Synchronisation ausstehender Daten
-async syncPendingData() {
-  const pendingData = this.getPendingDataFromStorage();
-  if (pendingData.length === 0) return;
-  
-  console.log(`🔄 Synchronisiere ${pendingData.length} ausstehende Einträge...`);
-  
-  for (const data of pendingData) {
-    try {
-      await this.saveHealthDataWithErrorHandling(data);
-      this.removePendingDataFromStorage(data.id);
-    } catch (error) {
-      console.error('Sync failed for:', data, error);
-    }
-  }
-}
     
     /**
      * Load user goals from server or localStorage
@@ -1481,6 +1199,138 @@ async syncPendingData() {
             return false;
         }
     }
+    
+    /**
+ * Enhanced today data aggregation
+ */
+getTodayData(allData) {
+    // Heutiges Datum in lokalem Format
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + 
+        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(today.getDate()).padStart(2, '0');
+
+    console.log('🗓️ Suche Daten für:', todayStr);
+    console.log('📊 Verfügbare Daten:', allData?.length || 0);
+
+    if (!allData || !Array.isArray(allData) || allData.length === 0) {
+        console.log('❌ Keine Daten verfügbar');
+        return { date: todayStr };
+    }
+
+    // VERBESSERTES FILTERING - alle möglichen Datumsformate berücksichtigen
+    const todayEntries = allData.filter(entry => {
+        if (!entry || !entry.date) {
+            return false;
+        }
+
+        let entryDateStr;
+        // Fall 1: String-Datum (ISO oder einfach)
+        if (typeof entry.date === 'string') {
+            // ISO Format: "2025-08-06T10:30:00.000Z" -> "2025-08-06"
+            if (entry.date.includes('T')) {
+                entryDateStr = entry.date.split('T')[0];
+            } else {
+                entryDateStr = entry.date;
+            }
+        }
+        // Fall 2: Date-Objekt
+        else if (entry.date instanceof Date) {
+            entryDateStr = entry.date.getFullYear() + '-' + 
+                String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(entry.date.getDate()).padStart(2, '0');
+        }
+        // Fall 3: MongoDB Date String
+        else if (typeof entry.date === 'object' && entry.date.$date) {
+            const date = new Date(entry.date.$date);
+            entryDateStr = date.getFullYear() + '-' + 
+                String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(date.getDate()).padStart(2, '0');
+        } else {
+            console.log('⚠️ Unbekanntes Datumsformat:', entry.date, typeof entry.date);
+            return false;
+        }
+
+        const matches = entryDateStr === todayStr;
+        console.log(`📅 "${entryDateStr}" === "${todayStr}" = ${matches}`);
+        return matches;
+    });
+
+    console.log(`✅ Gefunden: ${todayEntries.length} heutige Einträge`);
+
+    if (todayEntries.length === 0) {
+        console.log('📊 Keine Einträge für heute - return empty object');
+        return { date: todayStr };
+    }
+
+    // AGGREGATION - ALLE WERTE SAMMELN
+    const aggregatedData = {
+        date: todayStr,
+        weight: null,
+        steps: 0,
+        waterIntake: 0,
+        sleepHours: 0,
+        mood: null,
+        notes: [],
+        entryCount: todayEntries.length,
+        lastUpdated: null
+    };
+
+    console.log('🔄 Aggregiere Einträge...');
+    todayEntries.forEach((entry, index) => {
+        console.log(`Eintrag ${index + 1}:`, {
+            weight: entry.weight,
+            steps: entry.steps,
+            waterIntake: entry.waterIntake,
+            sleepHours: entry.sleepHours,
+            mood: entry.mood
+        });
+
+        // Gewicht (letzter Wert)
+        if (entry.weight !== null && entry.weight !== undefined) {
+            aggregatedData.weight = entry.weight;
+            console.log(`⚖️ Gewicht aktualisiert: ${aggregatedData.weight}kg`);
+        }
+
+        // Schritte (summieren)
+        if (entry.steps && entry.steps > 0) {
+            aggregatedData.steps += entry.steps;
+            console.log(`🚶♂️ Schritte summiert: ${aggregatedData.steps}`);
+        }
+
+        // Wasser (summieren)
+        if (entry.waterIntake && entry.waterIntake > 0) {
+            aggregatedData.waterIntake += entry.waterIntake;
+            console.log(`💧 Wasser summiert: ${aggregatedData.waterIntake}L`);
+        }
+
+        // Schlaf (summieren)
+        if (entry.sleepHours && entry.sleepHours > 0) {
+            aggregatedData.sleepHours += entry.sleepHours;
+            console.log(`😴 Schlaf summiert: ${aggregatedData.sleepHours}h`);
+        }
+
+        // Stimmung (letzter Wert)
+        if (entry.mood) {
+            aggregatedData.mood = entry.mood;
+            console.log(`😊 Stimmung: ${aggregatedData.mood}`);
+        }
+
+        // Notizen sammeln
+        if (entry.notes && entry.notes.trim()) {
+            aggregatedData.notes.push(entry.notes.trim());
+        }
+    });
+
+    // Nachbearbeitung
+    aggregatedData.notes = aggregatedData.notes.length > 0 ? 
+        aggregatedData.notes.join(' | ') : null;
+    aggregatedData.waterIntake = Math.round(aggregatedData.waterIntake * 10) / 10;
+    aggregatedData.sleepHours = Math.round(aggregatedData.sleepHours * 10) / 10;
+
+    console.log('📊 FINALE DATEN:', aggregatedData);
+    return aggregatedData;
+}
     
     /**
      * Update individual stat card
@@ -2340,61 +2190,162 @@ calculateWeeklyAverages(weekData) {
     }
     
     /**
- * Show toast notification with duplicate prevention
+     * Show toast notification
+     */
+    /**
+ * Erweiterte Toast-Funktion für Notifikationen unten rechts
  */
-showToast(message, type = 'info') {
-    // Prevent duplicate toasts
-    const toastKey = `${message}-${type}`;
-    if (this.activeToasts && this.activeToasts.has(toastKey)) {
-        console.log('🛑 Toast deduplicated:', message);
-        return;
-    }
-
-    // Initialize activeToasts if not exists
-    if (!this.activeToasts) {
-        this.activeToasts = new Set();
-    }
-
-    // Add to active toasts
-    this.activeToasts.add(toastKey);
-
-    // Remove from active toasts after 3 seconds
-    setTimeout(() => {
-        this.activeToasts.delete(toastKey);
-    }, 3000);
-
-    const toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        console.warn('Toast container not found');
-        return;
-    }
-
-    const alertClass = {
-        'success': 'alert-success',
-        'error': 'alert-error', 
-        'warning': 'alert-warning',
-        'info': 'alert-info'
-    }[type] || 'alert-info';
-
-    const toast = document.createElement('div');
-    toast.className = `alert ${alertClass} mb-2 shadow-lg`;
-    toast.innerHTML = `
-        <div class="flex items-center justify-between w-full">
-            <span>${message}</span>
-            <button class="btn btn-sm btn-circle" onclick="this.parentElement.parentElement.remove()">✕</button>
-        </div>
-    `;
-
-    toastContainer.appendChild(toast);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
+showToast(message, type = 'info', duration = 4000, options = {}) {
+    try {
+        // Toast Container finden oder erstellen
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast toast-end toast-bottom z-50 space-y-2';
+            document.body.appendChild(toastContainer);
         }
-    }, 5000);
 
-    console.log(`📢 Toast: ${message} (${type})`);
+        // Toast Element erstellen
+        const toast = document.createElement('div');
+        const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        toast.id = toastId;
+        
+        // Type-spezifische Klassen und Icons
+        const typeConfig = {
+            success: {
+                alertClass: 'alert-success',
+                icon: 'check-circle',
+                bgClass: 'bg-success',
+                textClass: 'text-success-content'
+            },
+            error: {
+                alertClass: 'alert-error', 
+                icon: 'x-circle',
+                bgClass: 'bg-error',
+                textClass: 'text-error-content'
+            },
+            warning: {
+                alertClass: 'alert-warning',
+                icon: 'alert-triangle', 
+                bgClass: 'bg-warning',
+                textClass: 'text-warning-content'
+            },
+            info: {
+                alertClass: 'alert-info',
+                icon: 'info',
+                bgClass: 'bg-info', 
+                textClass: 'text-info-content'
+            }
+        };
+
+        const config = typeConfig[type] || typeConfig.info;
+        
+        // Enhanced Toast HTML
+        toast.className = `alert ${config.alertClass} shadow-lg backdrop-blur-sm border border-base-300/50 transform transition-all duration-300 ease-in-out translate-x-full opacity-0 min-w-80 max-w-96`;
+        
+        toast.innerHTML = `
+            <div class="flex items-start gap-3 w-full">
+                <i data-lucide="${config.icon}" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm leading-tight">${message}</div>
+                    ${options.subtitle ? `<div class="text-xs opacity-80 mt-1">${options.subtitle}</div>` : ''}
+                </div>
+                ${options.closable !== false ? `
+                    <button class="btn btn-ghost btn-xs btn-circle ml-2 opacity-70 hover:opacity-100" onclick="this.closest('.alert').remove()">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                ` : ''}
+            </div>
+            ${options.progress !== false && duration > 0 ? `
+                <div class="absolute bottom-0 left-0 h-1 bg-base-content/20 w-full rounded-b-lg overflow-hidden">
+                    <div class="h-full ${config.bgClass} opacity-50 transition-all duration-${duration} ease-linear" 
+                         style="width: 100%; animation: progress-shrink ${duration}ms linear;"></div>
+                </div>
+            ` : ''}
+        `;
+
+        // Toast zum Container hinzufügen
+        toastContainer.appendChild(toast);
+
+        // Icons initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        // Slide-in Animation
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            toast.classList.add('translate-x-0', 'opacity-100');
+        });
+
+        // Auto-remove nach Duration
+        let autoRemoveTimer;
+        if (duration > 0) {
+            autoRemoveTimer = setTimeout(() => {
+                this.removeToast(toastId);
+            }, duration);
+        }
+
+        // Click Handler für manuelle Entfernung
+        toast.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) {
+                this.removeToast(toastId);
+                if (autoRemoveTimer) clearTimeout(autoRemoveTimer);
+            }
+        });
+
+        // Hover: Animation pausieren
+        if (duration > 0) {
+            toast.addEventListener('mouseenter', () => {
+                const progressBar = toast.querySelector('[style*="animation"]');
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'paused';
+                }
+                if (autoRemoveTimer) {
+                    clearTimeout(autoRemoveTimer);
+                }
+            });
+
+            toast.addEventListener('mouseleave', () => {
+                const progressBar = toast.querySelector('[style*="animation"]');
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'running';
+                }
+                const remainingTime = duration; // Vereinfacht, könnte berechnet werden
+                autoRemoveTimer = setTimeout(() => {
+                    this.removeToast(toastId);
+                }, remainingTime);
+            });
+        }
+
+        // Sound-Feedback (optional)
+        if (options.sound !== false && localStorage.getItem('soundFeedback') === 'true') {
+            this.playNotificationSound(type);
+        }
+
+        // Haptic Feedback
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            const vibrationPattern = {
+                success: [50, 30, 50],
+                error: [100, 50, 100],
+                warning: [80],
+                info: [30]
+            };
+            navigator.vibrate(vibrationPattern[type] || [30]);
+        }
+
+        // Max Toasts Limit (verhindert Spam)
+        this.limitToastCount();
+
+        console.log(`📢 Toast angezeigt: ${type} - ${message}`);
+        return toastId;
+
+    } catch (error) {
+        console.error('❌ Toast Error:', error);
+        // Fallback: Nativer Alert
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
 }
 
 /**
@@ -2540,79 +2491,32 @@ playNotificationSound(type) {
     /**
  * Save data to localStorage
  */
-/**
- * Save data to localStorage with proper date validation
- */
-saveToLocalStorage(data) {
+async saveToLocalStorage(data) {
     try {
-        console.log('💾 Speichere in localStorage:', data);
+        const existingData = JSON.parse(localStorage.getItem('healthData') || '[]');
         
-        // Date validation and normalization
-        let processedDate;
-        if (data.date) {
-            if (data.date instanceof Date) {
-                processedDate = data.date;
-            } else if (typeof data.date === 'string') {
-                processedDate = new Date(data.date);
-            } else {
-                console.warn('⚠️ Invalid date format, using current date');
-                processedDate = new Date();
-            }
-        } else {
-            processedDate = new Date();
-        }
-
-        // Validate processed date
-        if (isNaN(processedDate.getTime())) {
-            console.warn('⚠️ Invalid date detected, using current date');
-            processedDate = new Date();
-        }
-
-        const processedData = {
+        // KRITISCHER FIX: Sicherstellen dass date als String gespeichert wird
+        const dataWithMetadata = {
             ...data,
-            date: processedDate,
-            timestamp: processedDate.toISOString(), // Safe nach Date-Validierung
-            userId: this.userId
+            date: typeof data.date === 'string' ? data.date : data.date.toISOString().split('T')[0],
+            _localId: 'local_' + Date.now(),
+            _synced: false,
+            _createdAt: new Date().toISOString()
         };
-
-        const storageKey = `health_data_${this.userId}`;
-        let existingData = [];
-
-        try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) {
-                existingData = JSON.parse(stored);
-                if (!Array.isArray(existingData)) {
-                    existingData = [];
-                }
-            }
-        } catch (parseError) {
-            console.error('⚠️ localStorage parse error, starting fresh:', parseError);
-            existingData = [];
-        }
-
-        // Remove duplicates by date (same day)
-        const dateStr = processedDate.toISOString().split('T')[0];
-        existingData = existingData.filter(item => {
-            if (!item.date) return true;
-            const itemDate = new Date(item.date);
-            return itemDate.toISOString().split('T')[0] !== dateStr;
-        });
-
-        existingData.unshift(processedData);
-
-        // Keep last 100 entries for performance
-        if (existingData.length > 100) {
-            existingData = existingData.slice(0, 100);
-        }
-
-        localStorage.setItem(storageKey, JSON.stringify(existingData));
-        console.log('✅ Daten erfolgreich in localStorage gespeichert');
+        
+        console.log('💾 SAVING TO LOCALSTORAGE:', dataWithMetadata);
+        
+        existingData.push(dataWithMetadata);
+        
+        // Keep only last 100 entries
+        const trimmedData = existingData.slice(-100);
+        localStorage.setItem('healthData', JSON.stringify(trimmedData));
+        
+        console.log('✅ SAVED TO LOCALSTORAGE. Total entries:', trimmedData.length);
         
     } catch (error) {
         console.error('❌ localStorage Fehler:', error);
-        this.showToast('⚠️ Lokale Speicherung fehlgeschlagen', 'warning');
-        throw error; // Re-throw for upstream handling
+        throw error;
     }
 }
     
@@ -2673,6 +2577,47 @@ initializeFormDefaults() {
 }
 
     /**
+     * Update footer statistics
+     */
+    async updateFooterStats() {
+        try {
+            const allData = await this.getAllHealthData();
+            const todayData = this.getTodayData(allData);
+            const weekData = this.getWeekData(allData);
+            
+            // Today entries count
+            const todayEntries = allData.filter(entry => {
+                const today = new Date().toISOString().split('T')[0];
+                return entry.date === today;
+            }).length;
+            
+            // Goals achieved today
+            let goalsAchieved = 0;
+            if (todayData.steps >= this.goals.stepsGoal) goalsAchieved++;
+            if (todayData.waterIntake >= this.goals.waterGoal) goalsAchieved++;
+            if (todayData.sleepHours >= this.goals.sleepGoal) goalsAchieved++;
+            if (this.goals.weightGoal && Math.abs(todayData.weight - this.goals.weightGoal) <= this.goals.weightGoal * 0.05) goalsAchieved++;
+            
+            // Calculate streak
+            const streak = this.calculateCurrentStreak(allData);
+            
+            // Update DOM
+            const todayEl = document.getElementById('footer-today-entries');
+            const weekEl = document.getElementById('footer-week-entries');
+            const goalsEl = document.getElementById('footer-goals-achieved');
+            const streakEl = document.getElementById('footer-current-streak');
+            
+            if (todayEl) todayEl.textContent = todayEntries;
+            if (weekEl) weekEl.textContent = weekData.length;
+            if (goalsEl) goalsEl.textContent = goalsAchieved;
+            if (streakEl) streakEl.textContent = streak;
+            
+        } catch (error) {
+            console.error('Footer stats update error:', error);
+        }
+    }
+
+    /**
      * Calculate current tracking streak
      */
     calculateCurrentStreak(allData) {
@@ -2695,6 +2640,21 @@ initializeFormDefaults() {
         }
         
         return streak;
+    }
+
+    /**
+     * Update footer connection status
+     */
+    updateFooterConnectionStatus() {
+        const statusEl = document.getElementById('footer-connection-status');
+        if (statusEl) {
+            const isOnline = navigator.onLine;
+            statusEl.innerHTML = `
+                <div class="w-2 h-2 ${isOnline ? 'bg-success' : 'bg-warning'} rounded-full animate-pulse"></div>
+                <span class="text-xs">${isOnline ? 'Online' : 'Offline'}</span>
+            `;
+            statusEl.className = `badge badge-ghost gap-1 ${isOnline ? '' : 'badge-warning'}`;
+        }
     }
 
         /** * Initialize footer functionality */
@@ -2773,7 +2733,7 @@ initializeFormDefaults() {
         }
     }
 
-    /** Initialize Analytics Event Listeners through HealthTracker */
+            /** Initialize Analytics Event Listeners through HealthTracker */
     initializeAnalyticsEventListeners() {
         console.log('📊 Initializing analytics event listeners...');
         
@@ -5925,77 +5885,6 @@ showQuickToast(message, type = 'success') {
         sound: false 
     });
 }
-
-// API-Funktionen mit verbessertem Error-Handling erweitern
-async saveHealthDataWithErrorHandling(data) {
-  const operation = 'Gesundheitsdaten-Speicherung';
-  
-  const saveOperation = async () => {
-    const response = await this.saveHealthData(data);
-    if (response && !response.error) {
-      this.errorHandler.cacheSuccessfulResponse('healthData', response);
-    }
-    return response;
-  };
-  
-  try {
-    return await this.errorHandler.handleAPIError(
-      null, 
-      operation, 
-      saveOperation
-    );
-  } catch (error) {
-    return await this.errorHandler.handleAPIError(
-      error, 
-      operation, 
-      saveOperation
-    );
-  }
-}
-
-async loadHealthDataWithErrorHandling(userId) {
-  const operation = 'Gesundheitsdaten-Laden';
-  
-  const loadOperation = async () => {
-    const data = await this.loadHealthData(userId);
-    if (data && Array.isArray(data)) {
-      this.errorHandler.cacheSuccessfulResponse('healthData', data);
-    }
-    return data;
-  };
-  
-  try {
-    return await loadOperation();
-  } catch (error) {
-    return await this.errorHandler.handleAPIError(
-      error, 
-      operation, 
-      loadOperation
-    );
-  }
-}
-
-async saveGoalsWithErrorHandling(goals) {
-  const operation = 'Ziele-Speicherung';
-  
-  const saveOperation = async () => {
-    const response = await this.saveUserGoals(goals);
-    if (response && !response.error) {
-      this.errorHandler.cacheSuccessfulResponse('goals', response);
-    }
-    return response;
-  };
-  
-  try {
-    return await saveOperation();
-  } catch (error) {
-    return await this.errorHandler.handleAPIError(
-      error, 
-      operation, 
-      saveOperation
-    );
-  }
-}
 }
 
 // === GLOBALE HEALTHTRACKER INSTANZ ===
@@ -6011,90 +5900,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('❌ showSettings Methode nicht gefunden');
     }
 });
-
-// Zentrales Error-Handling System
-class ErrorHandler {
-  constructor(app) {
-    this.app = app;
-    this.retryCount = new Map();
-    this.maxRetries = 3;
-  }
-  
-  async handleAPIError(error, operation, retryFn = null) {
-    const errorKey = `${operation}_${Date.now()}`;
-    
-    // Bestimme Error-Typ und Response
-    if (error.name === 'AbortError' || error.message.includes('timeout')) {
-      return this.handleTimeoutError(errorKey, operation, retryFn);
-    }
-    
-    if (error.message.includes('503') || !navigator.onLine) {
-      return this.handleOfflineError(operation);
-    }
-    
-    // Server errors (500, 502, etc.)
-    if (error.message.includes('50')) {
-      return this.handleServerError(errorKey, operation, retryFn);
-    }
-    
-    // Default error handling
-    this.app.showToast(`⚠️ Fehler bei ${operation}`, 'error');
-    console.error(`API Error in ${operation}:`, error);
-    
-    return null;
-  }
-  
-  async handleTimeoutError(errorKey, operation, retryFn) {
-    const retries = this.retryCount.get(errorKey) || 0;
-    
-    if (retries < this.maxRetries && retryFn) {
-      this.retryCount.set(errorKey, retries + 1);
-      this.app.showToast(`🔄 Wiederhole ${operation}... (${retries + 1}/${this.maxRetries})`, 'info');
-      
-      // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
-      return retryFn();
-    }
-    
-    this.app.showToast(`⏰ ${operation} Timeout - Offline-Modus aktiv`, 'warning');
-    return this.loadFromCache(operation);
-  }
-  
-  handleOfflineError(operation) {
-    this.app.showToast(`📡 Offline - ${operation} aus Cache geladen`, 'info');
-    return this.loadFromCache(operation);
-  }
-  
-  async handleServerError(errorKey, operation, retryFn) {
-    const retries = this.retryCount.get(errorKey) || 0;
-    
-    if (retries < 2 && retryFn) { // Weniger Retries für Server-Fehler
-      this.retryCount.set(errorKey, retries + 1);
-      this.app.showToast(`🔄 Server-Fehler - Wiederhole ${operation}...`, 'warning');
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return retryFn();
-    }
-    
-    this.app.showToast(`❌ Server-Problem bei ${operation}`, 'error');
-    return this.loadFromCache(operation);
-  }
-  
-  async loadFromCache(operation) {
-    // Lade Daten aus lokalem Storage/IndexedDB
-    const cachedData = localStorage.getItem(`cached_${operation}`);
-    return cachedData ? JSON.parse(cachedData) : null;
-  }
-  
-  // Cache-Daten beim erfolgreichen API Call speichern
-  cacheSuccessfulResponse(operation, data) {
-    try {
-      localStorage.setItem(`cached_${operation}`, JSON.stringify(data));
-    } catch (error) {
-      console.warn('Cache storage failed:', error);
-    }
-  }
-}
 
 // ====================================================================
 // SMART NOTIFICATION MANAGER

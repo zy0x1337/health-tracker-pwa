@@ -11269,62 +11269,329 @@ prepareTrendsData(data, metricFilter = 'all') {
 }
 
     /** Update heatmap chart */
-    async updateHeatmapChart() {
-    console.log('🔥 Updating heatmap chart...');
+async updateHeatmapChart(metricFilter = 'all') {
+    console.log('🔥 updateHeatmapChart aufgerufen mit Filter:', metricFilter);
     
-    const container = document.getElementById('heatmap-chart');
-    if (!container) {
-        console.warn('⚠️ Heatmap container not found');
-        return;
+    try {
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        const placeholderEl = document.getElementById('heatmap-placeholder');
+        
+        if (!heatmapContainer) {
+            console.warn('⚠️ Heatmap Container nicht gefunden');
+            return;
+        }
+
+        // Lade aktuelle Daten
+        const allData = await this.healthTracker.getAllHealthData();
+        
+        if (!allData || allData.length === 0) {
+            this.showHeatmapEmpty();
+            return;
+        }
+
+        // Placeholder ausblenden
+        if (placeholderEl) {
+            placeholderEl.style.display = 'none';
+        }
+
+        // Heatmap-Daten für die letzten 90 Tage generieren
+        const heatmapData = this.generateHeatmapData(allData, metricFilter);
+        
+        if (heatmapData.length === 0) {
+            this.showHeatmapEmpty();
+            return;
+        }
+
+        // Bestehende Heatmap löschen
+        heatmapContainer.innerHTML = '';
+
+        // Neue Heatmap erstellen
+        this.renderHeatmapGrid(heatmapContainer, heatmapData, metricFilter);
+
+        console.log('✅ Heatmap erfolgreich aktualisiert');
+        
+    } catch (error) {
+        console.error('❌ Heatmap Chart Fehler:', error);
+        this.showHeatmapError(error.message);
+    }
+}
+
+/**
+ * Generiere Heatmap-Daten für die letzten 90 Tage
+ */
+generateHeatmapData(allData, metricFilter) {
+    const today = new Date();
+    const days = [];
+    
+    // Erstelle Array der letzten 90 Tage
+    for (let i = 89; i >= 0; i--) {
+        const date = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+        const dateStr = date.getFullYear() + '-' + 
+                       String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(date.getDate()).padStart(2, '0');
+        
+        // Finde Daten für diesen Tag
+        const dayData = allData.filter(entry => {
+            let entryDateStr;
+            if (typeof entry.date === 'string') {
+                entryDateStr = entry.date.split('T')[0];
+            } else if (entry.date instanceof Date) {
+                entryDateStr = entry.date.getFullYear() + '-' + 
+                              String(entry.date.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(entry.date.getDate()).padStart(2, '0');
+            } else {
+                return false;
+            }
+            return entryDateStr === dateStr;
+        });
+
+        // Berechne Aktivitätslevel für diesen Tag
+        const activityLevel = this.calculateDayActivityLevel(dayData, metricFilter);
+        
+        days.push({
+            date: dateStr,
+            fullDate: date,
+            level: activityLevel,
+            entries: dayData.length,
+            data: dayData
+        });
+    }
+    
+    return days;
+}
+
+/**
+ * Berechne Aktivitätslevel für einen Tag (0-4)
+ */
+calculateDayActivityLevel(dayData, metricFilter) {
+    if (!dayData || dayData.length === 0) {
+        return 0; // Keine Aktivität
     }
 
-    try {
-        const data = this.analyticsData?.period || [];
-        const heatmapData = this.generateHeatmapData(data);
+    // Aggregiere Tagesdaten
+    const aggregated = dayData.reduce((acc, entry) => {
+        acc.steps += entry.steps || 0;
+        acc.water += entry.waterIntake || 0;
+        acc.sleep += entry.sleepHours || 0;
+        acc.hasWeight = acc.hasWeight || (entry.weight !== null && entry.weight !== undefined);
+        acc.hasMood = acc.hasMood || (entry.mood !== null && entry.mood !== undefined);
+        acc.hasNotes = acc.hasNotes || (entry.notes !== null && entry.notes !== undefined);
+        return acc;
+    }, { steps: 0, water: 0, sleep: 0, hasWeight: false, hasMood: false, hasNotes: false });
+
+    let score = 0;
+    
+    if (metricFilter === 'all' || metricFilter === 'steps') {
+        // Schritte: 0-10000+ = 0-2 Punkte
+        score += Math.min(2, Math.floor(aggregated.steps / 5000));
+    }
+    
+    if (metricFilter === 'all' || metricFilter === 'waterIntake') {
+        // Wasser: 0-2L+ = 0-2 Punkte  
+        score += Math.min(2, Math.floor(aggregated.water * 2));
+    }
+    
+    if (metricFilter === 'all' || metricFilter === 'sleepHours') {
+        // Schlaf: 0-8h+ = 0-2 Punkte
+        score += Math.min(2, Math.floor(aggregated.sleep / 4));
+    }
+    
+    if (metricFilter === 'all') {
+        // Bonus für vollständige Daten
+        if (aggregated.hasWeight) score += 0.5;
+        if (aggregated.hasMood) score += 0.5;
+        if (aggregated.hasNotes) score += 0.5;
+    }
+
+    // Normalisiere auf 0-4 Skala
+    return Math.min(4, Math.max(0, Math.floor(score)));
+}
+
+/**
+ * Rendere Heatmap-Grid
+ */
+renderHeatmapGrid(container, heatmapData, metricFilter) {
+    // Erstelle Grid-Container
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'heatmap-grid grid grid-cols-13 gap-1 p-4';
+    
+    // Farbpalette für verschiedene Level
+    const colors = [
+        'bg-base-300/30',      // Level 0 - Keine Aktivität
+        'bg-primary/20',       // Level 1 - Geringe Aktivität  
+        'bg-primary/40',       // Level 2 - Mittlere Aktivität
+        'bg-primary/60',       // Level 3 - Hohe Aktivität
+        'bg-primary/80'        // Level 4 - Sehr hohe Aktivität
+    ];
+
+    // Wochentag-Labels
+    const weekdays = ['S', 'M', 'D', 'M', 'D', 'F', 'S'];
+    
+    // Erstelle Wochentag-Header
+    for (let i = 0; i < 7; i++) {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'text-center text-xs font-medium text-base-content/60 p-1';
+        dayHeader.textContent = weekdays[i];
+        gridContainer.appendChild(dayHeader);
+    }
+
+    // Füge leere Zellen für Ausrichtung hinzu
+    const startDay = heatmapData[0].fullDate.getDay();
+    for (let i = 0; i < startDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'w-3 h-3';
+        gridContainer.appendChild(emptyCell);
+    }
+
+    // Erstelle Heatmap-Zellen
+    heatmapData.forEach(day => {
+        const cell = document.createElement('div');
+        cell.className = `heatmap-cell w-3 h-3 border border-base-300/20 ${colors[day.level]} hover:scale-110 cursor-pointer transition-all duration-200`;
         
+        // Tooltip-Informationen
+        const tooltipText = this.createHeatmapTooltip(day, metricFilter);
+        cell.setAttribute('data-tip', tooltipText);
+        cell.className += ' tooltip tooltip-top';
+        
+        // Click-Handler für Details
+        cell.addEventListener('click', () => {
+            this.showDayDetails(day);
+        });
+        
+        gridContainer.appendChild(cell);
+    });
+
+    // Füge Legende hinzu
+    const legend = this.createHeatmapLegend(metricFilter);
+    
+    // Container-HTML
+    container.innerHTML = '';
+    container.appendChild(gridContainer);
+    container.appendChild(legend);
+    
+    // Titel aktualisieren
+    this.updateHeatmapTitle(metricFilter);
+}
+
+/**
+ * Erstelle Tooltip-Text für Heatmap-Zelle
+ */
+createHeatmapTooltip(day, metricFilter) {
+    const date = new Date(day.date).toLocaleDateString('de-DE', {
+        day: 'numeric',
+        month: 'short'
+    });
+    
+    if (day.entries === 0) {
+        return `${date}: Keine Daten`;
+    }
+    
+    const aggregated = day.data.reduce((acc, entry) => {
+        acc.steps += entry.steps || 0;
+        acc.water += entry.waterIntake || 0;
+        acc.sleep += entry.sleepHours || 0;
+        return acc;
+    }, { steps: 0, water: 0, sleep: 0 });
+    
+    let tooltip = `${date}\n`;
+    
+    if (metricFilter === 'all') {
+        tooltip += `${aggregated.steps} Schritte\n`;
+        tooltip += `${aggregated.water.toFixed(1)}L Wasser\n`;
+        tooltip += `${aggregated.sleep.toFixed(1)}h Schlaf`;
+    } else if (metricFilter === 'steps') {
+        tooltip += `${aggregated.steps} Schritte`;
+    } else if (metricFilter === 'waterIntake') {
+        tooltip += `${aggregated.water.toFixed(1)}L Wasser`;
+    } else if (metricFilter === 'sleepHours') {
+        tooltip += `${aggregated.sleep.toFixed(1)}h Schlaf`;
+    }
+    
+    return tooltip;
+}
+
+/**
+ * Erstelle Heatmap-Legende
+ */
+createHeatmapLegend(metricFilter) {
+    const legend = document.createElement('div');
+    legend.className = 'flex items-center justify-between mt-4 text-xs text-base-content/70';
+    
+    const colors = [
+        'bg-base-300/30',
+        'bg-primary/20', 
+        'bg-primary/40',
+        'bg-primary/60',
+        'bg-primary/80'
+    ];
+    
+    legend.innerHTML = `
+        <span>Weniger</span>
+        <div class="flex gap-1">
+            ${colors.map(color => `
+                <div class="w-3 h-3 border border-base-300/20 ${color}"></div>
+            `).join('')}
+        </div>
+        <span>Mehr</span>
+    `;
+    
+    return legend;
+}
+
+/**
+ * Zeige leere Heatmap
+ */
+showHeatmapEmpty() {
+    const container = document.getElementById('heatmap-chart');
+    if (container) {
         container.innerHTML = `
-            <div class="heatmap-grid">
-                <div class="text-center mb-4">
-                    <h4 class="font-semibold text-lg mb-2">🔥 Aktivitäts-Heatmap</h4>
-                    <p class="text-sm text-base-content/70">Letzten ${this.currentPeriod} Tage</p>
-                </div>
-                
-                <div class="grid grid-cols-7 gap-1 mb-4">
-                    ${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => `
-                        <div class="text-xs text-center font-medium opacity-70 p-1">${day}</div>
-                    `).join('')}
-                </div>
-                
-                <div class="grid grid-cols-7 gap-1 mb-4">
-                    ${heatmapData.map(day => `
-                        <div class="heatmap-cell ${this.getHeatmapColor(day.intensity)} 
-                             tooltip tooltip-top cursor-pointer"
-                             data-tip="${day.date}: ${day.steps} Schritte">
-                            ${day.dayOfMonth}
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="flex justify-between items-center text-xs opacity-70">
-                    <span>Weniger</span>
-                    <div class="flex gap-1">
-                        <div class="w-3 h-3 rounded bg-base-300"></div>
-                        <div class="w-3 h-3 rounded bg-primary/20"></div>
-                        <div class="w-3 h-3 rounded bg-primary/50"></div>
-                        <div class="w-3 h-3 rounded bg-primary/80"></div>
-                        <div class="w-3 h-3 rounded bg-primary"></div>
-                    </div>
-                    <span>Mehr</span>
-                </div>
+            <div class="flex flex-col items-center justify-center h-64 text-center">
+                <i data-lucide="calendar-x" class="w-16 h-16 text-base-content/30 mb-4"></i>
+                <h4 class="font-semibold text-base-content/70 mb-2">Noch keine Aktivitätsdaten</h4>
+                <p class="text-sm text-base-content/50">Füge Gesundheitsdaten hinzu, um die Aktivitäts-Heatmap zu sehen!</p>
+                <button class="btn btn-primary btn-sm mt-4" onclick="document.getElementById('health-form').scrollIntoView()">
+                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                    Daten hinzufügen
+                </button>
             </div>
         `;
-
-        console.log('✅ Heatmap updated successfully');
-
-    } catch (error) {
-        console.error('❌ Heatmap error:', error);
-        this.logChartError('Heatmap', error);
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
+}
+
+/**
+ * Zeige Heatmap-Fehler
+ */
+showHeatmapError(errorMessage) {
+    const container = document.getElementById('heatmap-chart');
+    if (container) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-64 text-center">
+                <i data-lucide="alert-triangle" class="w-16 h-16 text-warning mb-4"></i>
+                <h4 class="font-semibold text-base-content/70 mb-2">Heatmap temporär nicht verfügbar</h4>
+                <p class="text-sm text-base-content/50 mb-4">${errorMessage}</p>
+                <button class="btn btn-outline btn-sm" onclick="healthTracker.analyticsEngine?.updateHeatmapChart?.()">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+/**
+ * Aktualisiere Heatmap-Titel basierend auf Filter
+ */
+updateHeatmapTitle(metricFilter) {
+    // Diese Methode kann erweitert werden um den Titel zu aktualisieren
+    console.log(`📊 Heatmap Titel für Filter: ${metricFilter}`);
 }
 
     /** Generate heatmap data */
@@ -11971,40 +12238,6 @@ showAnalyticsError(error) {
                 </button>
             </div>
         `;
-    }
-}
-
-/**
- * Update heatmap chart placeholder
- */
-async updateHeatmapChart() {
-    console.log('🔥 Updating heatmap chart...');
-    
-    try {
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        if (!heatmapContainer) {
-            console.warn('⚠️ Heatmap container not found');
-            return;
-        }
-        
-        // Simple heatmap placeholder for now
-        heatmapContainer.innerHTML = `
-            <div class="p-6 text-center">
-                <i data-lucide="calendar" class="w-12 h-12 text-primary/30 mx-auto mb-2"></i>
-                <h4 class="text-lg font-semibold mb-2">Aktivitäts-Heatmap</h4>
-                <p class="text-sm text-base-content/70">Heatmap wird geladen...</p>
-            </div>
-        `;
-        
-        // Re-initialize lucide icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-        
-        console.log('✅ Heatmap updated successfully');
-        
-    } catch (error) {
-        console.error('❌ Heatmap update error:', error);
     }
 }
 

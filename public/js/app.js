@@ -877,65 +877,56 @@ initializeSettings() {
     }
     
     setupProgressHubTabs() {
-  const bind = (id, view) => {
-    const el = document.getElementById(id);
-    if (!el) return;
+    const bind = (id, view) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        // Entferne alte Event Listener
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+        
+        clone.addEventListener('click', async (e) => {
+            e.preventDefault();
+            console.log(`📊 Tab-Wechsel zu: ${view}`);
+            
+            try {
+                // Zerstöre Charts vor View-Wechsel
+                if (this.analyticsEngine) {
+                    await this.analyticsEngine.safeDestroyChart('trendsChart');
+                    await this.analyticsEngine.safeDestroyChart('currentHeatmapChart');
+                }
+                
+                // Tab-Status sofort aktualisieren
+                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
+                clone.classList.add('tab-active');
+                
+                // View-Wechsel mit Stabilisierung
+                if (this.progressHub) {
+                    this.progressHub.currentView = view;
+                    this.progressHub.showView(view);
+                    
+                    // Warte auf DOM-Stabilisierung vor Daten-Load
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    await this.progressHub.loadViewData();
+                }
+                
+                // Chart-Neuinitialisierung nach View-Load
+                if (view === 'analytics' && this.analyticsEngine) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await this.analyticsEngine.updateAllAnalytics();
+                }
+                
+            } catch (error) {
+                console.error(`❌ Tab-Wechsel Fehler für ${view}:`, error);
+            }
+        });
+    };
     
-    const clone = el.cloneNode(true);
-    el.parentNode.replaceChild(clone, el);
-    
-    clone.addEventListener('click', async (e) => {
-      e.preventDefault();
-      if (!this.progressHub) return;
-
-      // Update tab active states
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
-      clone.classList.add('tab-active');
-      
-      console.log(`📊 Switching to view: ${view}`);
-      
-      // Set current view BEFORE calling showView
-      this.progressHub.currentView = view;
-      
-      // Call the specific view method directly
-      switch(view) {
-        case 'today':
-          if (typeof this.progressHub.showTodayView === 'function') {
-            this.progressHub.showTodayView();
-          }
-          break;
-        case 'week':
-          if (typeof this.progressHub.showWeeklyView === 'function') {
-            this.progressHub.showWeeklyView();
-          }
-          break;
-        case 'goals':
-          if (typeof this.progressHub.showGoalsView === 'function') {
-            this.progressHub.showGoalsView();
-          }
-          break;
-        case 'achievements':
-          if (typeof this.progressHub.showAchievementsView === 'function') {
-            this.progressHub.showAchievementsView();
-          }
-          break;
-      }
-      
-      // Load data for the selected view
-      if (typeof this.progressHub.loadViewData === 'function') {
-        try {
-          await this.progressHub.loadViewData();
-        } catch (err) {
-          console.error('❌ ProgressHub Tab-Ladefehler:', err);
-        }
-      }
-    });
-  };
-
-  bind('tab-today', 'today');
-  bind('tab-week', 'week'); 
-  bind('tab-goals', 'goals');
-  bind('tab-achievements', 'achievements');
+    bind('tab-today', 'today');
+    bind('tab-week', 'week');
+    bind('tab-goals', 'goals');
+    bind('tab-achievements', 'achievements');
 }
     
     /**
@@ -9595,43 +9586,222 @@ async loadCompleteAnalyticsData() {
  */
 async updateTrendsChart(data, metricFilter = 'all') {
     try {
-        console.log('📊 updateTrendsChart aufgerufen mit Filter:', metricFilter);
+        console.log('📊 updateTrendsChart gestartet mit Filter:', metricFilter);
+        
+        // Container-Stabilität warten
+        await this.waitForStableContainer('trends-chart');
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
-            console.warn('⚠️ Trends Chart Canvas nicht gefunden');
+            console.warn('⚠️ Trends Chart Canvas nicht gefunden nach Stabilisierung');
             return;
         }
 
-        const ctx = trendsCanvas.getContext('2d');
+        // Context-Validierung mit Retry
+        const ctx = this.getValidCanvasContext(trendsCanvas);
         if (!ctx) {
             console.error('❌ Canvas-Kontext nicht verfügbar');
             return;
         }
 
-        // Datenquellen ermitteln (vereinfacht)
+        // Bestehenden Chart sicher zerstören
+        await this.safeDestroyChart('trendsChart');
+
+        // Daten vorbereiten
         if (!data || (Array.isArray(data) && data.length === 0)) {
             data = this.analyticsData?.period || this.analyticsData?.all || [];
         }
 
-        // Chart-Daten vorbereiten
         const chartData = this.prepareTrendsData(data || [], metricFilter);
         
-        // Zerstöre existierenden Chart
-        if (this.trendsChart) {
-            this.trendsChart.destroy();
-            this.trendsChart = null;
-        }
-
-        // Erstelle Chart direkt (kein Placeholder-Check)
+        // Chart mit Container-Observer erstellen
         const chartConfig = this.getChartConfiguration(chartData, metricFilter);
+        
+        // Warte auf nächsten Animation Frame für stabiles Rendering
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
         this.trendsChart = new Chart(ctx, chartConfig);
         
-        console.log('✅ Trends Chart erfolgreich erstellt für:', metricFilter);
+        // Chart-Überwachung starten
+        this.setupChartObserver('trendsChart', trendsCanvas);
+        
+        console.log('✅ Trends Chart erfolgreich erstellt und überwacht');
         
     } catch (error) {
         console.error('❌ Trends Chart Fehler:', error);
-        // Einfacher Error-Log ohne komplexe UI-Manipulation
+        this.handleChartError('trends', error);
+    }
+}
+
+/**
+ * NEUE METHODE: Warte auf stabilen Container
+ */
+async waitForStableContainer(canvasId, maxWait = 2000) {
+    const startTime = Date.now();
+    
+    return new Promise((resolve) => {
+        const checkStability = () => {
+            const canvas = document.getElementById(canvasId);
+            const now = Date.now();
+            
+            if (canvas && canvas.offsetParent !== null && canvas.offsetWidth > 0) {
+                // Container ist sichtbar und hat Dimensionen
+                resolve(true);
+                return;
+            }
+            
+            if (now - startTime > maxWait) {
+                console.warn(`⚠️ Container ${canvasId} nicht stabil nach ${maxWait}ms`);
+                resolve(false);
+                return;
+            }
+            
+            // Retry nach 50ms
+            setTimeout(checkStability, 50);
+        };
+        
+        checkStability();
+    });
+}
+
+/**
+ * NEUE METHODE: Sicheren Canvas-Context erhalten
+ */
+getValidCanvasContext(canvas, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const ctx = canvas.getContext('2d');
+            if (ctx && canvas.width > 0 && canvas.height > 0) {
+                return ctx;
+            }
+        } catch (error) {
+            console.warn(`⚠️ Canvas Context Retry ${i + 1}/${retries}:`, error.message);
+        }
+        
+        // Kurze Pause zwischen Versuchen
+        if (i < retries - 1) {
+            // Synchrone Pause da async hier nicht praktikabel
+            const start = Date.now();
+            while (Date.now() - start < 10) { /* wait */ }
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * NEUE METHODE: Chart sicher zerstören
+ */
+async safeDestroyChart(chartProperty) {
+    if (this[chartProperty]) {
+        try {
+            console.log(`🗑️ Zerstöre ${chartProperty}`);
+            this[chartProperty].destroy();
+        } catch (error) {
+            console.warn(`⚠️ Chart Destroy Fehler für ${chartProperty}:`, error.message);
+        } finally {
+            this[chartProperty] = null;
+        }
+        
+        // Kurze Pause für DOM-Aufräumung
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+}
+
+/**
+ * NEUE METHODE: Chart-Observer für Container-Änderungen
+ */
+setupChartObserver(chartProperty, canvas) {
+    if (!canvas || !this[chartProperty]) return;
+    
+    // ResizeObserver für Container-Änderungen
+    if (window.ResizeObserver) {
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target === canvas && this[chartProperty]) {
+                    // Verzögertes Resize um Flackern zu vermeiden
+                    clearTimeout(this.resizeTimeout);
+                    this.resizeTimeout = setTimeout(() => {
+                        if (this[chartProperty] && canvas.offsetParent) {
+                            try {
+                                this[chartProperty].resize();
+                                console.log(`📏 Chart ${chartProperty} resized`);
+                            } catch (error) {
+                                console.warn(`⚠️ Chart Resize Fehler:`, error);
+                            }
+                        }
+                    }, 100);
+                }
+            }
+        });
+        
+        resizeObserver.observe(canvas);
+        
+        // Observer cleanup speichern
+        if (!this.chartObservers) this.chartObservers = new Map();
+        this.chartObservers.set(chartProperty, resizeObserver);
+    }
+    
+    // Mutation Observer für DOM-Änderungen
+    if (window.MutationObserver) {
+        const mutationObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    // Container wurde möglicherweise versteckt/gezeigt
+                    setTimeout(() => {
+                        if (this[chartProperty] && !canvas.offsetParent) {
+                            console.log(`👁️ Container für ${chartProperty} ist nicht mehr sichtbar`);
+                        }
+                    }, 50);
+                }
+            });
+        });
+        
+        mutationObserver.observe(canvas.parentElement || document.body, {
+            childList: true,
+            attributes: true,
+            subtree: true
+        });
+    }
+}
+
+/**
+ * NEUE METHODE: Chart-Fehlerbehandlung
+ */
+handleChartError(chartType, error) {
+    console.error(`❌ Chart Error (${chartType}):`, error);
+    
+    // Zeige Fehler im entsprechenden Container
+    const containerId = `${chartType}-chart-container`;
+    const container = document.getElementById(containerId);
+    
+    if (container) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'flex items-center justify-center h-64 bg-base-200 rounded-lg';
+        errorDiv.innerHTML = `
+            <div class="text-center">
+                <i data-lucide="alert-triangle" class="w-12 h-12 text-warning mx-auto mb-2"></i>
+                <h4 class="font-semibold mb-1">Chart Fehler</h4>
+                <p class="text-sm text-base-content/70 mb-3">${error.message}</p>
+                <button class="btn btn-sm btn-outline" onclick="this.closest('div').remove(); healthTracker.analyticsEngine?.updateTrendsChart?.();">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+        
+        const cardBody = container.querySelector('.card-body');
+        if (cardBody) {
+            const chartWrapper = cardBody.querySelector('#chart-wrapper, .h-64');
+            if (chartWrapper) {
+                chartWrapper.replaceWith(errorDiv);
+            }
+        }
+        
+        // Icons initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 }
 
@@ -10424,14 +10594,159 @@ getGoalComparison(metric, value) {
         }
     }
 
-    /** Public method to force refresh analytics */
+    /** Refresh analytics */
     async updateAllAnalytics() {
+    try {
+        console.log('📊 Analytics komplett aktualisieren gestartet');
+        
+        // Prüfe ob Analytics-Sektion sichtbar ist
+        const analyticsSection = document.getElementById('analytics');
+        if (!analyticsSection || analyticsSection.style.display === 'none') {
+            console.log('📊 Analytics-Sektion nicht sichtbar - überspringe Update');
+            return;
+        }
+        
+        this.showAllLoadingStates();
+        
+        // Lade Daten über loadCompleteAnalyticsData
         await this.loadCompleteAnalyticsData();
+        
+        // Zusätzliche UI-Updates die loadCompleteAnalyticsData nicht abdeckt
+        await this.updateQuickStats(this.analyticsData.all, this.analyticsData.period);
+        await this.updateAnalyticsInsights(this.analyticsData.period);
+        
+        this.hideAllLoadingStates();
+        console.log('✅ Analytics komplett aktualisiert');
+        
+    } catch (error) {
+        console.error('❌ Analytics Update Fehler:', error);
+        this.hideAllLoadingStates();
+        this.showAnalyticsError(error);
     }
+}
 
-    /**
- * Weitere fehlende Hilfsmethoden für Analytics Engine
+/**
+ * Zeige Loading-States für alle Analytics-Komponenten
  */
+showAllLoadingStates() {
+    const loadingElements = [
+        'trends-loading',
+        'heatmap-loading', 
+        'insights-loading',
+        'correlation-loading'
+    ];
+    
+    loadingElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.remove('hidden');
+        }
+    });
+    
+    // Zeige allgemeine Loading-Indikatoren
+    const statElements = document.querySelectorAll('[id^="analytics-"]');
+    statElements.forEach(el => {
+        if (el.textContent !== '0') {
+            el.style.opacity = '0.5';
+        }
+    });
+}
+
+/**
+ * Verstecke Loading-States
+ */
+hideAllLoadingStates() {
+    const loadingElements = [
+        'trends-loading',
+        'heatmap-loading',
+        'insights-loading', 
+        'correlation-loading'
+    ];
+    
+    loadingElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.add('hidden');
+        }
+    });
+    
+    // Entferne Loading-Styles von Stats
+    const statElements = document.querySelectorAll('[id^="analytics-"]');
+    statElements.forEach(el => {
+        el.style.opacity = '1';
+    });
+}
+
+/**
+ * Zeige allgemeine Analytics-Fehler
+ */
+showAnalyticsError(error) {
+    console.error('❌ Analytics Error:', error);
+    
+    // Zeige Fehler in der Analytics-Sektion
+    const analyticsSection = document.getElementById('analytics');
+    if (analyticsSection) {
+        // Füge Error-Banner hinzu
+        let errorBanner = analyticsSection.querySelector('.analytics-error-banner');
+        if (!errorBanner) {
+            errorBanner = document.createElement('div');
+            errorBanner.className = 'analytics-error-banner alert alert-warning mb-4';
+            analyticsSection.insertBefore(errorBanner, analyticsSection.firstChild);
+        }
+        
+        errorBanner.innerHTML = `
+            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            <div>
+                <h4 class="font-semibold">Analytics temporär nicht verfügbar</h4>
+                <p class="text-sm mt-1">${error.message || 'Unbekannter Fehler beim Laden der Analytics'}</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="this.closest('.analytics-error-banner').remove(); healthTracker.analyticsEngine?.updateAllAnalytics?.()">
+                <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+                Erneut versuchen
+            </button>
+        `;
+        
+        // Icons neu initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Banner nach 10 Sekunden automatisch entfernen
+        setTimeout(() => {
+            if (errorBanner.parentNode) {
+                errorBanner.remove();
+            }
+        }, 10000);
+    }
+}
+
+/**
+ * Analytics-spezifische Fehlerbehandlung für Charts
+ */
+logChartError(chartType, error) {
+    console.error(`❌ ${chartType} Chart Fehler:`, error);
+    
+    // Zeige minimalen Error-Indikator im Container
+    const container = document.getElementById(`${chartType.toLowerCase()}-chart`);
+    if (container) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-64 text-center">
+                <div>
+                    <i data-lucide="alert-circle" class="w-8 h-8 text-error mx-auto mb-2"></i>
+                    <p class="text-sm text-base-content/70">Chart konnte nicht geladen werden</p>
+                    <button class="btn btn-xs btn-outline mt-2" onclick="healthTracker.analyticsEngine?.updateAllAnalytics?.()">
+                        <i data-lucide="refresh-cw" class="w-3 h-3 mr-1"></i>
+                        Wiederholen
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
 
 /**
  * Update stat element helper

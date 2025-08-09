@@ -1813,7 +1813,7 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
             </div>
         </div>
 
-        <!-- Metric Selection Tabs - Verbessert für JS -->
+        <!-- Metric Selection Tabs -->
         <div class="tabs tabs-boxed mb-4" id="metric-tabs">
             <button class="tab tab-active metric-tab" data-metric="all" data-label="Alle">
                 <i data-lucide="bar-chart-3" class="w-4 h-4 mr-1"></i>
@@ -1837,13 +1837,14 @@ html, body, .card, .btn, .input, .select, .textarea, .modal-box {
             </button>
         </div>
 
-        <!-- Chart Container mit verbessertem Error Handling -->
+        <!-- KORRIGIERT: Trends Chart Container mit richtigem Canvas -->
         <div class="relative">
             <div class="h-64 relative bg-base-200/30 rounded-lg overflow-hidden" id="chart-wrapper">
+                <!-- WICHTIG: Das ist das RICHTIGE trends-chart Canvas -->
                 <canvas id="trends-chart" class="w-full h-full"></canvas>
                 
                 <!-- Loading State -->
-                <div class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-sm" id="trends-loading">
+                <div class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-sm hidden" id="trends-loading">
                     <div class="text-center">
                         <span class="loading loading-spinner loading-lg text-primary mb-2"></span>
                         <p class="text-sm text-base-content/70">Lade Trends-Daten...</p>

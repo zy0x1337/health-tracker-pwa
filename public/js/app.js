@@ -9332,6 +9332,17 @@ async loadCompleteAnalyticsData() {
 
     // updateTrendsChart-Methode mit verbessertem Error Handling
     async updateTrendsChart(data) {
+        // DEBUGGING: Canvas Element Verfügbarkeit prüfen
+console.log('🔍 Debugging Trends Chart Canvas:');
+console.log('trends-chart element:', document.getElementById('trends-chart'));
+console.log('trends-chart-container:', document.getElementById('trends-chart-container'));
+console.log('correlation-chart:', document.getElementById('correlation-chart'));
+console.log('heatmap-chart:', document.getElementById('heatmap-chart'));
+
+// Alle Canvas-Elemente im DOM finden
+const allCanvases = document.querySelectorAll('canvas');
+console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c => c.id || 'unnamed'));
+
         try {
             console.log('📊 Aktualisiere Trends Chart...');
         

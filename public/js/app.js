@@ -8,7 +8,7 @@ console.log('🚀 Health Tracker Pro loading...');
         if (window.innerWidth <= 768) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'public/responsive-styles.css';
+            link.href = 'responsive-styles.css';
             link.media = 'screen and (max-width: 768px)';
             document.head.appendChild(link);
             console.log('📱 Mobile styles loaded');

@@ -10825,16 +10825,25 @@ async loadCompleteAnalyticsData() {
         const periodData = this.filterDataForPeriod(allData, this.currentPeriod);
         console.log(`📊 Filtered to ${periodData.length} entries for ${this.currentPeriod} days`);
 
+        // **Strukturierte Analytics-Daten für alle Updates**
         this.analyticsData = {
             all: allData,
-            period: periodData
+            period: periodData,
+            data: periodData  // ✅ Konsistente 'data'-Property für Heatmap
         };
 
-        // **UPDATED: Entferne Korrelation und Wochenzusammenfassung**
+        console.log('🎯 Analytics data structure prepared:', {
+            totalEntries: this.analyticsData.all.length,
+            periodEntries: this.analyticsData.period.length,
+            hasDataProperty: !!this.analyticsData.data,
+            firstEntry: this.analyticsData.data[0] || null
+        });
+
+        // **Parallele Updates mit vollständigen Daten**
         await Promise.all([
             this.updateQuickStats(allData, periodData),
-            this.updateTrendsChart(),
-            this.updateHeatmapChart(),
+            this.updateTrendsChart(this.analyticsData),     // ✅ Vollständige Analytics-Daten
+            this.updateHeatmapChart(this.analyticsData),    // ✅ Vollständige Analytics-Daten
             this.updateAnalyticsInsights(periodData)
         ]);
 

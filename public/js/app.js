@@ -11363,6 +11363,303 @@ getChartOptions(metricFilter) {
 }
 
 /**
+ * FEHLENDE METHODEN - Zur AnalyticsEngine Klasse hinzufügen
+ */
+
+/**
+ * Chart-Resize-Handler für responsive Charts
+ */
+handleChartResize(chart, size) {
+    try {
+        console.log('📏 Chart wird resized:', size.width + 'x' + size.height);
+        
+        // Mobile Optimierungen
+        const isMobile = size.width < 768;
+        
+        // Chart-Optionen für Mobile anpassen
+        if (chart && chart.options) {
+            // Legend-Position für Mobile
+            if (chart.options.plugins && chart.options.plugins.legend) {
+                chart.options.plugins.legend.position = isMobile ? 'bottom' : 'top';
+            }
+            
+            // Schriftgrößen für Mobile anpassen
+            if (chart.options.scales) {
+                Object.keys(chart.options.scales).forEach(scaleId => {
+                    const scale = chart.options.scales[scaleId];
+                    if (scale.ticks) {
+                        scale.ticks.font = scale.ticks.font || {};
+                        scale.ticks.font.size = isMobile ? 10 : 11;
+                    }
+                    if (scale.title) {
+                        scale.title.font = scale.title.font || {};
+                        scale.title.font.size = isMobile ? 11 : 12;
+                    }
+                });
+            }
+            
+            // Padding für Mobile reduzieren
+            if (chart.options.layout && chart.options.layout.padding) {
+                chart.options.layout.padding = isMobile ? 
+                    { top: 10, right: 15, bottom: 10, left: 15 } :
+                    { top: 20, right: 30, bottom: 20, left: 30 };
+            }
+        }
+        
+        // Smooth Resize-Animation
+        if (chart && typeof chart.update === 'function') {
+            chart.update('none'); // Resize ohne Animation für Performance
+        }
+        
+    } catch (error) {
+        console.warn('⚠️ Chart-Resize-Handler Fehler:', error);
+        // Graceful degradation - Resize trotzdem durchführen
+    }
+}
+
+/**
+ * Heatmap Chart Update - Kompatible Implementierung
+ */
+async updateHeatmapChart(analyticsData = null) {
+    try {
+        console.log('🔍 Heatmap Chart wird aktualisiert');
+        
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        if (!heatmapContainer) {
+            console.warn('⚠️ Heatmap Container nicht gefunden');
+            return;
+        }
+        
+        // Erweiterte Daten-Validierung
+        if (!analyticsData) {
+            console.warn('❌ Keine analyticsData für Heatmap verfügbar');
+            this.renderEmptyHeatmapState(heatmapContainer);
+            return;
+        }
+        
+        if (!analyticsData.data || !Array.isArray(analyticsData.data)) {
+            console.warn('❌ analyticsData.data ist nicht verfügbar oder kein Array');
+            this.renderEmptyHeatmapState(heatmapContainer);
+            return;
+        }
+        
+        if (analyticsData.data.length === 0) {
+            console.warn('⚠️ analyticsData.data ist leer');
+            this.renderEmptyHeatmapState(heatmapContainer);
+            return;
+        }
+        
+        // Heatmap-Daten verarbeiten
+        const heatmapData = this.processHeatmapData(analyticsData.data);
+        
+        // Heatmap rendern
+        this.renderHeatmapGrid(heatmapContainer, heatmapData);
+        
+        console.log('✅ Heatmap erfolgreich aktualisiert');
+        
+    } catch (error) {
+        console.error('❌ Heatmap Update fehlgeschlagen:', error);
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        if (heatmapContainer) {
+            this.renderHeatmapError(heatmapContainer, error.message);
+        }
+    }
+}
+
+/**
+ * Heatmap-Daten verarbeiten
+ */
+processHeatmapData(rawData) {
+    const processedData = [];
+    
+    rawData.forEach(entry => {
+        if (entry.date) {
+            const date = new Date(entry.date);
+            const intensity = this.calculateHeatmapIntensity(entry);
+            
+            processedData.push({
+                date: date,
+                intensity: intensity,
+                steps: entry.steps || 0,
+                water: entry.waterIntake || 0,
+                sleep: entry.sleepHours || 0,
+                weight: entry.weight || null
+            });
+        }
+    });
+    
+    return processedData.sort((a, b) => a.date - b.date);
+}
+
+/**
+ * Heatmap-Intensität berechnen (0-1)
+ */
+calculateHeatmapIntensity(entry) {
+    let score = 0;
+    let maxScore = 0;
+    
+    // Schritte bewerten
+    if (entry.steps !== undefined && entry.steps !== null) {
+        maxScore += 1;
+        const stepsGoal = this.healthTracker?.goals?.stepsGoal || 10000;
+        score += Math.min(entry.steps / stepsGoal, 1);
+    }
+    
+    // Wasser bewerten
+    if (entry.waterIntake !== undefined && entry.waterIntake !== null) {
+        maxScore += 1;
+        const waterGoal = this.healthTracker?.goals?.waterGoal || 2.0;
+        score += Math.min(entry.waterIntake / waterGoal, 1);
+    }
+    
+    // Schlaf bewerten
+    if (entry.sleepHours !== undefined && entry.sleepHours !== null) {
+        maxScore += 1;
+        const sleepGoal = this.healthTracker?.goals?.sleepGoal || 8;
+        score += Math.min(entry.sleepHours / sleepGoal, 1);
+    }
+    
+    return maxScore > 0 ? score / maxScore : 0;
+}
+
+/**
+ * Heatmap-Grid rendern
+ */
+renderHeatmapGrid(container, data) {
+    if (data.length === 0) {
+        this.renderEmptyHeatmapState(container);
+        return;
+    }
+    
+    const startDate = data[0].date;
+    const endDate = data[data.length - 1].date;
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    let html = '<div class="heatmap-grid-container">';
+    html += '<div class="heatmap-header">Aktivitätsmuster der letzten ' + daysDiff + ' Tage</div>';
+    html += '<div class="heatmap-grid">';
+    
+    // Wochentage-Header
+    const weekdays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    weekdays.forEach(day => {
+        html += `<div class="heatmap-weekday">${day}</div>`;
+    });
+    
+    // Heatmap-Zellen generieren
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+        const dayData = data.find(d => 
+            d.date.toDateString() === currentDate.toDateString()
+        );
+        
+        const intensity = dayData ? dayData.intensity : 0;
+        const colorClass = this.getHeatmapColorClass(intensity);
+        
+        html += `
+            <div class="heatmap-cell ${colorClass}" 
+                 data-date="${currentDate.toISOString().split('T')[0]}"
+                 data-intensity="${intensity.toFixed(2)}"
+                 title="${this.getHeatmapTooltip(dayData, currentDate)}">
+            </div>
+        `;
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    html += '</div>';
+    html += '<div class="heatmap-legend">';
+    html += '<span class="legend-label">Weniger</span>';
+    html += '<div class="legend-colors">';
+    html += '<div class="legend-color bg-base-200"></div>';
+    html += '<div class="legend-color bg-success/20"></div>';
+    html += '<div class="legend-color bg-success/40"></div>';
+    html += '<div class="legend-color bg-success/60"></div>';
+    html += '<div class="legend-color bg-success"></div>';
+    html += '</div>';
+    html += '<span class="legend-label">Mehr</span>';
+    html += '</div>';
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Heatmap-Farbklasse basierend auf Intensität
+ */
+getHeatmapColorClass(intensity) {
+    if (intensity === 0) return 'heatmap-empty';
+    if (intensity <= 0.2) return 'heatmap-low';
+    if (intensity <= 0.4) return 'heatmap-medium-low';
+    if (intensity <= 0.6) return 'heatmap-medium';
+    if (intensity <= 0.8) return 'heatmap-medium-high';
+    return 'heatmap-high';
+}
+
+/**
+ * Heatmap-Tooltip-Text
+ */
+getHeatmapTooltip(dayData, date) {
+    const formattedDate = date.toLocaleDateString('de-DE');
+    
+    if (!dayData) {
+        return `${formattedDate}: Keine Daten`;
+    }
+    
+    const parts = [`${formattedDate}:`];
+    
+    if (dayData.steps > 0) {
+        parts.push(`${dayData.steps.toLocaleString()} Schritte`);
+    }
+    if (dayData.water > 0) {
+        parts.push(`${dayData.water}L Wasser`);
+    }
+    if (dayData.sleep > 0) {
+        parts.push(`${dayData.sleep}h Schlaf`);
+    }
+    
+    return parts.join('\n');
+}
+
+/**
+ * Empty State für Heatmap
+ */
+renderEmptyHeatmapState(container) {
+    container.innerHTML = `
+        <div class="heatmap-empty-state">
+            <div class="empty-icon">📊</div>
+            <h3 class="empty-title">Aktivitäts-Heatmap</h3>
+            <p class="empty-description">
+                Füge Gesundheitsdaten hinzu, um deine Aktivitätsmuster zu visualisieren!
+            </p>
+            <button class="btn btn-primary btn-sm" 
+                    onclick="healthTracker.showQuickAddModal()">
+                Erste Daten hinzufügen
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Error State für Heatmap
+ */
+renderHeatmapError(container, errorMessage) {
+    container.innerHTML = `
+        <div class="heatmap-error-state">
+            <div class="error-icon">⚠️</div>
+            <h3 class="error-title">Heatmap-Fehler</h3>
+            <p class="error-description">
+                ${errorMessage}
+            </p>
+            <button class="btn btn-outline btn-sm" 
+                    onclick="healthTracker.analyticsEngine.loadCompleteAnalyticsData()">
+                🔄 Erneut versuchen
+            </button>
+        </div>
+    `;
+}
+
+/**
  * Chart-Konfiguration basierend auf Metric-Filter
  */
 getChartConfiguration(chartData, metricFilter) {

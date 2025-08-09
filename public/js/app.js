@@ -9643,12 +9643,6 @@ async updateTrendsChart(data, metricFilter = 'all') {
 
         // Chart-Daten vorbereiten mit Metric-Filter
         const chartData = this.prepareTrendsData(data || [], metricFilter);
-        
-        if (chartData.isEmpty) {
-            console.log('📊 Chart-Daten sind leer, zeige Placeholder');
-            this.showSafeTrendsPlaceholder();
-            return;
-        }
 
         // Zerstöre existierenden Chart sicher
         if (this.trendsChart) {
@@ -9740,37 +9734,6 @@ showSafeTrendsError(message = 'Trends temporär nicht verfügbar') {
     }
     
     // Icons neu initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
-
-/**
- * NEUE METHODE: Sichere Placeholder anzeigen
- */
-showSafeTrendsPlaceholder() {
-    console.log('📊 Zeige sicheren Trends-Placeholder');
-    
-    const container = this.findSafeContainer();
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 text-center">
-            <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <i data-lucide="trending-up" class="w-10 h-10 text-primary/50"></i>
-            </div>
-            <h3 class="text-lg font-semibold mb-2">Noch keine Trends verfügbar</h3>
-            <p class="text-base-content/70 mb-4 max-w-md">
-                Füge mehr Gesundheitsdaten hinzu, um aussagekräftige Trend-Analysen zu erhalten!
-            </p>
-            <button class="btn btn-primary" onclick="document.getElementById('health-form')?.scrollIntoView({behavior: 'smooth'})">
-                <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i>
-                Erste Daten hinzufügen
-            </button>
-        </div>
-    `;
-    
-    // Icons initialisieren
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }

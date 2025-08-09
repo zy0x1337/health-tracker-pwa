@@ -518,13 +518,69 @@ function isCacheExpired(response) {
 }
 
 // Statisches Asset erkennen
+// Erweitere deine isStaticAsset() Funktion
 function isStaticAsset(pathname) {
     const staticExtensions = ['.js', '.css', '.html', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf'];
     const staticPaths = ['/static/', '/assets/', '/images/', '/css/', '/js/'];
-    
-    return staticExtensions.some(ext => pathname.endsWith(ext)) ||
-           staticPaths.some(path => pathname.startsWith(path)) ||
+    return staticExtensions.some(ext => pathname.endsWith(ext)) || 
+           staticPaths.some(path => pathname.startsWith(path)) || 
            pathname === '/';
+}
+
+// Optimierte SVG-spezifische Behandlung
+async function handleSVGRequest(request, url) {
+    try {
+        const cache = await caches.open(STATIC_CACHE_NAME);
+        
+        // Cache-First für SVGs (sie ändern sich selten)
+        const cachedResponse = await cache.match(request);
+        if (cachedResponse && !isCacheExpired(cachedResponse)) {
+            return cachedResponse;
+        }
+        
+        // Network-Fetch mit längerer Cache-Zeit für SVGs
+        const networkResponse = await fetchWithTimeout(request, 10000);
+        if (networkResponse.ok) {
+            const responseToCache = addTTLHeaders(
+                networkResponse.clone(),
+                7 * 24 * 60 * 60 * 1000 // 7 Tage für SVGs
+            );
+            cache.put(request, responseToCache);
+        }
+        return networkResponse;
+    } catch (error) {
+        console.log('❌ SVG request failed:', url.pathname);
+        
+        // Stale Cache als Fallback
+        const cache = await caches.open(STATIC_CACHE_NAME);
+        const staleResponse = await cache.match(request);
+        if (staleResponse) {
+            return staleResponse;
+        }
+        
+        // SVG-Fallback-Placeholder
+        return createSVGFallback();
+    }
+}
+
+// SVG-Fallback für nicht verfügbare SVGs
+function createSVGFallback() {
+    const fallbackSVG = `
+        <svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f3f4f6"/>
+            <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#6b7280">
+                Illustration wird geladen...
+            </text>
+        </svg>
+    `;
+    
+    return new Response(fallbackSVG, {
+        status: 200,
+        headers: {
+            'Content-Type': 'image/svg+xml',
+            'Cache-Control': 'no-cache'
+        }
+    });
 }
 
 // Häufig genutzte Assets

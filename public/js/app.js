@@ -876,7 +876,8 @@ initializeSettings() {
         });
     }
     
-    setupProgressHubTabs() {
+    // NACHHER - Stark verbesserte Tab-Implementierung
+setupProgressHubTabs() {
     const bind = (id, view) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -890,35 +891,44 @@ initializeSettings() {
             console.log(`📊 Tab-Wechsel zu: ${view}`);
             
             try {
-                // Zerstöre Charts vor View-Wechsel
-                if (this.analyticsEngine) {
-                    await this.analyticsEngine.safeDestroyChart('trendsChart');
-                    await this.analyticsEngine.safeDestroyChart('currentHeatmapChart');
-                }
-                
-                // Tab-Status sofort aktualisieren
+                // Sofort Tab-Status aktualisieren
                 document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
                 clone.classList.add('tab-active');
                 
-                // View-Wechsel mit Stabilisierung
+                // Analytics komplett pausieren während Wechsel
+                if (this.analyticsEngine) {
+                    this.analyticsEngine.pauseUpdates = true;
+                    await this.analyticsEngine.destroyAllChartsBeforeUpdate();
+                }
+                
+                // View-Wechsel mit garantierter Stabilisierung
                 if (this.progressHub) {
                     this.progressHub.currentView = view;
                     this.progressHub.showView(view);
                     
-                    // Warte auf DOM-Stabilisierung vor Daten-Load
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // Längere Stabilisierungszeit für sichere Container-Erkennung
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     
                     await this.progressHub.loadViewData();
                 }
                 
-                // Chart-Neuinitialisierung nach View-Load
+                // Analytics nur für Analytics-Tab reaktivieren
                 if (view === 'analytics' && this.analyticsEngine) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    // Extra lange Wartezeit für Analytics-Tab
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    this.analyticsEngine.pauseUpdates = false;
                     await this.analyticsEngine.updateAllAnalytics();
+                } else if (this.analyticsEngine) {
+                    // Für andere Tabs: Analytics pausiert lassen
+                    this.analyticsEngine.pauseUpdates = false;
                 }
                 
             } catch (error) {
                 console.error(`❌ Tab-Wechsel Fehler für ${view}:`, error);
+                if (this.analyticsEngine) {
+                    this.analyticsEngine.pauseUpdates = false;
+                }
             }
         });
     };
@@ -9582,14 +9592,20 @@ async loadCompleteAnalyticsData() {
     }
 
     /**
- * KORRIGIERTE updateTrendsChart-Methode - akzeptiert Metric-Filter
+ * updateTrendsChart-Methode - akzeptiert Metric-Filter
  */
 async updateTrendsChart(data, metricFilter = 'all') {
+    // Prüfe ob Updates pausiert sind
+    if (this.pauseUpdates) {
+        console.log('⏸️ Chart-Updates sind pausiert - überspringe updateTrendsChart');
+        return;
+    }
+    
     try {
         console.log('📊 updateTrendsChart gestartet mit Filter:', metricFilter);
         
-        // Container-Stabilität warten
-        await this.waitForStableContainer('trends-chart');
+        // Längere Container-Stabilitätszeit
+        await this.waitForStableContainer('trends-chart', 3000); // 3 Sekunden statt 2
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
@@ -9597,10 +9613,10 @@ async updateTrendsChart(data, metricFilter = 'all') {
             return;
         }
 
-        // Context-Validierung mit Retry
-        const ctx = this.getValidCanvasContext(trendsCanvas);
+        // Mehrfache Context-Validierung
+        const ctx = await this.getValidCanvasContextWithRetry(trendsCanvas, 5);
         if (!ctx) {
-            console.error('❌ Canvas-Kontext nicht verfügbar');
+            console.error('❌ Canvas-Kontext nach 5 Versuchen nicht verfügbar');
             return;
         }
 
@@ -9614,12 +9630,20 @@ async updateTrendsChart(data, metricFilter = 'all') {
 
         const chartData = this.prepareTrendsData(data || [], metricFilter);
         
-        // Chart mit Container-Observer erstellen
+        // Double-Check ob Container noch existiert
+        if (!document.getElementById('trends-chart')) {
+            console.warn('⚠️ Container während Chart-Erstellung verschwunden');
+            return;
+        }
+        
+        // Chart mit längerer Animation-Frame-Wartezeit erstellen
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve); // Double RAF für Stabilität
+            });
+        });
+        
         const chartConfig = this.getChartConfiguration(chartData, metricFilter);
-        
-        // Warte auf nächsten Animation Frame für stabiles Rendering
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
         this.trendsChart = new Chart(ctx, chartConfig);
         
         // Chart-Überwachung starten
@@ -9634,7 +9658,7 @@ async updateTrendsChart(data, metricFilter = 'all') {
 }
 
 /**
- * NEUE METHODE: Warte auf stabilen Container
+ * Warte auf stabilen Container
  */
 async waitForStableContainer(canvasId, maxWait = 2000) {
     const startTime = Date.now();
@@ -9686,6 +9710,43 @@ getValidCanvasContext(canvas, retries = 3) {
         }
     }
     
+    return null;
+}
+
+/**
+ * NEUE METHODE: Canvas-Context mit erweiterten Retries
+ */
+async getValidCanvasContextWithRetry(canvas, maxRetries = 5) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            // Prüfe ob Canvas noch im DOM ist
+            if (!document.body.contains(canvas)) {
+                console.warn(`⚠️ Canvas nicht mehr im DOM - Retry ${i + 1}/${maxRetries}`);
+                await new Promise(resolve => setTimeout(resolve, 100));
+                continue;
+            }
+            
+            // Prüfe Canvas-Dimensionen
+            if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+                console.warn(`⚠️ Canvas hat keine Dimensionen - Retry ${i + 1}/${maxRetries}`);
+                await new Promise(resolve => setTimeout(resolve, 100));
+                continue;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            if (ctx && canvas.width > 0 && canvas.height > 0) {
+                console.log(`✅ Canvas-Context erhalten nach ${i + 1} Versuch(en)`);
+                return ctx;
+            }
+        } catch (error) {
+            console.warn(`⚠️ Canvas Context Retry ${i + 1}/${maxRetries}:`, error.message);
+        }
+        
+        // Progressive Wartezeit
+        await new Promise(resolve => setTimeout(resolve, 50 * (i + 1)));
+    }
+    
+    console.error(`❌ Canvas-Context nach ${maxRetries} Versuchen nicht verfügbar`);
     return null;
 }
 
@@ -10595,7 +10656,7 @@ getGoalComparison(metric, value) {
     }
 
     /** Refresh analytics */
-    async updateAllAnalytics() {
+async updateAllAnalytics() {
     try {
         console.log('📊 Analytics komplett aktualisieren gestartet');
         
@@ -10606,14 +10667,22 @@ getGoalComparison(metric, value) {
             return;
         }
         
+        // Alle bestehenden Charts sicher zerstören bevor neue erstellt werden
+        await this.destroyAllChartsBeforeUpdate();
+        
         this.showAllLoadingStates();
         
         // Lade Daten über loadCompleteAnalyticsData
         await this.loadCompleteAnalyticsData();
         
-        // Zusätzliche UI-Updates die loadCompleteAnalyticsData nicht abdeckt
-        await this.updateQuickStats(this.analyticsData.all, this.analyticsData.period);
-        await this.updateAnalyticsInsights(this.analyticsData.period);
+        // Zusätzliche Stabilisierungszeit für DOM
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // UI-Updates die loadCompleteAnalyticsData nicht abdeckt
+        if (this.analyticsData) {
+            await this.updateQuickStats(this.analyticsData.all, this.analyticsData.period);
+            await this.updateAnalyticsInsights(this.analyticsData.period);
+        }
         
         this.hideAllLoadingStates();
         console.log('✅ Analytics komplett aktualisiert');
@@ -10623,6 +10692,48 @@ getGoalComparison(metric, value) {
         this.hideAllLoadingStates();
         this.showAnalyticsError(error);
     }
+}
+
+/**
+ * NEUE METHODE: Alle Charts vor Update sicher zerstören
+ */
+async destroyAllChartsBeforeUpdate() {
+    console.log('🧹 Zerstöre alle Charts vor Update');
+    
+    const chartsToDestroy = [
+        'trendsChart',
+        'currentTrendsChart', 
+        'currentHeatmapChart',
+        'currentComparisonChart'
+    ];
+    
+    for (const chartProperty of chartsToDestroy) {
+        if (this[chartProperty]) {
+            try {
+                console.log(`🗑️ Zerstöre ${chartProperty}`);
+                this[chartProperty].destroy();
+                this[chartProperty] = null;
+            } catch (error) {
+                console.warn(`⚠️ Chart Destroy Fehler für ${chartProperty}:`, error.message);
+                this[chartProperty] = null; // Force cleanup
+            }
+        }
+    }
+    
+    // Cleanup Chart Observers
+    if (this.chartObservers) {
+        this.chartObservers.forEach((observer, key) => {
+            try {
+                observer.disconnect();
+            } catch (error) {
+                console.warn(`⚠️ Observer Cleanup Fehler für ${key}`);
+            }
+        });
+        this.chartObservers.clear();
+    }
+    
+    // DOM-Aufräumung warten
+    await new Promise(resolve => setTimeout(resolve, 50));
 }
 
 /**

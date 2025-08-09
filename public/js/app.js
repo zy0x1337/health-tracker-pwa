@@ -9460,29 +9460,44 @@ setupCompleteEventListeners() {
     
     try {
         // Aktive Metrik-Buttons aktualisieren
-        const buttons = document.querySelectorAll('.metric-btn');
+        const buttons = document.querySelectorAll('.metric-btn, .metric-tab');
         buttons.forEach(btn => {
-            btn.classList.remove('btn-primary');
+            btn.classList.remove('btn-primary', 'tab-active');
             btn.classList.add('btn-ghost');
         });
         
-        const activeButton = document.querySelector(`[onclick*="'${metric}'"]`);
+        const activeButton = document.querySelector(`[data-metric="${metric}"]`);
         if (activeButton) {
-            activeButton.classList.remove('btn-ghost');
-            activeButton.classList.add('btn-primary');
+            if (activeButton.classList.contains('metric-tab')) {
+                activeButton.classList.add('tab-active');
+            } else {
+                activeButton.classList.remove('btn-ghost');
+                activeButton.classList.add('btn-primary');
+            }
         }
 
-        // Charts mit Verzögerung aktualisieren um Race-Conditions zu vermeiden
-        setTimeout(() => {
-            this.updateTrendsChart(metric);
-        }, 100);
+        // KRITISCHER FIX: Daten vor Chart-Update sicherstellen
+        const currentData = this.analyticsData?.period || [];
         
+        if (currentData.length === 0) {
+            console.log('📊 Keine Daten verfügbar, lade Daten nach...');
+            this.loadCompleteAnalyticsData().then(() => {
+                this.updateTrendsChart(null, metric);
+            });
+            return;
+        }
+
+        // Chart mit existierenden Daten aktualisieren (KEIN Delay)
+        this.updateTrendsChart(currentData, metric);
+        
+        // Heatmap ebenfalls aktualisieren
         setTimeout(() => {
             this.updateHeatmapChart(metric);
-        }, 200);
+        }, 50);
 
     } catch (error) {
         console.error('❌ Error changing metric:', error);
+        this.showToast('⚠️ Fehler beim Wechseln der Metrik', 'warning');
     }
 }
 
@@ -9603,36 +9618,98 @@ async updateTrendsChart(data, metricFilter = 'all') {
             return;
         }
 
+        // Chart-Instanz prüfen bevor Zerstörung
+        if (this.trendsChart) {
+            // Versuche Chart zu updaten statt zu zerstören
+            const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
+            
+            // Update Chart-Daten ohne Zerstörung
+            this.trendsChart.data = chartData;
+            this.trendsChart.options = this.getChartOptions(metricFilter);
+            this.trendsChart.update('none'); // Keine Animation für bessere Performance
+            
+            // Update Chart-Titel
+            this.updateChartTitle(metricFilter);
+            
+            console.log('🔄 Chart aktualisiert (nicht zerstört) für:', metricFilter);
+            return;
+        }
+
+        // Nur bei erstem Erstellen: Neue Chart-Instanz
         const ctx = trendsCanvas.getContext('2d');
         if (!ctx) {
             console.error('❌ Canvas-Kontext nicht verfügbar');
             return;
         }
 
-        // Datenquellen ermitteln (vereinfacht)
-        if (!data || (Array.isArray(data) && data.length === 0)) {
-            data = this.analyticsData?.period || this.analyticsData?.all || [];
-        }
-
-        // Chart-Daten vorbereiten
-        const chartData = this.prepareTrendsData(data || [], metricFilter);
-        
-        // Zerstöre existierenden Chart
-        if (this.trendsChart) {
-            this.trendsChart.destroy();
-            this.trendsChart = null;
-        }
-
-        // Erstelle Chart direkt (kein Placeholder-Check)
+        const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
         const chartConfig = this.getChartConfiguration(chartData, metricFilter);
+        
+        // Chart mit verbesserter Konfiguration erstellen
         this.trendsChart = new Chart(ctx, chartConfig);
         
-        console.log('✅ Trends Chart erfolgreich erstellt für:', metricFilter);
+        // Visibility Change Handler hinzufügen (für Browser-Tab-Wechsel)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.trendsChart) {
+                setTimeout(() => {
+                    this.trendsChart.resize();
+                    this.trendsChart.update('none');
+                }, 100);
+            }
+        });
+        
+        console.log('✅ Trends Chart initial erstellt für:', metricFilter);
         
     } catch (error) {
         console.error('❌ Trends Chart Fehler:', error);
-        // Einfacher Error-Log ohne komplexe UI-Manipulation
+        this.showTrendsError('Chart-Render-Fehler: ' + error.message);
     }
+}
+
+getChartOptions(metricFilter) {
+    const isSingleMetric = metricFilter !== 'all';
+    
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: this.getChartTitle(metricFilter),
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                display: !isSingleMetric,
+                position: 'top'
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        const label = context.dataset.label || '';
+                        const value = context.parsed.y;
+                        
+                        if (label.includes('Schritte')) {
+                            return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
+                        } else if (label.includes('Wasser')) {
+                            return `${label}: ${value}L`;
+                        } else if (label.includes('Schlaf')) {
+                            return `${label}: ${value}h`;
+                        } else if (label.includes('Gewicht')) {
+                            return `${label}: ${value}kg`;
+                        }
+                        return `${label}: ${value}`;
+                    }
+                }
+            }
+        },
+        scales: this.getScalesConfiguration(metricFilter, isSingleMetric)
+    };
 }
 
 /**
@@ -10012,6 +10089,19 @@ prepareTrendsData(data, metricFilter = 'all') {
         ];
         return colors[intensity] || colors[0];
     }
+
+    destroyTrendsChart() {
+    if (this.trendsChart) {
+        console.log('🧹 Destroying trends chart instance');
+        try {
+            this.trendsChart.destroy();
+        } catch (error) {
+            console.warn('⚠️ Chart destroy error:', error);
+        } finally {
+            this.trendsChart = null;
+        }
+    }
+}
 
 /** Get goal comparison text */
 getGoalComparison(metric, value) {

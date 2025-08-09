@@ -11436,7 +11436,7 @@ renderHeatmapGrid(container, heatmapData, metricFilter) {
     }
 
     // Füge leere Zellen für Ausrichtung hinzu
-    const startDay = heatmapData[0].fullDate.getDay();
+    const dayOfWeek = (someDate && typeof someDate.getDay === 'function') ? someDate.getDay() : 0;
     for (let i = 0; i < startDay; i++) {
         const emptyCell = document.createElement('div');
         emptyCell.className = 'w-3 h-3';

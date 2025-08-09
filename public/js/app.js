@@ -9074,84 +9074,54 @@ async loadCompleteAnalyticsData() {
         }
     }
 
-    /** Update trends chart */
-updateTrendsChart(metric = 'weight') {
-    console.log('📈 Updating trends chart...');
-    
+    // updateTrendsChart-Methode mit verbessertem Error Handling
+async updateTrendsChart(data) {
     try {
-        // Bestehende Chart-Instanz zerstören falls vorhanden
-        if (this.currentTrendsChart) {
-            console.log('🗑️ Destroying existing trends chart');
-            this.currentTrendsChart.destroy();
-            this.currentTrendsChart = null;
-        }
-
-        const container = document.getElementById('trends-chart');
-        if (!container) {
-            console.error('❌ Trends chart container not found');
+        console.log('📊 Aktualisiere Trends Chart...');
+        
+        const trendsCanvas = document.getElementById('trends-chart');
+        if (!trendsCanvas) {
+            console.warn('⚠️ Trends Chart Canvas nicht gefunden');
             return;
         }
 
-        // Canvas komplett neu erstellen
-        const existingCanvas = container.querySelector('#trends-chart');
-        if (existingCanvas) {
-            existingCanvas.remove();
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.id = 'indicator';
-        canvas.style.maxHeight = '300px';
-        container.appendChild(canvas);
-
-        console.log('📈 Canvas created/recreated for trends chart');
-
-        // Chart-Daten vorbereiten
-        const chartData = this.prepareTrendsData(metric);
-        if (!chartData || !chartData.labels || chartData.labels.length === 0) {
-            container.innerHTML = `
-                <div class="text-center text-base-content/60 py-8">
-                    <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                    <p>Nicht genügend Daten für ${this.getMetricLabel(metric)}</p>
-                </div>
-            `;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+        // Prüfe ob prepareTrendsData verfügbar ist
+        if (typeof this.prepareTrendsData !== 'function') {
+            console.error('❌ prepareTrendsData Methode nicht verfügbar');
+            this.showTrendsError('Trends-Funktion nicht verfügbar');
             return;
         }
 
-        // Chart erstellen
-        const ctx = canvas.getContext('2d');
-        this.currentTrendsChart = new Chart(ctx, {
+        // Bereite Daten vor
+        const chartData = this.prepareTrendsData(data);
+        
+        if (chartData.isEmpty) {
+            this.showTrendsPlaceholder();
+            return;
+        }
+
+        // Zerstöre existierenden Chart
+        if (this.trendsChart) {
+            this.trendsChart.destroy();
+        }
+
+        // Erstelle neuen Chart
+        const ctx = trendsCanvas.getContext('2d');
+        this.trendsChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: this.getMetricLabel(metric),
-                    data: chartData.data,
-                    borderColor: this.getMetricColor(metric),
-                    backgroundColor: this.getMetricColor(metric, 0.1),
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
+            data: chartData,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    title: {
+                        display: true,
+                        text: 'Gesundheitstrends der letzten Wochen',
+                        font: { size: 16, weight: 'bold' }
+                    },
                     legend: {
                         display: true,
                         position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y}${this.getMetricUnit(metric)}`;
-                            }.bind(this)
-                        }
                     }
                 },
                 scales: {
@@ -9160,47 +9130,145 @@ updateTrendsChart(metric = 'weight') {
                         title: {
                             display: true,
                             text: 'Datum'
-                        },
-                        grid: {
-                            color: 'rgba(148, 163, 184, 0.1)'
                         }
                     },
                     y: {
                         display: true,
                         title: {
                             display: true,
-                            text: `${this.getMetricLabel(metric)} (${this.getMetricUnit(metric)})`
+                            text: 'Werte'
                         },
-                        grid: {
-                            color: 'rgba(148, 163, 184, 0.1)'
-                        },
-                        beginAtZero: metric === 'steps' || metric === 'water'
+                        beginAtZero: false
                     }
                 },
                 interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
+                    intersect: false,
+                    mode: 'index'
                 }
             }
         });
 
-        console.log('✅ Trends chart updated successfully');
+        console.log('✅ Trends Chart erfolgreich aktualisiert');
 
     } catch (error) {
-        console.error('❌ Trends chart error:', error);
-        
-        // Fallback: Container mit Fehlermeldung anzeigen
-        const container = document.getElementById('trends-chart-container');
-        if (container) {
-            container.innerHTML = `
-                <div class="alert alert-error">
-                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-                    <span>Fehler beim Laden des Trend-Charts</span>
+        console.error('❌ Fehler beim Aktualisieren des Trends Charts:', error);
+        this.showTrendsError('Fehler beim Laden der Trends');
+    }
+}
+
+// Trends Error anzeigen
+showTrendsError(message = 'Fehler beim Laden der Trends') {
+    const trendsContainer = document.querySelector('.trends-container');
+    if (trendsContainer) {
+        trendsContainer.innerHTML = `
+            <div class="alert alert-warning">
+                <span class="text-warning">⚠️</span>
+                <div>
+                    <h3 class="font-bold">Trends temporär nicht verfügbar</h3>
+                    <div class="text-sm">${message}</div>
                 </div>
-            `;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            </div>
+        `;
+    }
+}
+
+// Trends Placeholder anzeigen
+showTrendsPlaceholder() {
+    const trendsContainer = document.querySelector('.trends-container');
+    if (trendsContainer) {
+        trendsContainer.innerHTML = `
+            <div class="text-center p-8">
+                <div class="text-6xl mb-4">📊</div>
+                <h3 class="text-lg font-semibold mb-2">Noch keine Trends verfügbar</h3>
+                <p class="text-gray-600">Füge mehr Gesundheitsdaten hinzu, um Trends zu sehen!</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Bereitet Trends-Daten für die Chart-Visualisierung vor
+ * @param {Array} data - Rohe Gesundheitsdaten
+ * @returns {Object} Formatierte Chart-Daten
+ */
+prepareTrendsData(data) {
+    try {
+        console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge');
+        
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            console.log('⚠️ Keine Daten für Trends verfügbar');
+            return {
+                labels: [],
+                datasets: [],
+                isEmpty: true
+            };
         }
+
+        // Daten nach Datum sortieren (älteste zuerst)
+        const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Labels (Datumsangaben) extrahieren
+        const labels = sortedData.map(item => {
+            const date = new Date(item.date);
+            return date.toLocaleDateString('de-DE', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        });
+
+        // Dataset für verschiedene Metriken erstellen
+        const datasets = [];
+        const metrics = [
+            { key: 'steps', label: 'Schritte', color: 'rgb(99, 102, 241)', scale: 0.01 },
+            { key: 'waterIntake', label: 'Wasser (L)', color: 'rgb(59, 130, 246)', scale: 1 },
+            { key: 'sleepHours', label: 'Schlaf (h)', color: 'rgb(16, 185, 129)', scale: 1 },
+            { key: 'weight', label: 'Gewicht (kg)', color: 'rgb(245, 101, 101)', scale: 1 }
+        ];
+
+        metrics.forEach(metric => {
+            const values = sortedData.map(item => {
+                const value = item[metric.key];
+                return value ? (value * metric.scale) : null;
+            });
+
+            // Nur Datasets mit Daten hinzufügen
+            if (values.some(v => v !== null && v !== undefined)) {
+                datasets.push({
+                    label: metric.label,
+                    data: values,
+                    borderColor: metric.color,
+                    backgroundColor: metric.color + '20', // 20% Transparenz
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+            }
+        });
+
+        const result = {
+            labels,
+            datasets,
+            isEmpty: datasets.length === 0
+        };
+
+        console.log('✅ Trends-Daten vorbereitet:', {
+            labels: labels.length,
+            datasets: datasets.length,
+            metrics: datasets.map(d => d.label)
+        });
+
+        return result;
+
+    } catch (error) {
+        console.error('❌ Fehler beim Vorbereiten der Trends-Daten:', error);
+        return {
+            labels: [],
+            datasets: [],
+            isEmpty: true,
+            error: error.message
+        };
     }
 }
 

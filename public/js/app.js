@@ -12422,6 +12422,114 @@ class PremiumHeroManager {
             requestIdleCallback(() => this.initBackgroundEffects());
         }
     }
+
+    initAdvancedAnimations() {
+        // Erweiterte Animationen für moderne Browser
+        const supportsIntersectionObserver = 'IntersectionObserver' in window;
+        const supportsWebAnimations = 'animate' in HTMLElement.prototype;
+        
+        if (!supportsIntersectionObserver || !supportsWebAnimations) {
+            console.log('⚠️ Advanced animations not supported, using fallbacks');
+            return;
+        }
+        
+        // Scroll-basierte Animationen
+        const animationObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    
+                    // Feature Cards Animation
+                    if (element.classList.contains('card')) {
+                        element.animate([
+                            { transform: 'translateY(20px)', opacity: 0 },
+                            { transform: 'translateY(0)', opacity: 1 }
+                        ], {
+                            duration: 600,
+                            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                            fill: 'both'
+                        });
+                    }
+                    
+                    // Stats Animation
+                    if (element.classList.contains('stat')) {
+                        element.animate([
+                            { transform: 'scale(0.8)', opacity: 0 },
+                            { transform: 'scale(1)', opacity: 1 }
+                        ], {
+                            duration: 400,
+                            delay: 100,
+                            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                            fill: 'both'
+                        });
+                    }
+                    
+                    // Feature Pills Animation
+                    if (element.classList.contains('badge')) {
+                        element.animate([
+                            { transform: 'translateX(-20px)', opacity: 0 },
+                            { transform: 'translateX(0)', opacity: 1 }
+                        ], {
+                            duration: 300,
+                            easing: 'ease-out',
+                            fill: 'both'
+                        });
+                    }
+                }
+            });
+        }, { 
+            threshold: 0.1,
+            rootMargin: '50px 0px'
+        });
+        
+        // Elemente für Animation registrieren
+        const animatableElements = document.querySelectorAll('.card, .stat, .badge-lg');
+        animatableElements.forEach(el => animationObserver.observe(el));
+        
+        console.log('✨ Advanced animations initialized');
+    }
+    
+    initProgressiveEnhancement() {
+        // Feature Detection
+        if ('IntersectionObserver' in window) {
+            this.initAdvancedAnimations(); // ← Jetzt funktioniert dieser Aufruf
+        }
+        
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => this.initBackgroundEffects());
+        }
+    }
+
+    initBackgroundEffects() {
+        // Particle-System Performance-Optimierungen
+        const particles = document.querySelectorAll('.floating-icon');
+        
+        // Reduced Motion berücksichtigen
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        
+        if (prefersReducedMotion) {
+            particles.forEach(particle => {
+                particle.style.animation = 'none';
+            });
+            return;
+        }
+        
+        // Intersection Observer für Particles
+        const particleObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const particle = entry.target;
+                if (entry.isIntersecting) {
+                    particle.style.animationPlayState = 'running';
+                } else {
+                    particle.style.animationPlayState = 'paused';
+                }
+            });
+        });
+        
+        particles.forEach(particle => particleObserver.observe(particle));
+        
+        console.log('🎭 Background effects optimized');
+    }
 }
 
 // Initialisierung

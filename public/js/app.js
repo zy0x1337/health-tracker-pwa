@@ -9086,7 +9086,7 @@ updateTrendsChart(metric = 'weight') {
             this.currentTrendsChart = null;
         }
 
-        const container = document.getElementById('trends-chart-container');
+        const container = document.getElementById('trends-chart');
         if (!container) {
             console.error('❌ Trends chart container not found');
             return;
@@ -9099,7 +9099,7 @@ updateTrendsChart(metric = 'weight') {
         }
 
         const canvas = document.createElement('canvas');
-        canvas.id = 'trends-chart';
+        canvas.id = 'indicator';
         canvas.style.maxHeight = '300px';
         container.appendChild(canvas);
 

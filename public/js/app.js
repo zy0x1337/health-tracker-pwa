@@ -3456,11 +3456,10 @@ showDataPrivacy() {
                         <div class="alert alert-info">
                             <i data-lucide="info" class="w-6 h-6"></i>
                             <div>
-                                <h4 class="font-bold">Datenschutzerklärung Version 2.1</h4>
+                                <h4 class="font-bold">Datenschutzerklärung Version 1.0</h4>
                                 <p class="text-sm mt-1">
                                     Letzte Aktualisierung: ${new Date().toLocaleDateString('de-DE')} | 
                                     Health Tracker Pro v${this.getBuildInfo?.()?.version || '2.2.0'} | 
-                                    GDPR-konform seit Mai 2018
                                 </p>
                             </div>
                         </div>
@@ -5246,10 +5245,6 @@ showSettings() {
                             <i data-lucide="hard-drive" class="w-4 h-4 mr-2"></i>
                             Speicherverbrauch
                         </button>
-                        <button class="btn btn-outline btn-warning" onclick="healthTracker.showDataCleanupModal()">
-                            <i data-lucide="broom" class="w-4 h-4 mr-2"></i>
-                            Daten bereinigen
-                        </button>
                     </div>
                 </div>
 
@@ -5828,11 +5823,6 @@ showDataUsage() {
                 <!-- Action Buttons -->
                 <div class="modal-action">
                     <div class="flex flex-wrap gap-2">
-                        <!-- Clear Cache Button -->
-                        <button class="btn btn-outline btn-warning gap-2" onclick="healthTracker?.clearAppCache?.(); this.closest('.modal').remove();">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            Cache leeren
-                        </button>
                         
                         <!-- Export Data Button -->
                         <button class="btn btn-outline gap-2" onclick="healthTracker?.exportAppData?.(); this.closest('.modal').remove();">

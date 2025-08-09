@@ -2803,50 +2803,47 @@ initializeAnalyticsEventListeners() {
             });
         });
 
-        // Metric selection buttons - Verbesserte Implementation
-        document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const button = e.target.closest('.metric-tab');
-                
-                try {
-                    // Update tab states
-                    document.querySelectorAll('.metric-tab').forEach(b => {
-                        b.classList.remove('tab-active');
-                    });
-                    button.classList.add('tab-active');
-                    
-                    // Get metric and label
-                    const metric = button.dataset.metric;
-                    const label = button.dataset.label || button.textContent.trim();
-                    
-                    console.log('📈 Updating trends chart for metric:', metric);
-                    
-                    // Store current metric
-                    this.currentMetricFilter = metric;
-                    
-                    // Update title
-                    const titleElement = document.getElementById('trends-title');
-                    if (titleElement) {
-                        titleElement.textContent = `${label} Trends`;
-                    }
-                    
-                    // Update chart through AnalyticsEngine
-                    if (typeof this.analyticsEngine.updateTrendsChart === 'function') {
-                        // Filter data based on current period
-                        const filteredData = this.getFilteredHealthData(this.currentAnalyticsPeriod);
-                        this.analyticsEngine.updateTrendsChart(filteredData);
-                    } else {
-                        console.warn('⚠️ updateTrendsChart method not available');
-                        this.showToast('📊 Chart-Update nicht verfügbar', 'warning');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Metric change error:', error);
-                    this.showToast('⚠️ Fehler beim Ändern der Metrik', 'warning');
-                }
+        /**
+ * Metric Tab Event Listener
+ */
+document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const button = e.target.closest('.metric-tab');
+        
+        try {
+            console.log('📈 Metric clicked:', button.dataset.metric);
+            
+            // Update tab states
+            document.querySelectorAll('.metric-tab').forEach(b => {
+                b.classList.remove('tab-active');
             });
-        });
+            button.classList.add('tab-active');
+            
+            // Get metric and label
+            const metric = button.dataset.metric;
+            const label = button.dataset.label || button.textContent.trim();
+            
+            console.log('📈 Changing metric to', metric);
+            
+            // Store current metric
+            this.currentMetricFilter = metric;
+            
+            // Update chart mit spezifischem Metric-Filter
+            if (typeof this.analyticsEngine.updateTrendsChart === 'function') {
+                const filteredData = this.getFilteredHealthData(this.currentAnalyticsPeriod);
+                this.analyticsEngine.updateTrendsChart(filteredData, metric); // ← WICHTIG: Metric-Filter übergeben
+            } else {
+                console.warn('⚠️ updateTrendsChart method not available');
+                this.showToast('📊 Chart-Update nicht verfügbar', 'warning');
+            }
+            
+        } catch (error) {
+            console.error('❌ Metric change error:', error);
+            this.showToast('⚠️ Fehler beim Ändern der Metrik', 'warning');
+        }
+    });
+});
 
         // Dropdown Filter Integration
         document.querySelectorAll('.metric-filter-btn[data-metric]').forEach(btn => {
@@ -9557,14 +9554,14 @@ showTrendsPlaceholder() {
 }
 
 /**
- * prepareTrendsData Methode mit lockereren Kriterien
+ * VERBESSERTE prepareTrendsData Methode mit Metric-Filtering
  * @param {Array} data - Rohe Gesundheitsdaten
+ * @param {string} metricFilter - Spezifische Metrik oder 'all'
  * @returns {Object} Formatierte Chart-Daten
  */
-prepareTrendsData(data) {
+prepareTrendsData(data, metricFilter = 'all') {
     try {
-        console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge');
-        console.log('📊 Rohdaten:', data);
+        console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
         
         if (!data || !Array.isArray(data) || data.length === 0) {
             console.log('❌ Keine Daten array verfügbar');
@@ -9575,28 +9572,13 @@ prepareTrendsData(data) {
             };
         }
 
-        // VERBESSERTE DATENVALIDIERUNG - weniger strikt
+        // Datenvalidierung
         const validEntries = data.filter(item => {
-            // Prüfe ob mindestens EIN Wert vorhanden ist
             const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
             const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
-            
-            console.log(`📊 Entry check:`, {
-                date: item.date,
-                hasAnyData,
-                hasValidDate,
-                steps: item.steps,
-                water: item.waterIntake,
-                sleep: item.sleepHours,
-                weight: item.weight
-            });
-            
             return hasValidDate && hasAnyData;
         });
 
-        console.log(`✅ Gefilterte gültige Einträge: ${validEntries.length} von ${data.length}`);
-
-        // LOCKERERE MINIMUM-ANFORDERUNG
         if (validEntries.length === 0) {
             console.log('❌ Keine gültigen Einträge nach Filterung');
             return {
@@ -9606,10 +9588,10 @@ prepareTrendsData(data) {
             };
         }
 
-        // Daten nach Datum sortieren (älteste zuerst)
+        // Daten nach Datum sortieren
         const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        // Labels (Datumsangaben) extrahieren
+        // Labels erstellen
         const labels = sortedData.map(item => {
             const date = new Date(item.date);
             return date.toLocaleDateString('de-DE', { 
@@ -9618,54 +9600,73 @@ prepareTrendsData(data) {
             });
         });
 
-        console.log('📅 Labels erstellt:', labels);
-
-        // VERBESSERTE Dataset-Erstellung - flexiblere Metriken
-        const datasets = [];
-        const metrics = [
+        // ALLE VERFÜGBAREN METRIKEN DEFINIEREN
+        const allMetrics = [
             { 
                 key: 'steps', 
                 label: 'Schritte', 
                 color: 'rgb(99, 102, 241)', 
-                scale: 0.001,  // Skalierung für bessere Darstellung
-                yAxisID: 'y'
+                scale: 0.001,
+                yAxisID: 'y',
+                unit: ' (in Tausend)'
             },
             { 
                 key: 'waterIntake', 
                 label: 'Wasser (L)', 
                 color: 'rgb(59, 130, 246)', 
                 scale: 1,
-                yAxisID: 'y1' 
+                yAxisID: 'y1',
+                unit: ' (Liter)'
             },
             { 
                 key: 'sleepHours', 
                 label: 'Schlaf (h)', 
                 color: 'rgb(16, 185, 129)', 
                 scale: 1,
-                yAxisID: 'y1' 
+                yAxisID: 'y1',
+                unit: ' (Stunden)'
             },
             { 
                 key: 'weight', 
                 label: 'Gewicht (kg)', 
                 color: 'rgb(245, 101, 101)', 
                 scale: 1,
-                yAxisID: 'y2' 
+                yAxisID: 'y2',
+                unit: ' (Kilogramm)'
             }
         ];
 
-        metrics.forEach(metric => {
+        // METRIC-FILTERING: Wähle nur relevante Metriken
+        let metricsToShow;
+        
+        if (metricFilter === 'all') {
+            metricsToShow = allMetrics;
+            console.log('📊 Zeige alle Metriken');
+        } else {
+            // Zeige nur spezifische Metrik
+            metricsToShow = allMetrics.filter(metric => metric.key === metricFilter);
+            console.log('📊 Zeige nur Metrik:', metricFilter);
+            
+            if (metricsToShow.length === 0) {
+                console.warn('⚠️ Unbekannte Metrik:', metricFilter, '- zeige alle');
+                metricsToShow = allMetrics;
+            }
+        }
+
+        // DATASETS ERSTELLEN (nur für gewählte Metriken)
+        const datasets = [];
+        
+        metricsToShow.forEach(metric => {
             const values = sortedData.map(item => {
                 const value = item[metric.key];
-                // WENIGER STRIKT: Akzeptiere auch 0-Werte
                 return (value !== null && value !== undefined) ? (value * metric.scale) : null;
             });
 
-            // LOCKERERE BEDINGUNG: Mindestens 1 Nicht-Null-Wert
             const validValues = values.filter(v => v !== null && v !== undefined);
             console.log(`📊 Metric ${metric.key}:`, {
                 totalValues: values.length,
                 validValues: validValues.length,
-                values: values
+                sample: values.slice(0, 3)
             });
 
             if (validValues.length > 0) {
@@ -9673,14 +9674,14 @@ prepareTrendsData(data) {
                     label: metric.label,
                     data: values,
                     borderColor: metric.color,
-                    backgroundColor: metric.color + '20', // 20% Transparenz
-                    borderWidth: 2,
-                    fill: false,
+                    backgroundColor: metric.color + '20',
+                    borderWidth: metricFilter === 'all' ? 2 : 3, // Dickere Linie für Einzelmetriken
+                    fill: metricFilter !== 'all', // Füllung nur bei Einzelmetriken
                     tension: 0.1,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    pointRadius: metricFilter === 'all' ? 4 : 6, // Größere Punkte für Einzelmetriken
+                    pointHoverRadius: metricFilter === 'all' ? 6 : 8,
                     yAxisID: metric.yAxisID || 'y',
-                    spanGaps: true  // Verbindet Punkte auch bei null-Werten
+                    spanGaps: true
                 });
             }
         });
@@ -9688,13 +9689,16 @@ prepareTrendsData(data) {
         const result = {
             labels,
             datasets,
-            isEmpty: datasets.length === 0
+            isEmpty: datasets.length === 0,
+            metricFilter: metricFilter,
+            singleMetric: metricFilter !== 'all' && datasets.length === 1
         };
 
-        console.log('✅ Trends-Daten erfolgreich vorbereitet:', {
+        console.log('✅ Trends-Daten vorbereitet:', {
             labels: labels.length,
             datasets: datasets.length,
             metrics: datasets.map(d => d.label),
+            filter: metricFilter,
             isEmpty: result.isEmpty
         });
 

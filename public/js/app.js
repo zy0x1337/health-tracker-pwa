@@ -9602,275 +9602,42 @@ async updateTrendsChart(data, metricFilter = 'all') {
     try {
         console.log('📊 updateTrendsChart aufgerufen mit Filter:', metricFilter);
         
-        // KRITISCHER FIX 1: Defensive Canvas-Suche
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
-            console.warn('⚠️ Trends Chart Canvas nicht gefunden - erstelle Fallback');
-            this.createFallbackTrendsContainer();
+            console.warn('⚠️ Trends Chart Canvas nicht gefunden');
             return;
         }
 
-        // KRITISCHER FIX 2: Canvas-Kontext validieren
         const ctx = trendsCanvas.getContext('2d');
         if (!ctx) {
             console.error('❌ Canvas-Kontext nicht verfügbar');
-            this.showSafeTrendsError('Canvas-Rendering nicht unterstützt');
             return;
         }
 
-        // Datenquellen ermitteln
+        // Datenquellen ermitteln (vereinfacht)
         if (!data || (Array.isArray(data) && data.length === 0)) {
-            console.log('📊 Keine Daten übergeben, verwende Analytics-Daten');
-            
-            const sources = [
-                () => this.analyticsData?.period,
-                () => this.analyticsData?.all,
-                () => this.healthTracker.cache?.get?.('allHealthData')?.data
-            ];
-            
-            for (const source of sources) {
-                try {
-                    const sourceData = await source();
-                    if (sourceData && Array.isArray(sourceData) && sourceData.length > 0) {
-                        data = sourceData;
-                        break;
-                    }
-                } catch (error) {
-                    console.log('📊 Quelle fehlgeschlagen:', error.message);
-                }
-            }
+            data = this.analyticsData?.period || this.analyticsData?.all || [];
         }
 
-        // Chart-Daten vorbereiten mit Metric-Filter
+        // Chart-Daten vorbereiten
         const chartData = this.prepareTrendsData(data || [], metricFilter);
-
-        // Zerstöre existierenden Chart sicher
+        
+        // Zerstöre existierenden Chart
         if (this.trendsChart) {
-            try {
-                this.trendsChart.destroy();
-            } catch (destroyError) {
-                console.warn('⚠️ Chart destroy Fehler:', destroyError.message);
-            }
+            this.trendsChart.destroy();
             this.trendsChart = null;
         }
 
-        // Chart-Konfiguration
+        // Erstelle Chart direkt (kein Placeholder-Check)
         const chartConfig = this.getChartConfiguration(chartData, metricFilter);
+        this.trendsChart = new Chart(ctx, chartConfig);
         
-        // Erstelle Chart mit Fehlerbehandlung
-        try {
-            this.trendsChart = new Chart(ctx, chartConfig);
-            
-            // UI-Elemente sicher aktualisieren
-            this.safeUpdateTrendsUI(metricFilter);
-            
-            console.log('✅ Trends Chart erfolgreich erstellt für:', metricFilter);
-            
-        } catch (chartError) {
-            console.error('❌ Chart.js Fehler:', chartError);
-            this.showSafeTrendsError(`Chart-Erstellung fehlgeschlagen: ${chartError.message}`);
-        }
-
-    } catch (error) {
-        console.error('❌ Kritischer Fehler beim Trends Chart Update:', error);
-        this.showSafeTrendsError(`Unerwarteter Fehler: ${error.message}`);
-    }
-}
-
-/**
- * NEUE METHODE: Sichere Trends-Fehlerbehandlung
- */
-showSafeTrendsError(message = 'Trends temporär nicht verfügbar') {
-    console.log('🔧 Sichere Trends-Fehlerbehandlung:', message);
-    
-    // Versuche mehrere Container zu finden
-    const possibleContainers = [
-        'trends-chart-container',
-        'trends-chart-wrapper', 
-        'analytics'
-    ];
-    
-    let targetContainer = null;
-    
-    for (const containerId of possibleContainers) {
-        const container = document.getElementById(containerId);
-        if (container) {
-            targetContainer = container;
-            break;
-        }
-    }
-    
-    // Fallback: Erstelle eigenen Container
-    if (!targetContainer) {
-        targetContainer = this.createEmergencyContainer();
-    }
-    
-    // Sichere Error-UI einfügen
-    const errorContent = targetContainer.querySelector('.chart-error-content') || 
-                        document.createElement('div');
-    
-    errorContent.className = 'chart-error-content alert alert-warning m-4';
-    errorContent.innerHTML = `
-        <div class="flex items-center gap-3">
-            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-            <div>
-                <h3 class="font-bold">Chart temporär nicht verfügbar</h3>
-                <div class="text-sm">${message}</div>
-            </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-            <button class="btn btn-sm btn-outline" onclick="location.reload()">
-                <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
-                Seite neu laden
-            </button>
-            <button class="btn btn-sm btn-ghost" onclick="this.closest('.chart-error-content').remove()">
-                Ausblenden
-            </button>
-        </div>
-    `;
-    
-    if (!targetContainer.contains(errorContent)) {
-        targetContainer.appendChild(errorContent);
-    }
-    
-    // Icons neu initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
-
-/**
- * NEUE METHODE: Sichere UI-Updates
- */
-safeUpdateTrendsUI(metricFilter) {
-    try {
-        // Trends Data Count
-        const dataCountElement = document.getElementById('trends-data-count');
-        if (dataCountElement && this.analyticsData?.period) {
-            const count = this.analyticsData.period.length;
-            dataCountElement.textContent = `${count} Tage`;
-        }
-
-        // Last Update
-        const lastUpdateElement = document.getElementById('trends-last-update');
-        if (lastUpdateElement) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            lastUpdateElement.innerHTML = `
-                <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>
-                ${timeStr}
-            `;
-        }
-
-        // Chart Title
-        const titleElement = document.getElementById('trends-title');
-        if (titleElement) {
-            const titles = {
-                'all': 'Trends & Entwicklung',
-                'steps': 'Schritte Trends',
-                'waterIntake': 'Wasser Trends', 
-                'sleepHours': 'Schlaf Trends',
-                'weight': 'Gewicht Trends'
-            };
-            titleElement.textContent = titles[metricFilter] || 'Trends & Entwicklung';
-        }
+        console.log('✅ Trends Chart erfolgreich erstellt für:', metricFilter);
         
     } catch (error) {
-        console.warn('⚠️ UI-Update teilweise fehlgeschlagen:', error.message);
+        console.error('❌ Trends Chart Fehler:', error);
+        // Einfacher Error-Log ohne komplexe UI-Manipulation
     }
-}
-
-/**
- * NEUE METHODE: Sicheren Container finden oder erstellen
- */
-findSafeContainer() {
-    // Versuche bekannte Container zu finden
-    const containerIds = [
-        'trends-chart-container .card-body',
-        'trends-chart-wrapper',
-        'analytics .card-body'
-    ];
-    
-    for (const selector of containerIds) {
-        const container = document.querySelector(selector);
-        if (container) {
-            return container;
-        }
-    }
-    
-    // Erstelle Notfall-Container
-    return this.createEmergencyContainer();
-}
-
-/**
- * NEUE METHODE: Notfall-Container erstellen
- */
-createEmergencyContainer() {
-    console.log('🚨 Erstelle Notfall-Container für Trends');
-    
-    const analyticsSection = document.getElementById('analytics');
-    if (!analyticsSection) {
-        console.error('❌ Kann keinen Container für Trends erstellen');
-        return null;
-    }
-    
-    const emergencyContainer = document.createElement('div');
-    emergencyContainer.className = 'card bg-base-100 shadow-xl mt-4';
-    emergencyContainer.innerHTML = `
-        <div class="card-body">
-            <h3 class="card-title">
-                <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
-                Trends & Entwicklung
-            </h3>
-            <div id="emergency-trends-content"></div>
-        </div>
-    `;
-    
-    analyticsSection.appendChild(emergencyContainer);
-    
-    // Icons initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-    
-    return emergencyContainer.querySelector('#emergency-trends-content');
-}
-
-/**
- * NEUE METHODE: Fallback Trends-Container erstellen
- */
-createFallbackTrendsContainer() {
-    console.log('🔧 Erstelle Fallback Trends-Container');
-    
-    const container = this.findSafeContainer();
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="bg-base-200 rounded-lg p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <i data-lucide="info" class="w-6 h-6 text-info"></i>
-                <div>
-                    <h4 class="font-semibold">Trends-Chart wird initialisiert</h4>
-                    <p class="text-sm text-base-content/70">Canvas wird vorbereitet...</p>
-                </div>
-            </div>
-            
-            <div class="flex flex-col items-center py-8">
-                <div class="loading loading-spinner loading-lg text-primary mb-4"></div>
-                <p class="text-base-content/60">Chart-Engine wird geladen</p>
-            </div>
-        </div>
-    `;
-    
-    // Automatischer Retry nach 2 Sekunden
-    setTimeout(() => {
-        if (document.getElementById('trends-chart')) {
-            this.updateTrendsChart();
-        }
-    }, 2000);
 }
 
 /**
@@ -10033,14 +9800,6 @@ updateChartTitle(metricFilter) {
         
         titleElement.textContent = titles[metricFilter] || 'Trends & Entwicklung';
     }
-}
-
-// Trends Error anzeigen
-showTrendsError(message = 'Fehler beim Laden der Trends') {
-    console.log('🔧 Legacy showTrendsError - verwende sichere Alternative');
-    
-    // Delegiere an die sichere Methode
-    this.showSafeTrendsError(message);
 }
 
 /**

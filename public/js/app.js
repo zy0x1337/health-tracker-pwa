@@ -12344,6 +12344,89 @@ generateInsights(periodData) {
 }
 }
 
+// Premium Hero Section Manager
+class PremiumHeroManager {
+    constructor() {
+        this.initTypingEffect();
+        this.initParallaxEffects();
+        this.initSmartAnimations();
+        this.initProgressiveEnhancement();
+    }
+    
+    initTypingEffect() {
+        const phrases = [
+            "Powered by Machine Learning",
+            "Real-time Health Analytics", 
+            "Your Privacy, Our Priority",
+            "Offline-First Technology"
+        ];
+        
+        let currentPhrase = 0;
+        let currentChar = 0;
+        const typingElement = document.getElementById('typing-effect');
+        
+        const typePhrase = () => {
+            if (currentChar < phrases[currentPhrase].length) {
+                typingElement.innerHTML = phrases[currentPhrase].substring(0, currentChar + 1) + '<span class="typing-cursor">|</span>';
+                currentChar++;
+                setTimeout(typePhrase, 100);
+            } else {
+                setTimeout(() => {
+                    currentChar = 0;
+                    currentPhrase = (currentPhrase + 1) % phrases.length;
+                    setTimeout(typePhrase, 1000);
+                }, 2000);
+            }
+        };
+        
+        setTimeout(typePhrase, 2000);
+    }
+    
+    initParallaxEffects() {
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.floating-icon');
+            
+            parallaxElements.forEach((el, index) => {
+                const speed = 0.1 + (index * 0.05);
+                el.style.transform = `translateY(${scrolled * speed}px) rotate(${scrolled * 0.1}deg)`;
+            });
+        });
+    }
+    
+    initSmartAnimations() {
+        // Intersection Observer für Performance
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        // Alle animierbaren Elemente beobachten
+        document.querySelectorAll('.card, .stat, .badge').forEach(el => {
+            observer.observe(el);
+        });
+    }
+    
+    initProgressiveEnhancement() {
+        // Feature Detection
+        if ('IntersectionObserver' in window) {
+            this.initAdvancedAnimations();
+        }
+        
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => this.initBackgroundEffects());
+        }
+    }
+}
+
+// Initialisierung
+document.addEventListener('DOMContentLoaded', () => {
+    new PremiumHeroManager();
+});
+
 // === PWA INSTALL PROMPT (Globale Funktion) ===
 let deferredPrompt;
 

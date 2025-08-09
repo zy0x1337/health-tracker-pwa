@@ -8,7 +8,7 @@ console.log('🚀 Health Tracker Pro loading...');
         if (window.innerWidth <= 768) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'responsive-styles.css';
+            link.href = '/responsive-styles.css';
             link.media = 'screen and (max-width: 768px)';
             document.head.appendChild(link);
             console.log('📱 Mobile styles loaded');
@@ -9668,8 +9668,167 @@ async updateTrendsChart(data, metricFilter = 'all') {
 }
 
 /**
- * NEUE HILFSMETHODEN
+ * NEUE METHODE: Chart-Konfiguration basierend auf Metric-Filter
  */
+getChartConfiguration(chartData, metricFilter) {
+    const isSingleMetric = metricFilter !== 'all';
+    
+    const baseConfig = {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: this.getChartTitle(metricFilter),
+                    font: { size: 16, weight: 'bold' }
+                },
+                legend: {
+                    display: !isSingleMetric, // Verstecke Legende bei Einzelmetriken
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            
+                            // Spezielle Formatierung für verschiedene Metriken
+                            if (label.includes('Schritte')) {
+                                return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
+                            } else if (label.includes('Wasser')) {
+                                return `${label}: ${value}L`;
+                            } else if (label.includes('Schlaf')) {
+                                return `${label}: ${value}h`;
+                            } else if (label.includes('Gewicht')) {
+                                return `${label}: ${value}kg`;
+                            }
+                            return `${label}: ${value}`;
+                        }
+                    }
+                }
+            },
+            scales: this.getScalesConfiguration(metricFilter, isSingleMetric),
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    };
+
+    return baseConfig;
+}
+
+/**
+ * NEUE METHODE: Scales-Konfiguration je nach Metric-Filter
+ */
+getScalesConfiguration(metricFilter, isSingleMetric) {
+    const scales = {
+        x: {
+            display: true,
+            title: {
+                display: true,
+                text: 'Datum'
+            }
+        }
+    };
+
+    if (isSingleMetric) {
+        // Einzelmetrik: Nur eine Y-Achse
+        const metricConfig = {
+            'steps': { label: 'Schritte (in Tausend)', color: 'rgb(99, 102, 241)' },
+            'waterIntake': { label: 'Wasser (Liter)', color: 'rgb(59, 130, 246)' },
+            'sleepHours': { label: 'Schlaf (Stunden)', color: 'rgb(16, 185, 129)' },
+            'weight': { label: 'Gewicht (Kilogramm)', color: 'rgb(245, 101, 101)' }
+        };
+        
+        const config = metricConfig[metricFilter] || { label: 'Werte', color: 'rgb(99, 102, 241)' };
+        
+        scales.y = {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+                display: true,
+                text: config.label,
+                color: config.color
+            },
+            grid: {
+                color: config.color + '20'
+            }
+        };
+    } else {
+        // Alle Metriken: Multiple Y-Achsen
+        scales.y = {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+                display: true,
+                text: 'Schritte (in Tausend)'
+            }
+        };
+        
+        scales.y1 = {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+                display: true,
+                text: 'Wasser (L) / Schlaf (h)'
+            },
+            grid: {
+                drawOnChartArea: false,
+            }
+        };
+        
+        scales.y2 = {
+            type: 'linear',
+            display: false,
+            position: 'right'
+        };
+    }
+
+    return scales;
+}
+
+/**
+ * NEUE METHODE: Chart-Titel basierend auf Filter
+ */
+getChartTitle(metricFilter) {
+    const titles = {
+        'all': 'Gesundheitstrends - Alle Metriken',
+        'steps': 'Schritte-Entwicklung',
+        'waterIntake': 'Wasser-Aufnahme Verlauf',
+        'sleepHours': 'Schlaf-Qualität Trends',
+        'weight': 'Gewichtsverlauf'
+    };
+    
+    return titles[metricFilter] || 'Gesundheitstrends';
+}
+
+/**
+ * NEUE METHODE: Chart-Titel UI Update
+ */
+updateChartTitle(metricFilter) {
+    const titleElement = document.getElementById('trends-title');
+    if (titleElement) {
+        const titles = {
+            'all': 'Trends & Entwicklung',
+            'steps': 'Schritte Trends',
+            'waterIntake': 'Wasser Trends', 
+            'sleepHours': 'Schlaf Trends',
+            'weight': 'Gewicht Trends'
+        };
+        
+        titleElement.textContent = titles[metricFilter] || 'Trends & Entwicklung';
+    }
+}
+
 updateTrendsDataCount() {
     const dataCountElement = document.getElementById('trends-data-count');
     if (dataCountElement && this.analyticsData?.period) {
@@ -9700,7 +9859,7 @@ updateTrendsLastUpdate() {
 
 // Trends Error anzeigen
 showTrendsError(message = 'Fehler beim Laden der Trends') {
-    const trendsContainer = document.querySelector('.trends-container');
+    const trendsContainer = document.querySelector('#trends-chart').parentElement;
     if (trendsContainer) {
         trendsContainer.innerHTML = `
             <div class="alert alert-warning">
@@ -9716,7 +9875,7 @@ showTrendsError(message = 'Fehler beim Laden der Trends') {
 
 // Trends Placeholder anzeigen
 showTrendsPlaceholder() {
-    const trendsContainer = document.querySelector('.trends-container');
+    const trendsContainer = document.querySelector('#trends-chart').parentElement;
     if (trendsContainer) {
         trendsContainer.innerHTML = `
             <div class="text-center p-8">
@@ -9729,13 +9888,17 @@ showTrendsPlaceholder() {
 }
 
 /**
- * FINAL KORRIGIERTE prepareTrendsData Methode
+ * VERBESSERTE prepareTrendsData Methode mit Metric-Filtering
+ * @param {Array} data - Rohe Gesundheitsdaten
+ * @param {string} metricFilter - Spezifische Metrik oder 'all'
+ * @returns {Object} Formatierte Chart-Daten
  */
 prepareTrendsData(data, metricFilter = 'all') {
     try {
         console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
         
         if (!data || !Array.isArray(data) || data.length === 0) {
+            console.log('❌ Keine Daten array verfügbar');
             return {
                 labels: [],
                 datasets: [],
@@ -9751,6 +9914,7 @@ prepareTrendsData(data, metricFilter = 'all') {
         });
 
         if (validEntries.length === 0) {
+            console.log('❌ Keine gültigen Einträge nach Filterung');
             return {
                 labels: [],
                 datasets: [],
@@ -9806,22 +9970,20 @@ prepareTrendsData(data, metricFilter = 'all') {
             }
         ];
 
-        // KRITISCHER TEIL: METRIC-FILTERING
+        // METRIC-FILTERING: Wähle nur relevante Metriken
         let metricsToShow;
-        
-        console.log('🔍 Aktueller Filter:', metricFilter);
         
         if (metricFilter === 'all') {
             metricsToShow = allMetrics;
             console.log('📊 Zeige alle Metriken');
         } else {
-            // NUR die spezifische Metrik anzeigen
+            // Zeige nur spezifische Metrik
             metricsToShow = allMetrics.filter(metric => metric.key === metricFilter);
-            console.log('📊 Zeige nur Metrik:', metricFilter, '- Gefunden:', metricsToShow.length);
+            console.log('📊 Zeige nur Metrik:', metricFilter);
             
             if (metricsToShow.length === 0) {
-                console.warn('⚠️ Unbekannte Metrik:', metricFilter);
-                metricsToShow = allMetrics; // Fallback
+                console.warn('⚠️ Unbekannte Metrik:', metricFilter, '- zeige alle');
+                metricsToShow = allMetrics;
             }
         }
 
@@ -9835,7 +9997,12 @@ prepareTrendsData(data, metricFilter = 'all') {
             });
 
             const validValues = values.filter(v => v !== null && v !== undefined);
-            
+            console.log(`📊 Metric ${metric.key}:`, {
+                totalValues: values.length,
+                validValues: validValues.length,
+                sample: values.slice(0, 3)
+            });
+
             if (validValues.length > 0) {
                 datasets.push({
                     label: metric.label,
@@ -10415,6 +10582,311 @@ getGoalComparison(metric, value) {
     async updateAllAnalytics() {
         await this.loadCompleteAnalyticsData();
     }
+
+    /**
+ * Weitere fehlende Hilfsmethoden für Analytics Engine
+ */
+
+/**
+ * Update stat element helper
+ */
+updateStatElement(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = value;
+        
+        // Add animation
+        element.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+/**
+ * Calculate weekly improvement
+ */
+calculateWeeklyImprovement(allData) {
+    if (!allData || allData.length < 7) return 0;
+    
+    const now = new Date();
+    const thisWeekStart = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const lastWeekStart = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+    
+    const thisWeek = allData.filter(entry => {
+        const date = new Date(entry.date);
+        return date >= thisWeekStart;
+    });
+    
+    const lastWeek = allData.filter(entry => {
+        const date = new Date(entry.date);
+        return date >= lastWeekStart && date < thisWeekStart;
+    });
+    
+    if (thisWeek.length === 0 || lastWeek.length === 0) return 0;
+    
+    const thisWeekSteps = thisWeek.reduce((sum, d) => sum + (d.steps || 0), 0) / thisWeek.length;
+    const lastWeekSteps = lastWeek.reduce((sum, d) => sum + (d.steps || 0), 0) / lastWeek.length;
+    
+    if (lastWeekSteps === 0) return 0;
+    
+    return Math.round(((thisWeekSteps - lastWeekSteps) / lastWeekSteps) * 100);
+}
+
+/**
+ * Calculate goal achievement rate
+ */
+calculateGoalAchievementRate(periodData) {
+    if (!periodData || periodData.length === 0) return 0;
+    
+    let achievedDays = 0;
+    
+    periodData.forEach(entry => {
+        let dailyGoals = 0;
+        let achievedGoals = 0;
+        
+        if (this.healthTracker.goals.stepsGoal) {
+            dailyGoals++;
+            if (entry.steps >= this.healthTracker.goals.stepsGoal) achievedGoals++;
+        }
+        
+        if (this.healthTracker.goals.waterGoal) {
+            dailyGoals++;
+            if (entry.waterIntake >= this.healthTracker.goals.waterGoal) achievedGoals++;
+        }
+        
+        if (this.healthTracker.goals.sleepGoal) {
+            dailyGoals++;
+            if (entry.sleepHours >= this.healthTracker.goals.sleepGoal) achievedGoals++;
+        }
+        
+        if (dailyGoals > 0 && achievedGoals === dailyGoals) {
+            achievedDays++;
+        }
+    });
+    
+    return Math.round((achievedDays / periodData.length) * 100);
+}
+
+/**
+ * Calculate current streak
+ */
+calculateCurrentStreak(allData) {
+    if (!allData || allData.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 365; i++) {
+        const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        const hasEntry = allData.some(entry => {
+            const entryDate = typeof entry.date === 'string' ? entry.date.split('T')[0] : entry.date;
+            return entryDate === dateStr;
+        });
+        
+        if (hasEntry) {
+            streak++;
+        } else {
+            break;
+        }
+    }
+    
+    return streak;
+}
+
+/**
+ * Show/Hide loading states
+ */
+showAllLoadingStates() {
+    const loadingElements = [
+        'trends-loading',
+        'analytics-loading',
+        'stats-loading'
+    ];
+    
+    loadingElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.remove('hidden');
+        }
+    });
+}
+
+hideAllLoadingStates() {
+    const loadingElements = [
+        'trends-loading',
+        'analytics-loading', 
+        'stats-loading'
+    ];
+    
+    loadingElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.classList.add('hidden');
+        }
+    });
+}
+
+/**
+ * Show analytics error
+ */
+showAnalyticsError(error) {
+    console.error('❌ Analytics Error:', error);
+    
+    const analyticsContainer = document.getElementById('analytics-content');
+    if (analyticsContainer) {
+        analyticsContainer.innerHTML = `
+            <div class="alert alert-error">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                <div>
+                    <h3 class="font-bold">Analytics-Fehler</h3>
+                    <div class="text-xs">${error.message || 'Unbekannter Fehler'}</div>
+                </div>
+                <button class="btn btn-sm" onclick="this.closest('.alert').remove(); healthTracker.analyticsEngine.loadCompleteAnalyticsData()">
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Update heatmap chart placeholder
+ */
+async updateHeatmapChart() {
+    console.log('🔥 Updating heatmap chart...');
+    
+    try {
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        if (!heatmapContainer) {
+            console.warn('⚠️ Heatmap container not found');
+            return;
+        }
+        
+        // Simple heatmap placeholder for now
+        heatmapContainer.innerHTML = `
+            <div class="p-6 text-center">
+                <i data-lucide="calendar" class="w-12 h-12 text-primary/30 mx-auto mb-2"></i>
+                <h4 class="text-lg font-semibold mb-2">Aktivitäts-Heatmap</h4>
+                <p class="text-sm text-base-content/70">Heatmap wird geladen...</p>
+            </div>
+        `;
+        
+        // Re-initialize lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        console.log('✅ Heatmap updated successfully');
+        
+    } catch (error) {
+        console.error('❌ Heatmap update error:', error);
+    }
+}
+
+/**
+ * Update analytics insights
+ */
+async updateAnalyticsInsights(periodData) {
+    console.log('💡 Updating analytics insights...');
+    
+    try {
+        const insightsContainer = document.getElementById('analytics-insights');
+        if (!insightsContainer) {
+            console.warn('⚠️ Insights container not found');
+            return;
+        }
+        
+        const insights = this.generateInsights(periodData);
+        
+        insightsContainer.innerHTML = `
+            <div class="space-y-3">
+                ${insights.map(insight => `
+                    <div class="alert alert-${insight.type}">
+                        <i data-lucide="${insight.icon}" class="w-5 h-5"></i>
+                        <div>
+                            <h4 class="font-semibold">${insight.title}</h4>
+                            <p class="text-sm">${insight.description}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        // Re-initialize lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        console.log('✅ Analytics insights updated');
+        
+    } catch (error) {
+        console.error('❌ Analytics insights error:', error);
+    }
+}
+
+/**
+ * Generate insights from data
+ */
+generateInsights(periodData) {
+    const insights = [];
+    
+    if (!periodData || periodData.length === 0) {
+        insights.push({
+            type: 'info',
+            icon: 'info',
+            title: 'Keine Daten verfügbar',
+            description: 'Füge Gesundheitsdaten hinzu, um personalisierte Insights zu erhalten.'
+        });
+        return insights;
+    }
+    
+    // Berechne Durchschnittswerte
+    const avgSteps = periodData.reduce((sum, d) => sum + (d.steps || 0), 0) / periodData.length;
+    const avgWater = periodData.reduce((sum, d) => sum + (d.waterIntake || 0), 0) / periodData.length;
+    const avgSleep = periodData.reduce((sum, d) => sum + (d.sleepHours || 0), 0) / periodData.length;
+    
+    // Schritte-Insight
+    if (avgSteps > 8000) {
+        insights.push({
+            type: 'success',
+            icon: 'trending-up',
+            title: 'Großartige Aktivität!',
+            description: `Du gehst durchschnittlich ${Math.round(avgSteps).toLocaleString()} Schritte täglich.`
+        });
+    } else if (avgSteps < 5000) {
+        insights.push({
+            type: 'warning',
+            icon: 'trending-down',
+            title: 'Mehr Bewegung empfohlen',
+            description: 'Versuche täglich mindestens 5.000 Schritte zu gehen.'
+        });
+    }
+    
+    // Wasser-Insight
+    if (avgWater < 1.5) {
+        insights.push({
+            type: 'info',
+            icon: 'droplets',
+            title: 'Hydration verbessern',
+            description: 'Trinke täglich mindestens 1,5-2 Liter Wasser für optimale Gesundheit.'
+        });
+    }
+    
+    // Schlaf-Insight  
+    if (avgSleep < 7) {
+        insights.push({
+            type: 'warning',
+            icon: 'moon',
+            title: 'Mehr Schlaf benötigt',
+            description: 'Erwachsene sollten 7-9 Stunden pro Nacht schlafen.'
+        });
+    }
+    
+    return insights;
+}
 }
 
 // === PWA INSTALL PROMPT (Globale Funktion) ===

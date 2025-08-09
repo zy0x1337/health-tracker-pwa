@@ -2801,11 +2801,7 @@ initializeAnalyticsEventListeners() {
             return;
         }
 
-        // Current state tracking
-        this.currentAnalyticsPeriod = 14; // Default 14 days
-        this.currentMetricFilter = 'all'; // Default all metrics
-        
-        // Period filter buttons - Verbesserte Implementation
+        // Period filter buttons - Implementation
         document.querySelectorAll('[data-period]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -2820,20 +2816,16 @@ initializeAnalyticsEventListeners() {
                     button.classList.remove('btn-outline');
                     button.classList.add('btn-primary', 'active');
                     
-                    // Trigger analytics update through AnalyticsEngine
+                    // KORRIGIERT: Verwende AnalyticsEngine-Methode
                     const period = parseInt(button.dataset.period);
                     console.log('📊 Updating analytics period to:', period, 'days');
                     
-                    // Store current period
-                    this.currentAnalyticsPeriod = period;
-                    
-                    // Check if method exists
-                    if (typeof this.analyticsEngine.updateAnalyticsPeriod === 'function') {
-                        this.analyticsEngine.updateAnalyticsPeriod(period);
+                    // Direkter Aufruf der AnalyticsEngine-Methode
+                    if (typeof this.analyticsEngine.handlePeriodChange === 'function') {
+                        this.analyticsEngine.handlePeriodChange(period);
                     } else {
-                        // Fallback: Manual data filtering
-                        console.log('📊 Using fallback period update');
-                        this.handlePeriodChange(period);
+                        console.warn('⚠️ AnalyticsEngine handlePeriodChange not available');
+                        this.showToast('📊 Analytics-Update nicht verfügbar', 'warning');
                     }
                     
                 } catch (error) {
@@ -2843,124 +2835,46 @@ initializeAnalyticsEventListeners() {
             });
         });
 
-        /**
- * KORRIGIERTE Metric Tab Event Listener
- */
-document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const button = e.target.closest('.metric-tab');
-        
-        try {
-            console.log('📈 Metric clicked:', button.dataset.metric);
-            
-            // Update tab states
-            document.querySelectorAll('.metric-tab').forEach(b => {
-                b.classList.remove('tab-active');
-            });
-            button.classList.add('tab-active');
-            
-            // Get metric and label
-            const metric = button.dataset.metric;
-            const label = button.dataset.label || button.textContent.trim();
-            
-            console.log('📈 Changing metric to', metric);
-            
-            // Store current metric
-            this.currentMetricFilter = metric;
-            
-            // Metric-Filter als Parameter übergeben
-            if (typeof this.analyticsEngine.updateTrendsChart === 'function') {
-                const filteredData = this.getFilteredHealthData(this.currentAnalyticsPeriod || 14);
-                // Beide Parameter übergeben - Daten UND Metric-Filter
-                this.analyticsEngine.updateTrendsChart(filteredData, metric);
-            } else {
-                console.warn('⚠️ updateTrendsChart method not available');
-                this.showToast('📊 Chart-Update nicht verfügbar', 'warning');
-            }
-            
-        } catch (error) {
-            console.error('❌ Metric change error:', error);
-            this.showToast('⚠️ Fehler beim Ändern der Metrik', 'warning');
-        }
-    });
-});
-
-        // Dropdown Filter Integration
-        document.querySelectorAll('.metric-filter-btn[data-metric]').forEach(btn => {
+        // Metric Tab Event Listener
+        document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const button = e.target.closest('.metric-filter-btn');
+                const button = e.target.closest('.metric-tab');
                 
                 try {
-                    // Update active states
-                    document.querySelectorAll('.metric-filter-btn').forEach(b => {
-                        b.classList.remove('active');
-                        b.removeAttribute('data-active');
+                    console.log('📈 Metric clicked:', button.dataset.metric);
+                    
+                    // Update tab states
+                    document.querySelectorAll('.metric-tab').forEach(b => {
+                        b.classList.remove('tab-active');
                     });
-                    button.classList.add('active');
-                    button.setAttribute('data-active', 'true');
+                    button.classList.add('tab-active');
                     
-                    // Apply filter
+                    // Get metric and label
                     const metric = button.dataset.metric;
-                    this.applyMetricFilter(metric);
                     
-                    // Close dropdown
-                    const dropdown = button.closest('.dropdown');
-                    if (dropdown) {
-                        dropdown.removeAttribute('open');
-                        const toggle = dropdown.querySelector('[tabindex]');
-                        if (toggle) toggle.blur();
+                    // Verwende AnalyticsEngine-Methode
+                    if (typeof this.analyticsEngine.handleMetricChange === 'function') {
+                        this.analyticsEngine.handleMetricChange(metric);
+                    } else {
+                        console.warn('⚠️ AnalyticsEngine handleMetricChange not available');
+                        this.showToast('📊 Metric-Update nicht verfügbar', 'warning');
                     }
                     
                 } catch (error) {
-                    console.error('❌ Filter error:', error);
+                    console.error('❌ Metric change error:', error);
+                    this.showToast('⚠️ Fehler beim Ändern der Metrik', 'warning');
                 }
             });
         });
 
-        // Retry Button Integration
-        const retryBtn = document.getElementById('trends-retry-btn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => this.retryTrendsLoad());
-        }
-
-        // Export Button Integration
-        const exportBtn = document.getElementById('export-chart-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.exportTrendsChart());
-        }
-
         console.log('✅ Analytics event listeners initialized successfully');
-        
-        // Initial state setup
-        this.setInitialAnalyticsState();
         
     } catch (error) {
         console.error('❌ Analytics event listeners initialization failed:', error);
         this.showToast('⚠️ Analytics-Features teilweise nicht verfügbar', 'warning');
     }
 }
-
-/** Handle period change */
-    async handlePeriodChange(period) {
-        this.currentPeriod = period;
-        console.log(`📊 Changing period to ${period} days`);
-        
-        // Update button states
-        document.querySelectorAll('[data-period]').forEach(btn => {
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-ghost');
-        });
-        
-        const activeBtn = document.querySelector(`[data-period="${period}"]`);
-        if (activeBtn) {
-            activeBtn.classList.remove('btn-ghost');
-            activeBtn.classList.add('btn-primary');
-        }
-        
-        await this.loadCompleteAnalyticsData();
-    }
 
 /**
  * Set Initial Analytics State

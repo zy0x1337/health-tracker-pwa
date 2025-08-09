@@ -2995,31 +2995,6 @@ updateTrendsDataCount() {
     }
 }
 
-/**
- * Retry Trends Load
- */
-async retryTrendsLoad() {
-    try {
-        console.log('🔄 Retrying trends load...');
-        this.showTrendsLoading();
-        
-        // Reload data
-        await this.loadHealthData();
-        
-        // Update analytics
-        if (this.analyticsEngine) {
-            await this.analyticsEngine.updateAllAnalytics();
-        }
-        
-        this.showToast('✅ Trends erfolgreich aktualisiert', 'success');
-        
-    } catch (error) {
-        console.error('❌ Retry failed:', error);
-        this.showTrendsError('Wiederholung fehlgeschlagen');
-        this.showToast('❌ Aktualisierung fehlgeschlagen', 'error');
-    }
-}
-
     // === MEHR-MENÜ FUNKTIONEN ===
 showImportExport() {
     console.log('📥 Import/Export Dialog wird geöffnet');
@@ -3080,237 +3055,248 @@ showDataPrivacy() {
 }
 
 /**
- * Zeige erweiterte App-Informationen mit verbesserter UX
+ * Zeige erweiterte App-Informationen
  */
 showAbout() {
     console.log('ℹ️ Über die App wird angezeigt');
     
-    // Prüfe ob bereits ein About-Modal existiert
-    const existingModal = document.querySelector('.about-modal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Sammle dynamische App-Statistiken
-    const appStats = this.getAppStats();
-    const buildInfo = this.getBuildInfo();
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal modal-open about-modal';
-    modal.innerHTML = `
-        <div class="modal-box max-w-4xl">
-            <!-- Header mit Animation -->
-            <div class="flex items-center gap-3 mb-6">
-                <div class="avatar placeholder">
-                    <div class="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-xl w-12 h-12">
-                        <i data-lucide="activity" class="w-6 h-6"></i>
+    try {
+        // Prüfe ob bereits ein About-Modal existiert
+        const existingModal = document.querySelector('.about-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Sammle dynamische App-Statistiken
+        const appStats = this.getAppStats();
+        const buildInfo = this.getBuildInfo();
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open about-modal';
+        modal.innerHTML = `
+            <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+                <!-- Header mit Animation -->
+                <div class="flex items-center gap-3 mb-6 sticky top-0 bg-base-100 py-2 border-b border-base-300/50 z-10">
+                    <div class="avatar placeholder">
+                        <div class="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-xl w-12 h-12">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
                     </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Health Tracker Pro
+                        </h3>
+                        <p class="text-sm text-base-content/70">Progressive Web Application v${buildInfo.version}</p>
+                    </div>
+                    <button class="btn btn-ghost btn-sm btn-circle" onclick="this.closest('.modal').remove()">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <div>
-                    <h3 class="font-bold text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        Health Tracker Pro
-                    </h3>
-                    <p class="text-sm text-base-content/70">Progressive Web Application</p>
-                </div>
-            </div>
-            
-            <!-- Tabs für verschiedene Infobereiche -->
-            <div class="tabs tabs-lifted mb-4">
-                <a class="tab tab-active" data-about-tab="overview">📊 Übersicht</a>
-                <a class="tab" data-about-tab="features">🚀 Features</a>
-                <a class="tab" data-about-tab="stats">📈 Statistiken</a>
-                <a class="tab" data-about-tab="tech">⚡ Technologie</a>
-            </div>
-            
-            <!-- Tab Content Container -->
-            <div class="tab-content min-h-[400px]">
-                <!-- Overview Tab -->
-                <div id="about-overview" class="tab-panel block">
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title text-lg flex items-center gap-2">
-                                    <i data-lucide="info" class="w-5 h-5"></i>
-                                    App-Informationen
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Version:</span>
-                                        <span class="font-semibold">${buildInfo.version}</span>
+                
+                <!-- Alle Inhalte in einem scrollbaren Bereich -->
+                <div class="space-y-8">
+                    
+                    <!-- App-Informationen -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="info" class="w-5 h-5 text-primary"></i>
+                            App-Informationen
+                        </h4>
+                        
+                        <div class="grid md:grid-cols-2 gap-4 mb-6">
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-3">Technische Details</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-base-content/70">Version:</span>
+                                            <span class="font-semibold">${buildInfo.version}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-base-content/70">Build:</span>
+                                            <span class="font-mono text-xs">${buildInfo.buildDate}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-base-content/70">Typ:</span>
+                                            <div class="badge badge-primary badge-sm">PWA</div>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-base-content/70">Status:</span>
+                                            <div class="badge badge-success badge-sm">
+                                                ${this.isOnline ? '🌐 Online' : '📵 Offline'}
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-base-content/70">Umgebung:</span>
+                                            <span class="text-xs">${buildInfo.environment}</span>
+                                        </div>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Build:</span>
-                                        <span class="font-mono text-xs">${buildInfo.buildDate}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Typ:</span>
-                                        <div class="badge badge-primary badge-sm">PWA</div>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-base-content/70">Status:</span>
-                                        <div class="badge badge-success badge-sm">
-                                            ${this.isOnline ? '🌐 Online' : '📵 Offline'}
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-3">Nutzungsstatistiken</h5>
+                                    <div class="space-y-3">
+                                        <div class="stat p-0">
+                                            <div class="stat-title text-xs">Tage mit Daten</div>
+                                            <div class="stat-value text-2xl text-primary">${appStats.totalDays}</div>
+                                        </div>
+                                        <div class="stat p-0">
+                                            <div class="stat-title text-xs">Einträge gesamt</div>
+                                            <div class="stat-value text-2xl text-secondary">${appStats.totalEntries}</div>
+                                        </div>
+                                        <div class="stat p-0">
+                                            <div class="stat-title text-xs">Aktuelle Serie</div>
+                                            <div class="stat-value text-2xl text-accent">${appStats.currentStreak}</div>
+                                        </div>
+                                        <div class="stat p-0">
+                                            <div class="stat-title text-xs">Speicherverbrauch</div>
+                                            <div class="stat-value text-lg text-info">${appStats.storageSize}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <!-- Features -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="rocket" class="w-5 h-5 text-secondary"></i>
+                            Features & Funktionen
+                        </h4>
                         
-                        <div class="card bg-base-200">
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                            ${this.generateFeatureCards()}
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                            <div>
+                                <h4 class="font-semibold">Produktivitäts-Tipp</h4>
+                                <p class="text-sm">Nutze die Schnellerfassung (Quick Add) für eine effiziente tägliche Dateneingabe!</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Detaillierte Statistiken -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-accent"></i>
+                            Detaillierte Statistiken
+                        </h4>
+                        
+                        <div class="stats stats-vertical lg:stats-horizontal shadow-lg w-full mb-6">
+                            <div class="stat">
+                                <div class="stat-figure text-primary">
+                                    <i data-lucide="calendar-days" class="w-8 h-8"></i>
+                                </div>
+                                <div class="stat-title">Installiert seit</div>
+                                <div class="stat-value text-lg">${appStats.installDuration}</div>
+                                <div class="stat-desc">${appStats.installDate}</div>
+                            </div>
+                            
+                            <div class="stat">
+                                <div class="stat-figure text-secondary">
+                                    <i data-lucide="target" class="w-8 h-8"></i>
+                                </div>
+                                <div class="stat-title">Ziele erreicht</div>
+                                <div class="stat-value text-lg">${appStats.goalsAchieved}</div>
+                                <div class="stat-desc">von ${appStats.totalGoals} gesetzt</div>
+                            </div>
+                            
+                            <div class="stat">
+                                <div class="stat-figure text-accent">
+                                    <i data-lucide="database" class="w-8 h-8"></i>
+                                </div>
+                                <div class="stat-title">Datenspeicher</div>
+                                <div class="stat-value text-lg">${appStats.storageSize}</div>
+                                <div class="stat-desc">lokal gespeichert</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Speicher-Details -->
+                        <div class="card bg-base-200 mb-6">
                             <div class="card-body">
-                                <h4 class="card-title text-lg flex items-center gap-2">
-                                    <i data-lucide="users" class="w-5 h-5"></i>
-                                    Nutzung
-                                </h4>
-                                <div class="space-y-3">
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Tage mit Daten</div>
-                                        <div class="stat-value text-2xl">${appStats.totalDays}</div>
+                                <h5 class="card-title flex items-center gap-2">
+                                    <i data-lucide="hard-drive" class="w-5 h-5"></i>
+                                    Speicher-Aufschlüsselung
+                                </h5>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div class="bg-base-100 p-3 rounded-lg">
+                                        <div class="text-2xl font-bold text-primary">${appStats.healthDataSize}</div>
+                                        <div class="text-xs text-base-content/70">Gesundheitsdaten</div>
                                     </div>
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Einträge gesamt</div>
-                                        <div class="stat-value text-2xl">${appStats.totalEntries}</div>
+                                    <div class="bg-base-100 p-3 rounded-lg">
+                                        <div class="text-2xl font-bold text-secondary">${appStats.goalsSize}</div>
+                                        <div class="text-xs text-base-content/70">Ziele</div>
                                     </div>
-                                    <div class="stat">
-                                        <div class="stat-title text-xs">Aktuelle Serie</div>
-                                        <div class="stat-value text-2xl">${appStats.currentStreak}</div>
+                                    <div class="bg-base-100 p-3 rounded-lg">
+                                        <div class="text-2xl font-bold text-accent">${appStats.settingsSize}</div>
+                                        <div class="text-xs text-base-content/70">Einstellungen</div>
+                                    </div>
+                                    <div class="bg-base-100 p-3 rounded-lg">
+                                        <div class="text-2xl font-bold text-info">${appStats.cacheSize}</div>
+                                        <div class="text-xs text-base-content/70">Cache</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mt-6 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20">
-                        <p class="text-center text-base-content/80">
-                            <i data-lucide="heart" class="w-4 h-4 inline mr-1 text-red-500"></i>
-                            Eine moderne, sichere und benutzerfreundliche Lösung für dein Gesundheitsmanagement.
-                        </p>
-                    </div>
-                </div>
-                
-                <!-- Features Tab -->
-                <div id="about-features" class="tab-panel hidden">
-                    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${this.generateFeatureCards()}
-                    </div>
-                    <div class="mt-6 alert alert-info">
-                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
-                        <div>
-                            <h4 class="font-semibold">Produktivitäts-Tipp</h4>
-                            <p class="text-sm">Nutze die Schnellerfassung (Quick Add) für eine effiziente tägliche Dateneingabe!</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Stats Tab -->
-                <div id="about-stats" class="tab-panel hidden">
-                    <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
-                        <div class="stat">
-                            <div class="stat-figure text-primary">
-                                <i data-lucide="calendar-days" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Installiert seit</div>
-                            <div class="stat-value text-lg">${appStats.installDuration}</div>
-                            <div class="stat-desc">${appStats.installDate}</div>
-                        </div>
+                    </section>
+
+                    <!-- Technologie-Stack -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="code" class="w-5 h-5 text-warning"></i>
+                            Technologie & Architektur
+                        </h4>
                         
-                        <div class="stat">
-                            <div class="stat-figure text-secondary">
-                                <i data-lucide="target" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Ziele erreicht</div>
-                            <div class="stat-value text-lg">${appStats.goalsAchieved}</div>
-                            <div class="stat-desc">von ${appStats.totalGoals} gesetzt</div>
-                        </div>
-                        
-                        <div class="stat">
-                            <div class="stat-figure text-accent">
-                                <i data-lucide="database" class="w-8 h-8"></i>
-                            </div>
-                            <div class="stat-title">Datenspeicher</div>
-                            <div class="stat-value text-lg">${appStats.storageSize}</div>
-                            <div class="stat-desc">lokal gespeichert</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Speicher-Details -->
-                    <div class="card bg-base-200">
-                        <div class="card-body">
-                            <h4 class="card-title flex items-center gap-2">
-                                <i data-lucide="hard-drive" class="w-5 h-5"></i>
-                                Speicher-Details
-                            </h4>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-primary">${appStats.healthDataSize}</div>
-                                    <div class="text-xs text-base-content/70">Gesundheitsdaten</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-secondary">${appStats.goalsSize}</div>
-                                    <div class="text-xs text-base-content/70">Ziele</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-accent">${appStats.settingsSize}</div>
-                                    <div class="text-xs text-base-content/70">Einstellungen</div>
-                                </div>
-                                <div class="bg-base-100 p-3 rounded-lg">
-                                    <div class="text-2xl font-bold text-info">${appStats.cacheSize}</div>
-                                    <div class="text-xs text-base-content/70">Cache</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Performance Metriken -->
-                    <div class="mt-4 alert alert-success">
-                        <i data-lucide="zap" class="w-5 h-5"></i>
-                        <div>
-                            <h4 class="font-semibold">Performance</h4>
-                            <p class="text-sm">App läuft optimal mit ${appStats.totalEntries} Einträgen in ${appStats.storageSize} Speicher.</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Tech Tab -->
-                <div id="about-tech" class="tab-panel hidden">
-                    <div class="space-y-6">
-                        <!-- Technologie Stack -->
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title flex items-center gap-2">
-                                    <i data-lucide="code" class="w-5 h-5"></i>
-                                    Technologie-Stack
-                                </h4>
-                                <div class="grid sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Frontend</h5>
-                                        <div class="flex flex-wrap gap-1">
-                                            <div class="badge badge-outline">Vanilla JavaScript ES6+</div>
-                                            <div class="badge badge-outline">HTML5 & CSS3</div>
-                                            <div class="badge badge-outline">DaisyUI + Tailwind CSS</div>
-                                            <div class="badge badge-outline">Lucide Icons</div>
-                                        </div>
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
+                            <!-- Frontend Technologies -->
+                            <div class="card bg-base-200">
+                                <div class="card-body">
+                                    <h5 class="font-semibold mb-3 flex items-center gap-2">
+                                        <i data-lucide="monitor" class="w-4 h-4 text-primary"></i>
+                                        Frontend
+                                    </h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        <div class="badge badge-outline">Vanilla JavaScript ES6+</div>
+                                        <div class="badge badge-outline">HTML5 & CSS3</div>
+                                        <div class="badge badge-outline">DaisyUI + Tailwind CSS</div>
+                                        <div class="badge badge-outline">Lucide Icons</div>
+                                        <div class="badge badge-outline">Chart.js</div>
+                                        <div class="badge badge-outline">PWA Manifest</div>
                                     </div>
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Backend & Infrastruktur</h5>
-                                        <div class="flex flex-wrap gap-1">
-                                            <div class="badge badge-outline">Netlify Functions</div>
-                                            <div class="badge badge-outline">MongoDB Atlas</div>
-                                            <div class="badge badge-outline">Service Worker</div>
-                                            <div class="badge badge-outline">PWA Manifest</div>
-                                        </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Backend & Infrastructure -->
+                            <div class="card bg-base-200">
+                                <div class="card-body">
+                                    <h5 class="font-semibold mb-3 flex items-center gap-2">
+                                        <i data-lucide="server" class="w-4 h-4 text-secondary"></i>
+                                        Backend & Infrastruktur
+                                    </h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        <div class="badge badge-outline">Netlify Functions</div>
+                                        <div class="badge badge-outline">MongoDB Atlas</div>
+                                        <div class="badge badge-outline">Service Worker</div>
+                                        <div class="badge badge-outline">IndexedDB</div>
+                                        <div class="badge badge-outline">Web APIs</div>
+                                        <div class="badge badge-outline">Offline-First</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- PWA Features -->
-                        <div class="card bg-base-200">
+                        <div class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
                             <div class="card-body">
-                                <h4 class="card-title flex items-center gap-2">
-                                    <i data-lucide="smartphone" class="w-5 h-5"></i>
-                                    PWA-Features
-                                </h4>
+                                <h5 class="font-semibold mb-4 flex items-center gap-2">
+                                    <i data-lucide="smartphone" class="w-5 h-5 text-primary"></i>
+                                    Progressive Web App Features
+                                </h5>
                                 <div class="grid sm:grid-cols-2 gap-4">
                                     <div class="space-y-2">
                                         <div class="flex items-center gap-2">
@@ -3343,314 +3329,133 @@ showAbout() {
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <!-- System Requirements -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="settings" class="w-5 h-5 text-info"></i>
+                            System-Anforderungen
+                        </h4>
                         
-                        <!-- System Requirements -->
-                        <div class="card bg-base-200">
-                            <div class="card-body">
-                                <h4 class="card-title flex items-center gap-2">
-                                    <i data-lucide="monitor" class="w-5 h-5"></i>
-                                    System-Anforderungen
-                                </h4>
-                                <div class="grid sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Unterstützte Browser</h5>
-                                        <ul class="text-sm space-y-1">
-                                            <li>• Chrome/Chromium 80+</li>
-                                            <li>• Firefox 75+</li>
-                                            <li>• Safari 13+</li>
-                                            <li>• Edge 80+</li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h5 class="font-semibold mb-2">Geräte</h5>
-                                        <ul class="text-sm space-y-1">
-                                            <li>• Desktop/Laptop</li>
-                                            <li>• Tablets</li>
-                                            <li>• Smartphones</li>
-                                            <li>• Touch-Geräte</li>
-                                        </ul>
-                                    </div>
+                        <div class="grid sm:grid-cols-2 gap-6">
+                            <div class="card bg-base-200">
+                                <div class="card-body">
+                                    <h5 class="font-semibold mb-3">Unterstützte Browser</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-success rounded-full"></div>
+                                            Chrome/Chromium 80+
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-success rounded-full"></div>
+                                            Firefox 75+
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-success rounded-full"></div>
+                                            Safari 13+
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-success rounded-full"></div>
+                                            Edge 80+
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-base-200">
+                                <div class="card-body">
+                                    <h5 class="font-semibold mb-3">Unterstützte Geräte</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-info rounded-full"></div>
+                                            Desktop/Laptop Computer
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-info rounded-full"></div>
+                                            Tablets (iPad, Android)
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-info rounded-full"></div>
+                                            Smartphones (iOS, Android)
+                                        </li>
+                                        <li class="flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-info rounded-full"></div>
+                                            Touch-fähige Geräte
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Browser Support Alert -->
-                        <div class="alert alert-info">
-                            <i data-lucide="info" class="w-5 h-5"></i>
-                            <div>
-                                <h4 class="font-semibold">Browser-Kompatibilität</h4>
-                                <p class="text-sm">Optimiert für moderne Browser mit PWA-Support. Installation als App möglich.</p>
+                    </section>
+
+                    <!-- Performance & Datenschutz -->
+                    <section>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="alert alert-success">
+                                <i data-lucide="zap" class="w-5 h-5"></i>
+                                <div>
+                                    <h4 class="font-semibold">Performance-optimiert</h4>
+                                    <p class="text-sm">App läuft optimal mit ${appStats.totalEntries} Einträgen in ${appStats.storageSize} Speicher.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                                <div>
+                                    <h4 class="font-semibold">Privacy-First Design</h4>
+                                    <p class="text-sm">Alle Daten bleiben auf deinem Gerät und werden verschlüsselt übertragen.</p>
+                                </div>
                             </div>
                         </div>
+                    </section>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="modal-action mt-8 pt-4 border-t border-base-300/50 sticky bottom-0 bg-base-100">
+                    <div class="flex flex-wrap gap-2 w-full justify-between">
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.exportAppData?.()">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                Daten exportieren
+                            </button>
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.showHelp?.()">
+                                <i data-lucide="help-circle" class="w-4 h-4"></i>
+                                Hilfe
+                            </button>
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.showDataUsage?.()">
+                                <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                                Speicher-Details
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            Schließen
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Action Buttons -->
-            <div class="modal-action mt-6">
-                <div class="flex flex-wrap gap-2">
-                    <button class="btn btn-ghost btn-sm" onclick="healthTracker?.exportAppData?.()">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        Daten exportieren
-                    </button>
-                    <button class="btn btn-ghost btn-sm" onclick="healthTracker?.showHelp?.()">
-                        <i data-lucide="help-circle" class="w-4 h-4"></i>
-                        Hilfe
-                    </button>
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                        Schließen
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Tab-Funktionalität aktivieren mit Delay für DOM-Aufbau
-    setTimeout(() => {
-        this.initializeAboutTabsImproved(modal);
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        `;
+        
+        document.body.appendChild(modal);
         
         // Icons initialisieren
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-    }, 50);
-    
-    // Haptic Feedback
-    if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-        navigator.vibrate(10);
-    }
-}
-
-/**
- * Tab-Funktionalität für About Modal
- */
-initializeAboutTabsImproved(modal) {
-    console.log('🔧 Initialisiere About Tabs (Fixed)');
-    
-    try {
-        // WICHTIG: Warten bis DOM vollständig aufgebaut ist
-        setTimeout(() => {
-            const tabs = modal.querySelectorAll('[data-about-tab]');
-            const panels = modal.querySelectorAll('.tab-panel');
-            
-            console.log(`📊 Gefunden: ${tabs.length} Tabs, ${panels.length} Panels`);
-            
-            if (tabs.length === 0 || panels.length === 0) {
-                console.warn('⚠️ Keine Tabs oder Panels gefunden - versuche Fallback');
-                this.createFallbackTabContent(modal);
-                return;
-            }
-            
-            // KORRIGIERT: Alle Panels initial verstecken außer dem ersten
-            panels.forEach((panel, index) => {
-                if (index === 0) {
-                    panel.style.display = 'block';
-                    panel.classList.remove('hidden');
-                } else {
-                    panel.style.display = 'none';
-                    panel.classList.add('hidden');
-                }
-            });
-            
-            // KORRIGIERT: Ersten Tab als aktiv markieren
-            tabs.forEach((tab, index) => {
-                if (index === 0) {
-                    tab.classList.add('tab-active');
-                } else {
-                    tab.classList.remove('tab-active');
-                }
-            });
-            
-            // VERBESSERTE showTab Funktion
-            function showTab(tabName) {
-                console.log(`🔄 Wechsle zu Tab: ${tabName}`);
-                
-                try {
-                    // Alle Panels verstecken (mehrere Methoden für Robustheit)
-                    panels.forEach(panel => {
-                        panel.style.display = 'none';
-                        panel.classList.add('hidden');
-                        panel.classList.remove('block');
-                    });
-                    
-                    // Alle Tabs deaktivieren
-                    tabs.forEach(tab => {
-                        tab.classList.remove('tab-active');
-                    });
-                    
-                    // Ziel-Panel finden und anzeigen
-                    const targetPanel = modal.querySelector(`#about-${tabName}`);
-                    const targetTab = modal.querySelector(`[data-about-tab="${tabName}"]`);
-                    
-                    if (targetPanel && targetTab) {
-                        // Panel anzeigen (mehrere Methoden)
-                        targetPanel.style.display = 'block';
-                        targetPanel.classList.remove('hidden');
-                        targetPanel.classList.add('block');
-                        
-                        // Tab aktivieren
-                        targetTab.classList.add('tab-active');
-                        
-                        console.log(`✅ Tab ${tabName} erfolgreich aktiviert`);
-                        
-                        // Icons neu initialisieren
-                        if (typeof lucide !== 'undefined') {
-                            lucide.createIcons();
-                        }
-                        
-                        return true;
-                    } else {
-                        console.error(`❌ Panel (#about-${tabName}) oder Tab nicht gefunden`);
-                        return false;
-                    }
-                } catch (error) {
-                    console.error(`❌ Fehler beim Tab-Wechsel zu ${tabName}:`, error);
-                    return false;
-                }
-            }
-            
-            // VERBESSERTE Event Listeners
-            tabs.forEach(tab => {
-                // Alle existierenden Listener entfernen (Clone-Trick)
-                const newTab = tab.cloneNode(true);
-                tab.parentNode.replaceChild(newTab, tab);
-                
-                // Neuen Event Listener hinzufügen
-                newTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const tabName = newTab.dataset.aboutTab;
-                    if (tabName) {
-                        const success = showTab(tabName);
-                        
-                        if (success) {
-                            // Haptic Feedback nur bei Erfolg
-                            if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-                                navigator.vibrate(5);
-                            }
-                        }
-                    }
-                });
-            });
-            
-            // KORRIGIERT: Initialer Tab nach Event Listener Setup
-            setTimeout(() => {
-                showTab('overview');
-                console.log('✅ About Tabs erfolgreich initialisiert');
-            }, 50);
-            
-        }, 100); // Delay für DOM-Aufbau
+        
+        // Haptic Feedback
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            navigator.vibrate(10);
+        }
+        
+        console.log('✅ About Modal (ohne Tabs) erfolgreich angezeigt');
         
     } catch (error) {
-        console.error('❌ About Tabs Initialisierung fehlgeschlagen:', error);
-        this.createFallbackTabContent(modal);
+        console.error('❌ Fehler beim Anzeigen des About Modals:', error);
+        this.showToast('❌ Fehler beim Öffnen der App-Informationen', 'error');
     }
-}
-
-/**
- * Fallback-Inhalt für About Modal
- */
-createFallbackTabContent(modal) {
-    console.log('🔧 Erstelle Fallback-Inhalt für About Modal');
-    
-    const contentContainer = modal.querySelector('.tab-content') || modal.querySelector('.modal-box');
-    if (!contentContainer) return;
-    
-    // Entferne existierende Tab-Struktur
-    const existingTabs = modal.querySelector('.tabs');
-    const existingPanels = modal.querySelectorAll('.tab-panel');
-    
-    if (existingTabs) existingTabs.remove();
-    existingPanels.forEach(panel => panel.remove());
-    
-    // Erstelle einfachen Content ohne Tabs
-    const fallbackContent = document.createElement('div');
-    fallbackContent.className = 'space-y-6';
-    
-    const appStats = this.getAppStats();
-    const buildInfo = this.getBuildInfo();
-    
-    fallbackContent.innerHTML = `
-        <!-- Vereinfachter Inhalt ohne Tabs -->
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="card bg-base-200">
-                <div class="card-body">
-                    <h4 class="card-title text-lg flex items-center gap-2">
-                        <i data-lucide="info" class="w-5 h-5"></i>
-                        App-Informationen
-                    </h4>
-                    <div class="space-y-2">
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Version:</span>
-                            <span class="font-semibold">${buildInfo.version}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Build:</span>
-                            <span class="font-mono text-xs">${buildInfo.buildDate}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Typ:</span>
-                            <div class="badge badge-primary badge-sm">PWA</div>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-base-content/70">Status:</span>
-                            <div class="badge badge-success badge-sm">
-                                ${this.isOnline ? '🌐 Online' : '📵 Offline'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card bg-base-200">
-                <div class="card-body">
-                    <h4 class="card-title text-lg flex items-center gap-2">
-                        <i data-lucide="users" class="w-5 h-5"></i>
-                        Nutzungsstatistiken
-                    </h4>
-                    <div class="space-y-3">
-                        <div class="stat">
-                            <div class="stat-title text-xs">Tage mit Daten</div>
-                            <div class="stat-value text-2xl">${appStats.totalDays}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title text-xs">Einträge gesamt</div>
-                            <div class="stat-value text-2xl">${appStats.totalEntries}</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title text-xs">Speicherverbrauch</div>
-                            <div class="stat-value text-lg">${appStats.storageSize}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="alert alert-info">
-            <i data-lucide="info" class="w-5 h-5"></i>
-            <div>
-                <h4 class="font-semibold">Health Tracker Pro</h4>
-                <p class="text-sm">Eine moderne, sichere PWA für professionelles Gesundheitsmanagement mit vollständigem Datenschutz.</p>
-            </div>
-        </div>
-    `;
-    
-    // Existierenden Inhalt ersetzen
-    const targetContainer = contentContainer.querySelector('.tab-content') || contentContainer;
-    targetContainer.innerHTML = '';
-    targetContainer.appendChild(fallbackContent);
-    
-    // Icons initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-    
-    console.log('✅ Fallback-Inhalt erstellt');
 }
 
 /**

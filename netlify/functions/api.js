@@ -1,4 +1,4 @@
-// netlify/functions/api.js
+// netlify/functions/api.js - Optimierte Version für Health Tracker Pro
 
 const mongoose = require('mongoose');
 
@@ -15,7 +15,9 @@ async function connectToDatabase() {
         const connection = await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-            dbName: 'health-tracker'
+            dbName: 'health-tracker',
+            bufferCommands: false,
+            maxPoolSize: 10
         });
         cachedConnection = connection;
         console.log('✅ MongoDB connected to database: health-tracker');
@@ -26,9 +28,10 @@ async function connectToDatabase() {
     }
 }
 
+// VERBESSERTE SCHEMAS mit Index-Optimierung
 const healthDataSchema = new mongoose.Schema({
-    userId: { type: String, required: true },
-    date: { type: Date, required: true },
+    userId: { type: String, required: true, index: true },
+    date: { type: Date, required: true, index: true },
     weight: { type: Number, min: 0 },
     steps: { type: Number, min: 0 },
     waterIntake: { type: Number, min: 0 },
@@ -38,12 +41,19 @@ const healthDataSchema = new mongoose.Schema({
         enum: ['excellent', 'good', 'neutral', 'bad', 'terrible']
     },
     notes: String,
+    // NEUE FELDER für bessere Client-Integration
+    _localId: String, // Für Offline-Sync
+    _synced: { type: Boolean, default: true },
+    submissionId: String, // Duplicate Prevention
     createdAt: { type: Date, default: Date.now }
 });
 
-// NEW: Goals Schema
+// Compound Index für Performance
+healthDataSchema.index({ userId: 1, date: -1 });
+healthDataSchema.index({ userId: 1, createdAt: -1 });
+
 const goalsSchema = new mongoose.Schema({
-    userId: { type: String, required: true },
+    userId: { type: String, required: true, unique: true },
     weightGoal: { type: Number, min: 0 },
     stepsGoal: { type: Number, min: 0, default: 10000 },
     waterGoal: { type: Number, min: 0, default: 2.0 },
@@ -58,23 +68,30 @@ const HealthData = mongoose.models.HealthData ||
 const Goals = mongoose.models.Goals ||
     mongoose.model('Goals', goalsSchema, 'goals');
 
-// HAUPT-HANDLER FUNCTION
+// VERBESSERTE HAUPTFUNKTION
 const handler = async (event, context) => {
-    let { httpMethod, path } = event;
+    // Serverless Context Optimierung
+    context.callbackWaitsForEmptyEventLoop = false;
+    
+    let { httpMethod, path, queryStringParameters } = event;
 
-    // 🔧 KORREKTUR: Entferne /api prefix falls vorhanden (für Redirects)
+    // Path Normalization
+    if (path.startsWith('/.netlify/functions/api')) {
+        path = path.replace('/.netlify/functions/api', '');
+    }
     if (path.startsWith('/api/')) {
         path = path.replace('/api', '');
     }
+    if (path === '') path = '/';
 
     console.log(`📞 API Handler: ${httpMethod} ${path}`);
-    console.log(`🔍 Original path: ${event.path}`);
 
     const headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Cache-Control': 'no-cache'
     };
 
     // OPTIONS Request
@@ -83,82 +100,106 @@ const handler = async (event, context) => {
     }
 
     try {
-        // ROOT PATH - Function verfügbarkeit testen
-        if (httpMethod === 'GET' && (path === '/' || path === '')) {
+        // ROOT PATH - Function Status
+        if (httpMethod === 'GET' && path === '/') {
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
-                    message: 'Health Tracker API Function is running!',
+                    message: 'Health Tracker Pro API v2.1.0',
+                    status: 'operational',
                     timestamp: new Date().toISOString(),
-                    availableRoutes: [
-                        'GET /health - Health Check',
-                        'GET /test-db - Database Test',
-                        'GET /health-data/{userId} - Get User Data',
-                        'POST /health-data - Save Health Data',
-                        'GET /goals/{userId} - Get User Goals',
-                        'POST /goals - Save/Update Goals'
-                    ]
+                    database: process.env.MONGODB_URI ? 'connected' : 'not configured',
+                    routes: {
+                        health: 'GET /health',
+                        testDb: 'GET /test-db',
+                        healthData: {
+                            get: 'GET /health-data/{userId}',
+                            post: 'POST /health-data',
+                            aggregated: 'GET /health-data-aggregated/{userId}'
+                        },
+                        goals: {
+                            get: 'GET /goals/{userId}',
+                            post: 'POST /goals'
+                        }
+                    }
                 })
             };
         }
 
-        // Health Check Route
+        // Health Check Route - ERWEITERT
         if (httpMethod === 'GET' && (path === '/health' || path.endsWith('/health'))) {
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({
-                    status: 'API is working!',
-                    timestamp: new Date().toISOString(),
-                    message: 'Health Tracker API with MongoDB support',
-                    database: 'health-tracker',
-                    collections: ['healthdatas', 'goals'],
-                    mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
-                })
-            };
-        }
-
-        // MongoDB Connection für Daten-Operationen
-        await connectToDatabase();
-
-        // NEW: Goals GET Route
-        if (httpMethod === 'GET' && path.startsWith('/goals/')) {
-            const pathSegments = path.split('/').filter(segment => segment.length > 0);
-            if (pathSegments.length < 2) {
+            try {
+                await connectToDatabase();
+                const dbStats = await mongoose.connection.db.stats();
+                
                 return {
-                    statusCode: 400,
+                    statusCode: 200,
                     headers,
                     body: JSON.stringify({
-                        error: 'Invalid path format. Expected: /goals/{userId}',
-                        receivedPath: path
+                        status: 'healthy',
+                        timestamp: new Date().toISOString(),
+                        api: {
+                            version: '2.1.0',
+                            environment: process.env.NODE_ENV || 'production'
+                        },
+                        database: {
+                            connected: mongoose.connection.readyState === 1,
+                            name: 'health-tracker',
+                            collections: dbStats.collections || 0,
+                            dataSize: `${Math.round(dbStats.dataSize / 1024)}KB`
+                        },
+                        performance: {
+                            uptime: process.uptime(),
+                            memoryUsage: process.memoryUsage()
+                        }
+                    })
+                };
+            } catch (error) {
+                return {
+                    statusCode: 503,
+                    headers,
+                    body: JSON.stringify({
+                        status: 'unhealthy',
+                        error: error.message,
+                        timestamp: new Date().toISOString()
                     })
                 };
             }
+        }
 
-            const userId = pathSegments[1];
+        // MongoDB Connection für Datenoperationen
+        await connectToDatabase();
+
+        // GOALS ROUTES - Verbessert
+        if (httpMethod === 'GET' && path.match(/^\/goals\/([^\/]+)$/)) {
+            const userId = path.split('/')[2];
             console.log(`🎯 Fetching goals for user: ${userId}`);
             
             const goals = await Goals.findOne({ userId }).lean();
-            console.log(`✅ Found goals for user ${userId}:`, goals);
+            
+            // Fallback mit Default-Werten
+            const response = goals || {
+                userId,
+                stepsGoal: 10000,
+                waterGoal: 2.0,
+                sleepGoal: 8,
+                weightGoal: null,
+                createdAt: new Date().toISOString()
+            };
+            
+            console.log(`✅ Goals response for ${userId}:`, response);
             
             return {
                 statusCode: 200,
                 headers,
-                body: JSON.stringify(goals || {
-                    userId,
-                    stepsGoal: 10000,
-                    waterGoal: 2.0,
-                    sleepGoal: 8,
-                    weightGoal: null
-                })
+                body: JSON.stringify(response)
             };
         }
 
-        // Goals POST Route (Save/Update)
         if (httpMethod === 'POST' && (path === '/goals' || path.endsWith('/goals'))) {
             const body = JSON.parse(event.body || '{}');
-            console.log('🎯 Saving goals:', body);
+            console.log('🎯 Saving/Updating goals:', body);
 
             if (!body.userId) {
                 return {
@@ -166,7 +207,7 @@ const handler = async (event, context) => {
                     headers,
                     body: JSON.stringify({
                         error: 'userId is required',
-                        received: body
+                        code: 'MISSING_USER_ID'
                     })
                 };
             }
@@ -184,56 +225,57 @@ const handler = async (event, context) => {
                 { userId: body.userId },
                 goalData,
                 { upsert: true, new: true, runValidators: true }
-            );
+            ).lean();
 
-            console.log('✅ Goals saved with ID:', savedGoals._id);
+            console.log('✅ Goals saved:', savedGoals._id);
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: true,
-                    message: 'Goals saved successfully',
+                    message: 'Goals updated successfully',
                     data: savedGoals
                 })
             };
         }
 
-        // Health Data GET Route - KORRIGIERTES PATH PARSING
-        if (httpMethod === 'GET' && path.startsWith('/health-data/')) {
-            const pathSegments = path.split('/').filter(segment => segment.length > 0);
-            console.log('🔍 Path segments:', pathSegments);
-
-            if (pathSegments.length < 2) {
-                return {
-                    statusCode: 400,
-                    headers,
-                    body: JSON.stringify({
-                        error: 'Invalid path format. Expected: /health-data/{userId}',
-                        receivedPath: path,
-                        segments: pathSegments
-                    })
-                };
-            }
-
-            const userId = pathSegments[1];
-            console.log(`📊 Fetching data for user: ${userId} from healthdatas collection`);
+        // HEALTH DATA ROUTES - Optimiert
+        if (httpMethod === 'GET' && path.match(/^\/health-data\/([^\/]+)$/)) {
+            const userId = path.split('/')[2];
+            console.log(`📊 Fetching health data for user: ${userId}`);
 
             if (!userId || userId.trim() === '') {
                 return {
                     statusCode: 400,
                     headers,
                     body: JSON.stringify({
-                        error: 'User ID is required and cannot be empty'
+                        error: 'Valid userId is required',
+                        code: 'INVALID_USER_ID'
                     })
                 };
             }
 
-            const healthData = await HealthData.find({ userId })
-                .sort({ date: -1 })
-                .limit(50)
-                .lean();
+            // Query-Parameter für Filterung
+            const limit = parseInt(queryStringParameters?.limit) || 100;
+            const days = parseInt(queryStringParameters?.days) || null;
+            
+            let dateFilter = {};
+            if (days) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                dateFilter = { date: { $gte: cutoffDate } };
+            }
 
-            console.log(`✅ Found ${healthData.length} records for user ${userId} in healthdatas collection`);
+            const healthData = await HealthData.find({ 
+                userId,
+                ...dateFilter 
+            })
+            .sort({ date: -1, createdAt: -1 })
+            .limit(Math.min(limit, 200)) // Max 200 für Performance
+            .lean();
+
+            console.log(`✅ Retrieved ${healthData.length} records for user ${userId}`);
+            
             return {
                 statusCode: 200,
                 headers,
@@ -241,130 +283,192 @@ const handler = async (event, context) => {
             };
         }
 
-        // Health Data POST Route mit Duplicate Check
-if (httpMethod === 'POST' && (path === '/health-data' || path.endsWith('/health-data'))) {
-    const body = JSON.parse(event.body || '{}');
-    console.log('💾 Saving to healthdatas collection:', body);
+        // HEALTH DATA POST - Verbessert mit Duplikat-Prävention
+        if (httpMethod === 'POST' && (path === '/health-data' || path.endsWith('/health-data'))) {
+            const body = JSON.parse(event.body || '{}');
+            console.log('💾 Processing health data:', { 
+                userId: body.userId, 
+                date: body.date,
+                hasData: Object.keys(body).length > 2
+            });
 
-    if (!body.userId) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({
-                error: 'userId is required',
-                received: body
-            })
-        };
-    }
+            if (!body.userId) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'userId is required',
+                        code: 'MISSING_USER_ID'
+                    })
+                };
+            }
 
-    // Same day, similar data
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-    
-    const existingToday = await HealthData.findOne({
-        userId: body.userId,
-        date: { $gte: startOfDay, $lte: endOfDay }
-    }).lean();
-    
-    if (existingToday && body.submissionId !== existingToday.submissionId) {
-        // Check for identical values
-        const isIdentical = ['weight', 'steps', 'waterIntake', 'sleepHours', 'mood']
-            .every(key => body[key] === existingToday[key]);
+            // INTELLIGENTE DUPLIKAT-PRÄVENTION
+            const entryDate = body.date ? new Date(body.date) : new Date();
+            const startOfDay = new Date(entryDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(entryDate);
+            endOfDay.setHours(23, 59, 59, 999);
             
-        if (isIdentical) {
-            console.log('🚫 Duplicate prevented on API level');
+            // Prüfe auf existierende Einträge am gleichen Tag
+            const existingEntries = await HealthData.find({
+                userId: body.userId,
+                date: { $gte: startOfDay, $lte: endOfDay }
+            }).lean();
+
+            // ERWEITERTE DUPLIKAT-LOGIK
+            if (existingEntries.length > 0) {
+                const isDuplicate = existingEntries.some(existing => {
+                    // Prüfe auf identische Werte in wichtigen Feldern
+                    const keyFields = ['steps', 'waterIntake', 'sleepHours', 'weight', 'mood'];
+                    return keyFields.every(field => {
+                        const existingValue = existing[field];
+                        const newValue = body[field];
+                        return existingValue === newValue;
+                    });
+                });
+
+                if (isDuplicate && !body.forceSubmit) {
+                    console.log('🚫 Duplicate entry prevented');
+                    return {
+                        statusCode: 409,
+                        headers,
+                        body: JSON.stringify({
+                            error: 'Duplicate entry detected',
+                            code: 'DUPLICATE_DATA',
+                            message: 'Identical data already exists for this date',
+                            suggestion: 'Use forceSubmit=true to override',
+                            existingEntries: existingEntries.length
+                        })
+                    };
+                }
+            }
+
+            // SPEICHERE NEUE DATEN
+            const healthData = new HealthData({
+                userId: body.userId,
+                date: entryDate,
+                weight: body.weight || null,
+                steps: body.steps || null,
+                waterIntake: body.waterIntake || null,
+                sleepHours: body.sleepHours || null,
+                mood: body.mood || null,
+                notes: body.notes || null,
+                _localId: body._localId || null,
+                submissionId: body.submissionId || `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+
+            const savedData = await healthData.save();
+            console.log('✅ Health data saved:', savedData._id);
+            
             return {
-                statusCode: 409, // Conflict
+                statusCode: 201,
                 headers,
                 body: JSON.stringify({
-                    error: 'Duplicate entry detected',
-                    message: 'Identical data already exists for today',
-                    existingId: existingToday._id
+                    success: true,
+                    message: 'Health data saved successfully',
+                    data: {
+                        id: savedData._id,
+                        userId: savedData.userId,
+                        date: savedData.date,
+                        createdAt: savedData.createdAt
+                    }
                 })
             };
         }
-    }
 
-    // Continue with normal save process...
-    const healthData = new HealthData({
-        userId: body.userId,
-        date: body.date ? new Date(body.date) : new Date(),
-        weight: body.weight || null,
-        steps: body.steps || null,
-        waterIntake: body.waterIntake || null,
-        sleepHours: body.sleepHours || null,
-        mood: body.mood || null,
-        notes: body.notes || null,
-        submissionId: body.submissionId // Track unique submissions
-    });
+        // AGGREGIERTE DATEN - Optimiert
+        if (httpMethod === 'GET' && path.match(/^\/health-data-aggregated\/([^\/]+)$/)) {
+            const userId = path.split('/')[2];
+            const days = parseInt(queryStringParameters?.days) || 30;
+            
+            console.log(`📊 Aggregating data for user: ${userId} (${days} days)`);
 
-    const savedData = await healthData.save();
-    console.log('✅ Unique data saved with ID:', savedData._id);
-    
-    return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-            success: true,
-            message: 'Health data saved successfully',
-            data: savedData
-        })
-    };
-}
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
 
-        // Route für aggregierte Tagesdaten
-if (httpMethod === 'GET' && path.startsWith('/health-data-aggregated/')) {
-    const pathSegments = path.split('/').filter(segment => segment.length > 0);
-    const userId = pathSegments[1];
-    
-    const pipeline = [
-        { $match: { userId: userId } },
-        { 
-            $group: {
-                _id: { 
-                    $dateToString: { format: "%Y-%m-%d", date: "$date" }
+            const pipeline = [
+                { 
+                    $match: { 
+                        userId: userId,
+                        date: { $gte: cutoffDate }
+                    }
                 },
-                weight: { $last: "$weight" }, // Latest weight
-                steps: { $sum: "$steps" }, // Sum steps
-                waterIntake: { $sum: "$waterIntake" }, // Sum water
-                sleepHours: { $sum: "$sleepHours" }, // Sum sleep
-                mood: { $last: "$mood" }, // Latest mood
-                notes: { $push: "$notes" }
-            }
-        },
-        { $sort: { "_id": -1 } },
-        { $limit: 30 }
-    ];
-    
-    const aggregatedData = await HealthData.aggregate(pipeline);
-    
-    return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(aggregatedData)
-    };
-}
+                { 
+                    $group: {
+                        _id: { 
+                            $dateToString: { format: "%Y-%m-%d", date: "$date" }
+                        },
+                        date: { $first: "$date" },
+                        weight: { $last: "$weight" },
+                        steps: { $sum: "$steps" },
+                        waterIntake: { $sum: "$waterIntake" },
+                        sleepHours: { $sum: "$sleepHours" },
+                        mood: { $last: "$mood" },
+                        notes: { 
+                            $push: { 
+                                $cond: [
+                                    { $ne: ["$notes", null] }, 
+                                    "$notes", 
+                                    "$$REMOVE"
+                                ]
+                            }
+                        },
+                        entryCount: { $sum: 1 }
+                    }
+                },
+                { $sort: { "date": -1 } },
+                { $limit: days }
+            ];
+            
+            const aggregatedData = await HealthData.aggregate(pipeline);
+            
+            // Post-processing: Notes zusammenfassen
+            const processedData = aggregatedData.map(day => ({
+                ...day,
+                notes: day.notes.length > 0 ? day.notes.join(' | ') : null
+            }));
+            
+            console.log(`✅ Aggregated ${processedData.length} days for user ${userId}`);
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify(processedData)
+            };
+        }
 
-        // Database Test Route
+        // DATABASE TEST - Erweitert
         if (httpMethod === 'GET' && (path === '/test-db' || path.endsWith('/test-db'))) {
             const collections = await mongoose.connection.db.listCollections().toArray();
-            const collectionNames = collections.map(c => c.name);
             const healthDataCount = await HealthData.countDocuments();
             const goalsCount = await Goals.countDocuments();
+            
+            // Beispiel-Abfrage für Performance-Test
+            const sampleData = await HealthData.findOne().lean();
 
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
-                    message: 'Database test successful',
+                    message: 'Database connection successful',
                     database: 'health-tracker',
-                    collections: collectionNames,
-                    documentsCount: {
-                        healthdatas: healthDataCount,
-                        goals: goalsCount
+                    connection: {
+                        state: mongoose.connection.readyState,
+                        host: mongoose.connection.host,
+                        port: mongoose.connection.port
                     },
-                    connectionState: mongoose.connection.readyState
+                    collections: collections.map(c => ({
+                        name: c.name,
+                        type: c.type
+                    })),
+                    statistics: {
+                        healthDataEntries: healthDataCount,
+                        goalEntries: goalsCount,
+                        totalDocuments: healthDataCount + goalsCount
+                    },
+                    sampleDataExists: !!sampleData,
+                    timestamp: new Date().toISOString()
                 })
             };
         }
@@ -374,36 +478,39 @@ if (httpMethod === 'GET' && path.startsWith('/health-data-aggregated/')) {
             statusCode: 404,
             headers,
             body: JSON.stringify({
-                error: 'Route not found',
+                error: 'Endpoint not found',
                 path: path,
-                originalPath: event.path,
                 method: httpMethod,
-                availableRoutes: [
-                    'GET / - Function Status',
-                    'GET /health - Health Check',
-                    'GET /test-db - Database Test',
-                    'GET /health-data/{userId} - Get User Data',
-                    'POST /health-data - Save Health Data',
-                    'GET /goals/{userId} - Get User Goals',
-                    'POST /goals - Save/Update Goals'
-                ]
+                availableEndpoints: [
+                    'GET /',
+                    'GET /health',
+                    'GET /test-db',
+                    'GET /health-data/{userId}',
+                    'POST /health-data',
+                    'GET /health-data-aggregated/{userId}',
+                    'GET /goals/{userId}',
+                    'POST /goals'
+                ],
+                documentation: 'https://your-docs-url.com/api'
             })
         };
 
     } catch (error) {
-        console.error('❌ Function error:', error);
+        console.error('❌ API Function error:', error);
+        
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 error: 'Internal server error',
+                code: error.code || 'INTERNAL_ERROR',
                 message: error.message,
+                timestamp: new Date().toISOString(),
                 stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             })
         };
     }
 };
 
-// BEIDE EXPORT-METHODEN für Kompatibilität
 module.exports = { handler };
 exports.handler = handler;

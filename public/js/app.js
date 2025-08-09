@@ -2073,43 +2073,56 @@ calculateWeeklyAverages(weekData) {
     // ====================================================================
     
     /**
-     * Make API call with error handling and retries
-     */
-    async makeAPICall(endpoint, options = {}) {
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            timeout: 10000
-        };
+ * Enhanced API Call Method
+ */
+async makeAPICall(endpoint, options = {}) {
+    const defaultOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        timeout: 15000
+    };
+    
+    const finalOptions = { ...defaultOptions, ...options };
+    
+    // API Base URL Detection
+    const baseURL = window.location.hostname.includes('localhost') 
+        ? 'http://localhost:8888/.netlify/functions/api'  // Netlify Dev
+        : '/.netlify/functions/api';  // Production
+    
+    const fullURL = `${baseURL}${endpoint}`;
+    
+    try {
+        console.log(`🔗 API Call: ${finalOptions.method} ${fullURL}`);
         
-        const finalOptions = { ...defaultOptions, ...options };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), finalOptions.timeout);
         
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), finalOptions.timeout);
-            
-            const response = await fetch(endpoint, {
-                ...finalOptions,
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-            
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                throw new Error('Request timeout');
-            }
-            throw error;
+        const response = await fetch(fullURL, {
+            ...finalOptions,
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`API Error ${response.status}: ${errorData.message || response.statusText}`);
         }
+        
+        const data = await response.json();
+        console.log(`✅ API Response:`, data);
+        return data;
+        
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout - Server nicht erreichbar');
+        }
+        console.error(`❌ API Call failed:`, error);
+        throw error;
     }
+}
     
     /**
      * Debounce function calls for performance
@@ -9330,26 +9343,45 @@ async loadCompleteAnalyticsData() {
         }
     }
 
-    // updateTrendsChart-Methode mit verbessertem Error Handling
-    async updateTrendsChart(data) {
-        // DEBUGGING: Canvas Element Verfügbarkeit prüfen
-console.log('🔍 Debugging Trends Chart Canvas:');
-console.log('trends-chart element:', document.getElementById('trends-chart'));
-console.log('trends-chart-container:', document.getElementById('trends-chart-container'));
-console.log('correlation-chart:', document.getElementById('correlation-chart'));
-console.log('heatmap-chart:', document.getElementById('heatmap-chart'));
-
-// Alle Canvas-Elemente im DOM finden
-const allCanvases = document.querySelectorAll('canvas');
-console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c => c.id || 'unnamed'));
-
-        try {
-            console.log('📊 Aktualisiere Trends Chart...');
+    // updateTrendsChart-Methode mit besserer Datenübergabe
+async updateTrendsChart(data) {
+    try {
+        console.log('📊 updateTrendsChart aufgerufen mit:', typeof data, data?.length);
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
             console.warn('⚠️ Trends Chart Canvas nicht gefunden');
+            this.showTrendsError('Canvas nicht verfügbar');
             return;
+        }
+
+        // BESSERE DATENBEHANDLUNG
+        let chartData;
+        
+        // Falls keine Daten übergeben wurden, verwende Analytics-Daten
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+            console.log('📊 Keine Daten übergeben, verwende Analytics-Daten');
+            
+            // Versuche Daten aus verschiedenen Quellen zu laden
+            const sources = [
+                () => this.analyticsData?.period,
+                () => this.analyticsData?.all,
+                () => this.healthTracker.cache?.get?.('allHealthData')?.data,
+                () => this.healthTracker.getAllHealthData?.()
+            ];
+            
+            for (const source of sources) {
+                try {
+                    const sourceData = await source();
+                    if (sourceData && Array.isArray(sourceData) && sourceData.length > 0) {
+                        console.log(`📊 Daten gefunden in Quelle:`, sourceData.length, 'Einträge');
+                        data = sourceData;
+                        break;
+                    }
+                } catch (error) {
+                    console.log('📊 Quelle fehlgeschlagen:', error.message);
+                }
+            }
         }
 
         // Prüfe ob prepareTrendsData verfügbar ist
@@ -9360,9 +9392,10 @@ console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c =
         }
 
         // Bereite Daten vor
-        const chartData = this.prepareTrendsData(data);
+        chartData = this.prepareTrendsData(data || []);
         
         if (chartData.isEmpty) {
+            console.log('📊 Chart-Daten sind leer, zeige Placeholder');
             this.showTrendsPlaceholder();
             return;
         }
@@ -9370,9 +9403,10 @@ console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c =
         // Zerstöre existierenden Chart
         if (this.trendsChart) {
             this.trendsChart.destroy();
+            this.trendsChart = null;
         }
 
-        // Erstelle neuen Chart
+        // VERBESSERTE CHART-KONFIGURATION
         const ctx = trendsCanvas.getContext('2d');
         this.trendsChart = new Chart(ctx, {
             type: 'line',
@@ -9383,12 +9417,28 @@ console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c =
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Gesundheitstrends der letzten Wochen',
+                        text: 'Gesundheitstrends',
                         font: { size: 16, weight: 'bold' }
                     },
                     legend: {
                         display: true,
                         position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                
+                                // Spezielle Formatierung für Schritte
+                                if (label.includes('Schritte')) {
+                                    return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
+                                }
+                                return `${label}: ${value}`;
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -9400,12 +9450,30 @@ console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c =
                         }
                     },
                     y: {
+                        type: 'linear',
                         display: true,
+                        position: 'left',
                         title: {
                             display: true,
-                            text: 'Werte'
+                            text: 'Schritte (in Tausend)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Wasser (L) / Schlaf (h)'
                         },
-                        beginAtZero: false
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    },
+                    y2: {
+                        type: 'linear',
+                        display: false,
+                        position: 'right'
                     }
                 },
                 interaction: {
@@ -9415,11 +9483,46 @@ console.log('📊 Alle Canvas-Elemente im DOM:', Array.from(allCanvases).map(c =
             }
         });
 
-        console.log('✅ Trends Chart erfolgreich aktualisiert');
+        // Update UI-Elemente
+        this.updateTrendsDataCount();
+        this.updateTrendsLastUpdate();
+
+        console.log('✅ Trends Chart erfolgreich erstellt');
 
     } catch (error) {
         console.error('❌ Fehler beim Aktualisieren des Trends Charts:', error);
-        this.showTrendsError('Fehler beim Laden der Trends');
+        this.showTrendsError(`Fehler: ${error.message}`);
+    }
+}
+
+/**
+ * NEUE HILFSMETHODEN
+ */
+updateTrendsDataCount() {
+    const dataCountElement = document.getElementById('trends-data-count');
+    if (dataCountElement && this.analyticsData?.period) {
+        const count = this.analyticsData.period.length;
+        dataCountElement.textContent = `${count} Tage`;
+    }
+}
+
+updateTrendsLastUpdate() {
+    const lastUpdateElement = document.getElementById('trends-last-update');
+    if (lastUpdateElement) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        lastUpdateElement.innerHTML = `
+            <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>
+            ${timeStr}
+        `;
+        
+        // Icons neu initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 }
 
@@ -9454,16 +9557,48 @@ showTrendsPlaceholder() {
 }
 
 /**
- * Bereitet Trends-Daten für die Chart-Visualisierung vor
+ * prepareTrendsData Methode mit lockereren Kriterien
  * @param {Array} data - Rohe Gesundheitsdaten
  * @returns {Object} Formatierte Chart-Daten
  */
 prepareTrendsData(data) {
     try {
         console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge');
+        console.log('📊 Rohdaten:', data);
         
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.log('⚠️ Keine Daten für Trends verfügbar');
+            console.log('❌ Keine Daten array verfügbar');
+            return {
+                labels: [],
+                datasets: [],
+                isEmpty: true
+            };
+        }
+
+        // VERBESSERTE DATENVALIDIERUNG - weniger strikt
+        const validEntries = data.filter(item => {
+            // Prüfe ob mindestens EIN Wert vorhanden ist
+            const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
+            const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
+            
+            console.log(`📊 Entry check:`, {
+                date: item.date,
+                hasAnyData,
+                hasValidDate,
+                steps: item.steps,
+                water: item.waterIntake,
+                sleep: item.sleepHours,
+                weight: item.weight
+            });
+            
+            return hasValidDate && hasAnyData;
+        });
+
+        console.log(`✅ Gefilterte gültige Einträge: ${validEntries.length} von ${data.length}`);
+
+        // LOCKERERE MINIMUM-ANFORDERUNG
+        if (validEntries.length === 0) {
+            console.log('❌ Keine gültigen Einträge nach Filterung');
             return {
                 labels: [],
                 datasets: [],
@@ -9472,7 +9607,7 @@ prepareTrendsData(data) {
         }
 
         // Daten nach Datum sortieren (älteste zuerst)
-        const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
         
         // Labels (Datumsangaben) extrahieren
         const labels = sortedData.map(item => {
@@ -9483,23 +9618,57 @@ prepareTrendsData(data) {
             });
         });
 
-        // Dataset für verschiedene Metriken erstellen
+        console.log('📅 Labels erstellt:', labels);
+
+        // VERBESSERTE Dataset-Erstellung - flexiblere Metriken
         const datasets = [];
         const metrics = [
-            { key: 'steps', label: 'Schritte', color: 'rgb(99, 102, 241)', scale: 0.01 },
-            { key: 'waterIntake', label: 'Wasser (L)', color: 'rgb(59, 130, 246)', scale: 1 },
-            { key: 'sleepHours', label: 'Schlaf (h)', color: 'rgb(16, 185, 129)', scale: 1 },
-            { key: 'weight', label: 'Gewicht (kg)', color: 'rgb(245, 101, 101)', scale: 1 }
+            { 
+                key: 'steps', 
+                label: 'Schritte', 
+                color: 'rgb(99, 102, 241)', 
+                scale: 0.001,  // Skalierung für bessere Darstellung
+                yAxisID: 'y'
+            },
+            { 
+                key: 'waterIntake', 
+                label: 'Wasser (L)', 
+                color: 'rgb(59, 130, 246)', 
+                scale: 1,
+                yAxisID: 'y1' 
+            },
+            { 
+                key: 'sleepHours', 
+                label: 'Schlaf (h)', 
+                color: 'rgb(16, 185, 129)', 
+                scale: 1,
+                yAxisID: 'y1' 
+            },
+            { 
+                key: 'weight', 
+                label: 'Gewicht (kg)', 
+                color: 'rgb(245, 101, 101)', 
+                scale: 1,
+                yAxisID: 'y2' 
+            }
         ];
 
         metrics.forEach(metric => {
             const values = sortedData.map(item => {
                 const value = item[metric.key];
-                return value ? (value * metric.scale) : null;
+                // WENIGER STRIKT: Akzeptiere auch 0-Werte
+                return (value !== null && value !== undefined) ? (value * metric.scale) : null;
             });
 
-            // Nur Datasets mit Daten hinzufügen
-            if (values.some(v => v !== null && v !== undefined)) {
+            // LOCKERERE BEDINGUNG: Mindestens 1 Nicht-Null-Wert
+            const validValues = values.filter(v => v !== null && v !== undefined);
+            console.log(`📊 Metric ${metric.key}:`, {
+                totalValues: values.length,
+                validValues: validValues.length,
+                values: values
+            });
+
+            if (validValues.length > 0) {
                 datasets.push({
                     label: metric.label,
                     data: values,
@@ -9509,7 +9678,9 @@ prepareTrendsData(data) {
                     fill: false,
                     tension: 0.1,
                     pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointHoverRadius: 6,
+                    yAxisID: metric.yAxisID || 'y',
+                    spanGaps: true  // Verbindet Punkte auch bei null-Werten
                 });
             }
         });
@@ -9520,10 +9691,11 @@ prepareTrendsData(data) {
             isEmpty: datasets.length === 0
         };
 
-        console.log('✅ Trends-Daten vorbereitet:', {
+        console.log('✅ Trends-Daten erfolgreich vorbereitet:', {
             labels: labels.length,
             datasets: datasets.length,
-            metrics: datasets.map(d => d.label)
+            metrics: datasets.map(d => d.label),
+            isEmpty: result.isEmpty
         });
 
         return result;

@@ -3028,32 +3028,6 @@ showImportExport() {
     document.body.appendChild(modal);
 }
 
-showDataPrivacy() {
-    console.log('🔒 Datenschutz-Info wird angezeigt');
-    const modal = document.createElement('div');
-    modal.className = 'modal modal-open';
-    modal.innerHTML = `
-        <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg mb-4">🔒 Datenschutz</h3>
-            <div class="prose max-w-none">
-                <h4>Deine Daten sind sicher</h4>
-                <ul>
-                    <li>Alle Gesundheitsdaten werden lokal auf deinem Gerät gespeichert</li>
-                    <li>Synchronisation erfolgt verschlüsselt über sichere Verbindungen</li>
-                    <li>Keine Weitergabe an Dritte</li>
-                    <li>Du behältst die vollständige Kontrolle über deine Daten</li>
-                </ul>
-                <h4>Offline-First Ansatz</h4>
-                <p>Die App funktioniert vollständig offline und synchronisiert nur bei verfügbarer Internetverbindung.</p>
-            </div>
-            <div class="modal-action">
-                <button class="btn" onclick="this.closest('.modal').remove()">Verstanden</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
 /**
  * Zeige erweiterte App-Informationen
  */

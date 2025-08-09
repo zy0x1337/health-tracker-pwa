@@ -796,6 +796,11 @@ initializeSettings() {
      * Setup all event listeners for forms and UI interactions
      */
     setupEventListeners() {
+        // Health form submission
+        const healthForm = document.getElementById('health-form');
+        if (healthForm) {
+            healthForm.addEventListener('submit', this.handleFormSubmission.bind(this));
+        }
         
         // Goals form submission
         const goalsForm = document.getElementById('goals-form');
@@ -5881,20 +5886,6 @@ showQuickToast(message, type = 'success') {
     });
 }
 }
-
-// === GLOBALE HEALTHTRACKER INSTANZ ===
-let healthTracker;
-
-// Initialisierung beim DOM-Ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Health Tracker wird initialisiert');
-    healthTracker = new HealthTracker();
-    
-    // Überprüfung ob alle Methoden verfügbar sind
-    if (typeof healthTracker.showSettings !== 'function') {
-        console.error('❌ showSettings Methode nicht gefunden');
-    }
-});
 
 // ====================================================================
 // SMART NOTIFICATION MANAGER

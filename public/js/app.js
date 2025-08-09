@@ -24,12 +24,8 @@ class HealthTracker {
         this.analyticsEngine = null;
         
         // Goals with defaults
-        this.goals = {
-            stepsGoal: 10000,
-            waterGoal: 2.0,
-            sleepGoal: 8,
-            weightGoal: null
-        };
+        this.goals = { stepsGoal: 10000, waterGoal: 2.0, sleepGoal: 8, weightGoal: null };
+        this.errorHandler = new ErrorHandler(this);
         
         // Performance optimization
         this.debounceTimers = new Map();
@@ -63,6 +59,9 @@ class HealthTracker {
         
         // Setup periodic sync
         this.setupPeriodicSync();
+
+        // Setup offline handling
+        this.setupOfflineHandling();
 
         // Einstellungen beim App-Start initialisieren
         this.initializeSettings();
@@ -1095,39 +1094,102 @@ extractFormData(form) {
      * Save health data with offline-first strategy
      */
     async saveHealthData(data) {
-        try {
-            // Always save locally first
-            await this.saveToLocalStorage(data);
-            
-            // Try to save to server if online
-            if (this.isOnline) {
-                try {
-                    const response = await this.makeAPICall('/api/health-data', {
-                        method: 'POST',
-                        body: JSON.stringify(data)
-                    });
-                    
-                    if (response.success) {
-                        // Mark as synced
-                        await this.markAsSynced(data);
-                        return true;
-                    }
-                } catch (error) {
-                    console.log('Server speichern fehlgeschlagen, lokal gespeichert:', error.message);
-                }
-            }
-            
-            // Mark for later sync
-            await this.markForSync(data);
-            this.dispatchHealthDataEvent('health-data-saved-offline', data);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Speichern komplett fehlgeschlagen:', error);
-            return false;
-        }
+  try {
+    console.log('💾 Speichere Gesundheitsdaten:', data);
+    
+    // Offline-First: Lokal speichern
+    this.saveToLocalStorage(data);
+    
+    // Online-Sync versuchen
+    if (this.isOnline) {
+      const response = await fetch('/api/health-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          userId: this.userId,
+          date: data.date || new Date().toISOString()
+        }),
+        // Timeout nach 5 Sekunden
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Daten erfolgreich in Cloud gespeichert');
+      
+      // Sync-Status aktualisieren
+      this.updateSyncStatus('success');
+      
+      return result;
+    } else {
+      console.log('📡 Offline - Daten nur lokal gespeichert');
+      this.showToast('📡 Offline - Daten werden später synchronisiert', 'info');
+      return { success: true, offline: true };
     }
+    
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern:', error);
+    
+    // Fallback: Daten sind bereits lokal gespeichert
+    this.updateSyncStatus('error');
+    
+    // Throw für ErrorHandler
+    throw error;
+  }
+}
+
+// Sync-Status Management für bessere UX
+updateSyncStatus(status) {
+  const syncIndicator = document.querySelector('.sync-status');
+  if (!syncIndicator) return;
+  
+  syncIndicator.className = `sync-status badge badge-sm ${
+    status === 'success' ? 'badge-success' : 
+    status === 'error' ? 'badge-error' : 
+    'badge-warning'
+  }`;
+  
+  syncIndicator.textContent = status === 'success' ? '✅ Sync' : 
+                             status === 'error' ? '❌ Sync' : 
+                             '🔄 Sync';
+}
+
+// Erweiterte Offline-Erkennung
+setupOfflineHandling() {
+  window.addEventListener('online', () => {
+    this.isOnline = true;
+    this.showToast('🌐 Verbindung wiederhergestellt', 'success');
+    this.syncPendingData();
+  });
+  
+  window.addEventListener('offline', () => {
+    this.isOnline = false;
+    this.showToast('📡 Offline-Modus aktiviert', 'info');
+  });
+}
+
+// Automatische Synchronisation ausstehender Daten
+async syncPendingData() {
+  const pendingData = this.getPendingDataFromStorage();
+  if (pendingData.length === 0) return;
+  
+  console.log(`🔄 Synchronisiere ${pendingData.length} ausstehende Einträge...`);
+  
+  for (const data of pendingData) {
+    try {
+      await this.saveHealthDataWithErrorHandling(data);
+      this.removePendingDataFromStorage(data.id);
+    } catch (error) {
+      console.error('Sync failed for:', data, error);
+    }
+  }
+}
     
     /**
      * Load user goals from server or localStorage
@@ -5885,6 +5947,77 @@ showQuickToast(message, type = 'success') {
         sound: false 
     });
 }
+
+// API-Funktionen mit verbessertem Error-Handling erweitern
+async saveHealthDataWithErrorHandling(data) {
+  const operation = 'Gesundheitsdaten-Speicherung';
+  
+  const saveOperation = async () => {
+    const response = await this.saveHealthData(data);
+    if (response && !response.error) {
+      this.errorHandler.cacheSuccessfulResponse('healthData', response);
+    }
+    return response;
+  };
+  
+  try {
+    return await this.errorHandler.handleAPIError(
+      null, 
+      operation, 
+      saveOperation
+    );
+  } catch (error) {
+    return await this.errorHandler.handleAPIError(
+      error, 
+      operation, 
+      saveOperation
+    );
+  }
+}
+
+async loadHealthDataWithErrorHandling(userId) {
+  const operation = 'Gesundheitsdaten-Laden';
+  
+  const loadOperation = async () => {
+    const data = await this.loadHealthData(userId);
+    if (data && Array.isArray(data)) {
+      this.errorHandler.cacheSuccessfulResponse('healthData', data);
+    }
+    return data;
+  };
+  
+  try {
+    return await loadOperation();
+  } catch (error) {
+    return await this.errorHandler.handleAPIError(
+      error, 
+      operation, 
+      loadOperation
+    );
+  }
+}
+
+async saveGoalsWithErrorHandling(goals) {
+  const operation = 'Ziele-Speicherung';
+  
+  const saveOperation = async () => {
+    const response = await this.saveUserGoals(goals);
+    if (response && !response.error) {
+      this.errorHandler.cacheSuccessfulResponse('goals', response);
+    }
+    return response;
+  };
+  
+  try {
+    return await saveOperation();
+  } catch (error) {
+    return await this.errorHandler.handleAPIError(
+      error, 
+      operation, 
+      saveOperation
+    );
+  }
+}
 }
 
 // === GLOBALE HEALTHTRACKER INSTANZ ===
@@ -5900,6 +6033,90 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('❌ showSettings Methode nicht gefunden');
     }
 });
+
+// Zentrales Error-Handling System
+class ErrorHandler {
+  constructor(app) {
+    this.app = app;
+    this.retryCount = new Map();
+    this.maxRetries = 3;
+  }
+  
+  async handleAPIError(error, operation, retryFn = null) {
+    const errorKey = `${operation}_${Date.now()}`;
+    
+    // Bestimme Error-Typ und Response
+    if (error.name === 'AbortError' || error.message.includes('timeout')) {
+      return this.handleTimeoutError(errorKey, operation, retryFn);
+    }
+    
+    if (error.message.includes('503') || !navigator.onLine) {
+      return this.handleOfflineError(operation);
+    }
+    
+    // Server errors (500, 502, etc.)
+    if (error.message.includes('50')) {
+      return this.handleServerError(errorKey, operation, retryFn);
+    }
+    
+    // Default error handling
+    this.app.showToast(`⚠️ Fehler bei ${operation}`, 'error');
+    console.error(`API Error in ${operation}:`, error);
+    
+    return null;
+  }
+  
+  async handleTimeoutError(errorKey, operation, retryFn) {
+    const retries = this.retryCount.get(errorKey) || 0;
+    
+    if (retries < this.maxRetries && retryFn) {
+      this.retryCount.set(errorKey, retries + 1);
+      this.app.showToast(`🔄 Wiederhole ${operation}... (${retries + 1}/${this.maxRetries})`, 'info');
+      
+      // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+      return retryFn();
+    }
+    
+    this.app.showToast(`⏰ ${operation} Timeout - Offline-Modus aktiv`, 'warning');
+    return this.loadFromCache(operation);
+  }
+  
+  handleOfflineError(operation) {
+    this.app.showToast(`📡 Offline - ${operation} aus Cache geladen`, 'info');
+    return this.loadFromCache(operation);
+  }
+  
+  async handleServerError(errorKey, operation, retryFn) {
+    const retries = this.retryCount.get(errorKey) || 0;
+    
+    if (retries < 2 && retryFn) { // Weniger Retries für Server-Fehler
+      this.retryCount.set(errorKey, retries + 1);
+      this.app.showToast(`🔄 Server-Fehler - Wiederhole ${operation}...`, 'warning');
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return retryFn();
+    }
+    
+    this.app.showToast(`❌ Server-Problem bei ${operation}`, 'error');
+    return this.loadFromCache(operation);
+  }
+  
+  async loadFromCache(operation) {
+    // Lade Daten aus lokalem Storage/IndexedDB
+    const cachedData = localStorage.getItem(`cached_${operation}`);
+    return cachedData ? JSON.parse(cachedData) : null;
+  }
+  
+  // Cache-Daten beim erfolgreichen API Call speichern
+  cacheSuccessfulResponse(operation, data) {
+    try {
+      localStorage.setItem(`cached_${operation}`, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Cache storage failed:', error);
+    }
+  }
+}
 
 // ====================================================================
 // SMART NOTIFICATION MANAGER

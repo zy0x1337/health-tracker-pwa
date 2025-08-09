@@ -11269,51 +11269,60 @@ prepareTrendsData(data, metricFilter = 'all') {
 }
 
     /** Update heatmap chart */
-async updateHeatmapChart(metricFilter = 'all') {
-    console.log('🔥 updateHeatmapChart aufgerufen mit Filter:', metricFilter);
-    
+async updateHeatmapChart(analyticsData) {
     try {
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        const placeholderEl = document.getElementById('heatmap-placeholder');
-        
+        const heatmapContainer = document.getElementById('heatmap-container');
         if (!heatmapContainer) {
-            console.warn('⚠️ Heatmap Container nicht gefunden');
+            console.warn('⚠️ Heatmap container not found');
             return;
         }
-
-        // Lade aktuelle Daten
-        const allData = await this.healthTracker.getAllHealthData();
         
-        if (!allData || allData.length === 0) {
-            this.showHeatmapEmpty();
+        // Validiere Analytics-Daten
+        if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
+            console.warn('⚠️ No analytics data for heatmap');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Keine Daten verfügbar</div>';
             return;
         }
-
-        // Placeholder ausblenden
-        if (placeholderEl) {
-            placeholderEl.style.display = 'none';
-        }
-
-        // Heatmap-Daten für die letzten 90 Tage generieren
-        const heatmapData = this.generateHeatmapData(allData, metricFilter);
         
-        if (heatmapData.length === 0) {
-            this.showHeatmapEmpty();
+        // Erstelle sichere Datums-Range
+        const dateRange = this.calculateDateRange(analyticsData.data);
+        
+        if (!dateRange) {
+            console.warn('⚠️ Could not calculate date range for heatmap');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Datumsbereich konnte nicht berechnet werden</div>';
             return;
         }
-
-        // Bestehende Heatmap löschen
-        heatmapContainer.innerHTML = '';
-
-        // Neue Heatmap erstellen
-        this.renderHeatmapGrid(heatmapContainer, heatmapData, metricFilter);
-
-        console.log('✅ Heatmap erfolgreich aktualisiert');
+        
+        // Sichere Heatmap-Erstellung
+        this.renderHeatmapGrid(heatmapContainer, analyticsData.data, dateRange);
         
     } catch (error) {
-        console.error('❌ Heatmap Chart Fehler:', error);
-        this.showHeatmapError(error.message);
+        console.error('❌ Heatmap update failed:', error);
+        const heatmapContainer = document.getElementById('heatmap-container');
+        if (heatmapContainer) {
+            heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler aufgetreten</div>';
+        }
     }
+}
+
+// Helper für sichere Datums-Range Berechnung
+calculateDateRange(data) {
+    if (!data || data.length === 0) return null;
+    
+    const validDates = data
+        .map(entry => this.ensureValidDate(entry.date || entry.timestamp || entry.created_at))
+        .filter(date => date !== null)
+        .sort((a, b) => a - b);
+    
+    if (validDates.length === 0) {
+        console.warn('⚠️ No valid dates found in analytics data');
+        return null;
+    }
+    
+    return {
+        start: validDates[0],
+        end: validDates[validDates.length - 1]
+    };
 }
 
 /**
@@ -11408,69 +11417,362 @@ calculateDayActivityLevel(dayData, metricFilter) {
 }
 
 /**
- * Rendere Heatmap-Grid
+ * Rendert eine Heatmap-Grid für Health Tracker Analytics
+ * @param {HTMLElement} container - Container-Element für die Heatmap
+ * @param {Array} data - Analytics-Daten mit Datum/Wert Paaren
+ * @param {Object} dateRange - Objekt mit start/end Datum
  */
-renderHeatmapGrid(container, heatmapData, metricFilter) {
-    // Erstelle Grid-Container
-    const gridContainer = document.createElement('div');
-    gridContainer.className = 'heatmap-grid grid grid-cols-13 gap-1 p-4';
+renderHeatmapGrid(container, data, dateRange) {
+    console.log('🔥 Rendering Heatmap Grid...');
     
-    // Farbpalette für verschiedene Level
-    const colors = [
-        'bg-base-300/30',      // Level 0 - Keine Aktivität
-        'bg-primary/20',       // Level 1 - Geringe Aktivität  
-        'bg-primary/40',       // Level 2 - Mittlere Aktivität
-        'bg-primary/60',       // Level 3 - Hohe Aktivität
-        'bg-primary/80'        // Level 4 - Sehr hohe Aktivität
-    ];
-
-    // Wochentag-Labels
-    const weekdays = ['S', 'M', 'D', 'M', 'D', 'F', 'S'];
-    
-    // Erstelle Wochentag-Header
-    for (let i = 0; i < 7; i++) {
-        const dayHeader = document.createElement('div');
-        dayHeader.className = 'text-center text-xs font-medium text-base-content/60 p-1';
-        dayHeader.textContent = weekdays[i];
-        gridContainer.appendChild(dayHeader);
+    // Container Validierung
+    if (!container) {
+        console.error('❌ Heatmap: Container element not provided');
+        return;
     }
-
-    // Füge leere Zellen für Ausrichtung hinzu
-    const dayOfWeek = (someDate && typeof someDate.getDay === 'function') ? someDate.getDay() : 0;
-    for (let i = 0; i < startDay; i++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'w-3 h-3';
-        gridContainer.appendChild(emptyCell);
-    }
-
-    // Erstelle Heatmap-Zellen
-    heatmapData.forEach(day => {
-        const cell = document.createElement('div');
-        cell.className = `heatmap-cell w-3 h-3 border border-base-300/20 ${colors[day.level]} hover:scale-110 cursor-pointer transition-all duration-200`;
-        
-        // Tooltip-Informationen
-        const tooltipText = this.createHeatmapTooltip(day, metricFilter);
-        cell.setAttribute('data-tip', tooltipText);
-        cell.className += ' tooltip tooltip-top';
-        
-        // Click-Handler für Details
-        cell.addEventListener('click', () => {
-            this.showDayDetails(day);
-        });
-        
-        gridContainer.appendChild(cell);
-    });
-
-    // Füge Legende hinzu
-    const legend = this.createHeatmapLegend(metricFilter);
     
-    // Container-HTML
     container.innerHTML = '';
-    container.appendChild(gridContainer);
-    container.appendChild(legend);
     
-    // Titel aktualisieren
-    this.updateHeatmapTitle(metricFilter);
+    // Null/Undefined Check für dateRange
+    if (!dateRange || !dateRange.start || !dateRange.end) {
+        console.warn('⚠️ Heatmap: Invalid dateRange provided', dateRange);
+        this.renderHeatmapError(container, 'Keine gültigen Datumsangaben verfügbar');
+        return;
+    }
+    
+    // Data Validierung
+    if (!data || !Array.isArray(data)) {
+        console.warn('⚠️ Heatmap: Invalid data provided', data);
+        this.renderHeatmapError(container, 'Keine Daten für Heatmap verfügbar');
+        return;
+    }
+    
+    // Sichere Datum-Konvertierung
+    const startDate = this.ensureValidDate(dateRange.start);
+    const endDate = this.ensureValidDate(dateRange.end);
+    
+    if (!startDate || !endDate) {
+        console.warn('⚠️ Heatmap: Invalid date objects', { start: dateRange.start, end: dateRange.end });
+        this.renderHeatmapError(container, 'Ungültige Datumsangaben');
+        return;
+    }
+    
+    // Datumsbereich Validierung
+    if (startDate > endDate) {
+        console.warn('⚠️ Heatmap: Start date is after end date');
+        this.renderHeatmapError(container, 'Ungültiger Datumsbereich');
+        return;
+    }
+    
+    try {
+        // Daten für schnelle Lookups vorbereiten
+        const dataMap = this.prepareHeatmapData(data);
+        
+        // Heatmap Container erstellen
+        const heatmapWrapper = document.createElement('div');
+        heatmapWrapper.className = 'heatmap-wrapper';
+        
+        // Wochentage-Header
+        const weekdaysHeader = this.createWeekdaysHeader();
+        heatmapWrapper.appendChild(weekdaysHeader);
+        
+        // Heatmap-Grid Container
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'heatmap-grid';
+        
+        // Maximalen Wert für Intensität-Berechnung finden
+        const maxValue = this.findMaxValue(dataMap);
+        
+        // Grid-Wochen erstellen
+        let currentDate = new Date(startDate);
+        let weekIndex = 0;
+        const maxWeeks = 53; // Sicherheitslimit
+        
+        while (currentDate <= endDate && weekIndex < maxWeeks) {
+            const weekContainer = this.createWeekColumn(currentDate, endDate, dataMap, maxValue);
+            gridContainer.appendChild(weekContainer);
+            
+            // Zur nächsten Woche (7 Tage vorwärts)
+            currentDate.setDate(currentDate.getDate() + 7);
+            weekIndex++;
+        }
+        
+        heatmapWrapper.appendChild(gridContainer);
+        
+        // Legende hinzufügen
+        const legend = this.createHeatmapLegend(maxValue);
+        heatmapWrapper.appendChild(legend);
+        
+        // Statistiken anzeigen
+        const stats = this.createHeatmapStats(dataMap, startDate, endDate);
+        heatmapWrapper.appendChild(stats);
+        
+        container.appendChild(heatmapWrapper);
+        
+        console.log(`✅ Heatmap rendered successfully with ${Object.keys(dataMap).length} data points`);
+        
+    } catch (error) {
+        console.error('❌ Heatmap rendering failed:', error);
+        this.renderHeatmapError(container, 'Fehler beim Erstellen der Heatmap');
+    }
+}
+
+/**
+ * Sichere Datum-Konvertierung
+ */
+ensureValidDate(dateInput) {
+    if (!dateInput) return null;
+    
+    let date;
+    
+    try {
+        if (dateInput instanceof Date) {
+            date = new Date(dateInput);
+        } else if (typeof dateInput === 'string') {
+            // ISO-String oder andere Formate parsen
+            date = new Date(dateInput);
+        } else if (typeof dateInput === 'number') {
+            // Unix Timestamp
+            date = new Date(dateInput);
+        } else {
+            console.warn('⚠️ Invalid date input type:', typeof dateInput, dateInput);
+            return null;
+        }
+        
+        // Prüfe ob Datum gültig ist
+        if (isNaN(date.getTime())) {
+            console.warn('⚠️ Invalid date created from:', dateInput);
+            return null;
+        }
+        
+        return date;
+        
+    } catch (error) {
+        console.warn('⚠️ Date parsing error:', error, 'Input:', dateInput);
+        return null;
+    }
+}
+
+/**
+ * Helper: Daten für Heatmap vorbereiten
+ */
+prepareHeatmapData(data) {
+    const dataMap = {};
+    
+    data.forEach((entry, index) => {
+        try {
+            // Flexibles Datum-Feld finden
+            const dateField = entry.date || entry.timestamp || entry.created_at || entry.day;
+            const validDate = this.ensureValidDate(dateField);
+            
+            if (validDate) {
+                // Datum als YYYY-MM-DD String für Key verwenden
+                const dateKey = validDate.toISOString().split('T')[0];
+                
+                // Wert extrahieren (flexibel)
+                const value = entry.value || entry.count || entry.score || entry.weight || 1;
+                
+                // Mehrere Einträge am gleichen Tag zusammenfassen
+                if (dataMap[dateKey]) {
+                    dataMap[dateKey] += parseFloat(value) || 0;
+                } else {
+                    dataMap[dateKey] = parseFloat(value) || 0;
+                }
+            } else {
+                console.warn(`⚠️ Skipping entry ${index}: invalid date`, entry);
+            }
+        } catch (error) {
+            console.warn(`⚠️ Error processing entry ${index}:`, error, entry);
+        }
+    });
+    
+    return dataMap;
+}
+
+/**
+ * Helper: Wochentage-Header erstellen
+ */
+createWeekdaysHeader() {
+    const header = document.createElement('div');
+    header.className = 'heatmap-weekdays';
+    
+    const weekdays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    
+    weekdays.forEach(day => {
+        const dayElement = document.createElement('div');
+        dayElement.className = 'heatmap-weekday';
+        dayElement.textContent = day;
+        header.appendChild(dayElement);
+    });
+    
+    return header;
+}
+
+/**
+ * Helper: Wochen-Spalte erstellen
+ */
+createWeekColumn(startDate, endDate, dataMap, maxValue) {
+    const weekContainer = document.createElement('div');
+    weekContainer.className = 'heatmap-week';
+    
+    // 7 Tage der Woche durchgehen
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const currentDay = new Date(startDate);
+        currentDay.setDate(currentDay.getDate() + dayOffset);
+        
+        // Nur Tage im gültigen Bereich anzeigen
+        if (currentDay <= endDate) {
+            const dayCell = this.createDayCell(currentDay, dataMap, maxValue);
+            weekContainer.appendChild(dayCell);
+        } else {
+            // Leere Zelle für Layout-Konsistenz
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'heatmap-cell heatmap-empty';
+            weekContainer.appendChild(emptyCell);
+        }
+    }
+    
+    return weekContainer;
+}
+
+/**
+ * Helper: Tag-Zelle erstellen
+ */
+createDayCell(date, dataMap, maxValue) {
+    const dateKey = date.toISOString().split('T')[0];
+    const value = dataMap[dateKey] || 0;
+    
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    
+    // Intensität berechnen (0-4 Stufen)
+    const intensity = maxValue > 0 ? Math.min(4, Math.ceil((value / maxValue) * 4)) : 0;
+    cell.classList.add(`heatmap-intensity-${intensity}`);
+    
+    // Tooltip-Daten
+    cell.setAttribute('data-date', dateKey);
+    cell.setAttribute('data-value', value);
+    cell.setAttribute('title', `${this.formatDate(date)}: ${value} Einträge`);
+    
+    // Click-Handler für Details
+    cell.addEventListener('click', () => {
+        this.showDayDetails(date, value);
+    });
+    
+    // Hover-Effekte
+    cell.addEventListener('mouseenter', () => {
+        this.showHeatmapTooltip(cell, date, value);
+    });
+    
+    cell.addEventListener('mouseleave', () => {
+        this.hideHeatmapTooltip();
+    });
+    
+    return cell;
+}
+
+/**
+ * Helper: Maximalen Wert finden
+ */
+findMaxValue(dataMap) {
+    const values = Object.values(dataMap);
+    return values.length > 0 ? Math.max(...values) : 0;
+}
+
+/**
+ * Helper: Heatmap-Legende erstellen
+ */
+createHeatmapLegend(maxValue) {
+    const legend = document.createElement('div');
+    legend.className = 'heatmap-legend';
+    
+    const legendLabel = document.createElement('span');
+    legendLabel.className = 'heatmap-legend-label';
+    legendLabel.textContent = 'Weniger';
+    legend.appendChild(legendLabel);
+    
+    // 5 Intensitätsstufen (0-4)
+    for (let i = 0; i <= 4; i++) {
+        const legendCell = document.createElement('div');
+        legendCell.className = `heatmap-cell heatmap-intensity-${i} heatmap-legend-cell`;
+        
+        const value = i === 0 ? 0 : Math.ceil((maxValue / 4) * i);
+        legendCell.setAttribute('title', `${value} Einträge`);
+        
+        legend.appendChild(legendCell);
+    }
+    
+    const legendLabelMore = document.createElement('span');
+    legendLabelMore.className = 'heatmap-legend-label';
+    legendLabelMore.textContent = 'Mehr';
+    legend.appendChild(legendLabelMore);
+    
+    return legend;
+}
+
+/**
+ * Helper: Heatmap-Statistiken erstellen
+ */
+createHeatmapStats(dataMap, startDate, endDate) {
+    const stats = document.createElement('div');
+    stats.className = 'heatmap-stats';
+    
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const activeDays = Object.keys(dataMap).length;
+    const totalEntries = Object.values(dataMap).reduce((sum, val) => sum + val, 0);
+    const avgPerDay = activeDays > 0 ? (totalEntries / activeDays).toFixed(1) : 0;
+    
+    stats.innerHTML = `
+        <div class="heatmap-stat">
+            <span class="heatmap-stat-label">Aktive Tage:</span>
+            <span class="heatmap-stat-value">${activeDays}/${totalDays}</span>
+        </div>
+        <div class="heatmap-stat">
+            <span class="heatmap-stat-label">Gesamt-Einträge:</span>
+            <span class="heatmap-stat-value">${totalEntries}</span>
+        </div>
+        <div class="heatmap-stat">
+            <span class="heatmap-stat-label">⌀ pro Tag:</span>
+            <span class="heatmap-stat-value">${avgPerDay}</span>
+        </div>
+    `;
+    
+    return stats;
+}
+
+/**
+ * Helper: Fehler-Nachricht rendern
+ */
+renderHeatmapError(container, message) {
+    container.innerHTML = `
+        <div class="heatmap-error">
+            <div class="flex items-center justify-center py-8">
+                <i data-lucide="alert-circle" class="w-6 h-6 text-error mr-2"></i>
+                <span class="text-base-content/60">${message}</span>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Helper: Datum formatieren
+ */
+formatDate(date) {
+    return date.toLocaleDateString('de-DE', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+/**
+ * Helper: Tag-Details anzeigen
+ */
+showDayDetails(date, value) {
+    console.log('📅 Day details:', this.formatDate(date), 'Value:', value);
+    // Hier kannst du ein Modal oder Detail-Panel öffnen
+    // z.B. healthTracker.showDayDetailsModal(date, value);
 }
 
 /**

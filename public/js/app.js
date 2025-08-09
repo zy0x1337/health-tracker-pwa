@@ -9331,11 +9331,11 @@ async loadCompleteAnalyticsData() {
     }
 
     // updateTrendsChart-Methode mit verbessertem Error Handling
-async updateTrendsChart(data) {
-    try {
-        console.log('📊 Aktualisiere Trends Chart...');
+    async updateTrendsChart(data) {
+        try {
+            console.log('📊 Aktualisiere Trends Chart...');
         
-        const trendsCanvas = document.getElementById('trends-chart-container');
+        const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
             console.warn('⚠️ Trends Chart Canvas nicht gefunden');
             return;

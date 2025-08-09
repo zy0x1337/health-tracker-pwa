@@ -9076,93 +9076,45 @@ async loadCompleteAnalyticsData() {
 
     /** Update trends chart */
 updateTrendsChart(metric = 'weight') {
-    console.log('📈 Updating trends chart with correct container detection...');
+    console.log('📈 Updating trends chart...');
     
     try {
-        // Bestehende Chart-Instanz zerstören
+        // Bestehende Chart-Instanz zerstören falls vorhanden
         if (this.currentTrendsChart) {
             console.log('🗑️ Destroying existing trends chart');
             this.currentTrendsChart.destroy();
             this.currentTrendsChart = null;
         }
 
-        let chartContainer = null;
-
-        const containerSelectors = [
-            // 1. Direkter Canvas in Enhanced Charts Grid
-            '.grid.grid-cols-1.xl\\:grid-cols-2 .card .h-64 canvas',
-            // 2. Chart Container by ID
-            '#trends-chart-container',
-            // 3. Canvas mit ID
-            '#trends-chart',
-            // 4. Card mit Trends-Titel
-            '.card:has(h3:contains("Trends & Entwicklung"))',
-            // 5. Erstes .h-64 Element in Analytics
-            '#analytics .h-64',
-            // 6. Fallback: Erstes Canvas in Analytics
-            '#analytics canvas'
-        ];
-        
-        for (const selector of containerSelectors) {
-            try {
-                if (selector.includes(':has') || selector.includes('contains')) {
-                    // Für komplexe Selektoren: manuell suchen
-                    const cards = document.querySelectorAll('#analytics .card');
-                    for (const card of cards) {
-                        const title = card.querySelector('h3');
-                        if (title && title.textContent.includes('Trends')) {
-                            const heightContainer = card.querySelector('.h-64');
-                            if (heightContainer) {
-                                chartContainer = heightContainer;
-                                console.log('✅ Found container via card title search');
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    chartContainer = document.querySelector(selector);
-                }
-                
-                if (chartContainer) {
-                    console.log(`✅ Found trends container with selector: ${selector}`);
-                    break;
-                }
-            } catch (e) {
-                console.log(`⚠️ Selector failed: ${selector}`, e);
-                continue;
-            }
-        }
-
-        // Fallback: Container manuell erstellen falls nicht gefunden
-        if (!chartContainer) {
-            console.log('🔧 Creating fallback trends container...');
-            chartContainer = this.createFallbackTrendsContainer();
-        }
-
-        if (!chartContainer) {
-            console.error('❌ No trends chart container found or created');
+        const container = document.getElementById('trends-chart-container');
+        if (!container) {
+            console.error('❌ Trends chart container not found');
             return;
         }
 
-        // Canvas finden oder erstellen
-        let canvas = chartContainer.querySelector('canvas');
-        if (!canvas) {
-            // Bestehenden Inhalt löschen
-            chartContainer.innerHTML = '';
-            
-            canvas = document.createElement('canvas');
-            canvas.id = 'trends-chart-canvas';
-            canvas.className = 'w-full h-full';
-            canvas.style.maxHeight = '300px';
-            chartContainer.appendChild(canvas);
-            
-            console.log('📊 Created new canvas element');
+        // Canvas komplett neu erstellen
+        const existingCanvas = container.querySelector('#trends-chart');
+        if (existingCanvas) {
+            existingCanvas.remove();
         }
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'trends-chart';
+        canvas.style.maxHeight = '300px';
+        container.appendChild(canvas);
+
+        console.log('📈 Canvas created/recreated for trends chart');
 
         // Chart-Daten vorbereiten
         const chartData = this.prepareTrendsData(metric);
         if (!chartData || !chartData.labels || chartData.labels.length === 0) {
-            this.showEmptyChart(chartContainer, `Keine Daten für ${this.getMetricLabel(metric)}`);
+            container.innerHTML = `
+                <div class="text-center text-base-content/60 py-8">
+                    <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                    <p>Nicht genügend Daten für ${this.getMetricLabel(metric)}</p>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             return;
         }
 
@@ -9190,18 +9142,16 @@ updateTrendsChart(metric = 'weight') {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top',
-                        labels: {
-                            color: 'oklch(var(--bc))',
-                            usePointStyle: true
-                        }
+                        position: 'top'
                     },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        backgroundColor: 'oklch(var(--b1))',
-                        titleColor: 'oklch(var(--bc))',
-                        bodyColor: 'oklch(var(--bc))'
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y}${this.getMetricUnit(metric)}`;
+                            }.bind(this)
+                        }
                     }
                 },
                 scales: {
@@ -9209,141 +9159,418 @@ updateTrendsChart(metric = 'weight') {
                         display: true,
                         title: {
                             display: true,
-                            text: 'Datum',
-                            color: 'oklch(var(--bc))'
+                            text: 'Datum'
                         },
                         grid: {
-                            color: 'oklch(var(--bc) / 0.1)'
-                        },
-                        ticks: {
-                            color: 'oklch(var(--bc) / 0.6)'
+                            color: 'rgba(148, 163, 184, 0.1)'
                         }
                     },
                     y: {
                         display: true,
                         title: {
                             display: true,
-                            text: `${this.getMetricLabel(metric)} (${this.getMetricUnit(metric)})`,
-                            color: 'oklch(var(--bc))'
+                            text: `${this.getMetricLabel(metric)} (${this.getMetricUnit(metric)})`
                         },
                         grid: {
-                            color: 'oklch(var(--bc) / 0.1)'
-                        },
-                        ticks: {
-                            color: 'oklch(var(--bc) / 0.6)'
+                            color: 'rgba(148, 163, 184, 0.1)'
                         },
                         beginAtZero: metric === 'steps' || metric === 'water'
                     }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
                 }
             }
         });
 
-        console.log('✅ Trends chart successfully created');
+        console.log('✅ Trends chart updated successfully');
 
     } catch (error) {
         console.error('❌ Trends chart error:', error);
-        this.showChartError('trends', error);
-    }
-}
-
-showEmptyChart(container, message) {
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-            <div class="text-center">
-                <div class="mb-4">
-                    <i data-lucide="trending-up" class="w-16 h-16 mx-auto text-base-content/20"></i>
-                </div>
-                <h4 class="font-semibold text-base-content/60 mb-2">Keine Chart-Daten</h4>
-                <p class="text-sm text-base-content/50 mb-4">${message}</p>
-                <button class="btn btn-primary btn-sm" onclick="healthTracker?.showQuickAddModal?.()">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    Daten hinzufügen
-                </button>
-            </div>
-        </div>
-    `;
-    
-    // Icons initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
-
-createFallbackTrendsContainer() {
-    console.log('🔧 Creating fallback trends container...');
-    
-    // Suche nach Analytics-Section
-    const analyticsSection = document.getElementById('analytics');
-    if (!analyticsSection) {
-        console.error('❌ Analytics section not found for fallback');
-        return null;
-    }
-
-    // Suche nach dem Enhanced Charts Grid
-    let chartsGrid = analyticsSection.querySelector('.grid.grid-cols-1.xl\\:grid-cols-2');
-    
-    if (!chartsGrid) {
-        // Grid existiert nicht - erstelle es
-        const gridHtml = `
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8" id="analytics-charts-grid">
-                <!-- Trends Chart wird hier eingefügt -->
-            </div>
-        `;
         
-        // Füge nach den Quick Stats ein
-        const statsSection = analyticsSection.querySelector('.stats');
-        if (statsSection) {
-            statsSection.insertAdjacentHTML('afterend', gridHtml);
-            chartsGrid = analyticsSection.querySelector('#analytics-charts-grid');
-        } else {
-            // Fallback: Am Anfang der Analytics Section
-            analyticsSection.insertAdjacentHTML('afterbegin', gridHtml);
-            chartsGrid = analyticsSection.querySelector('#analytics-charts-grid');
+        // Fallback: Container mit Fehlermeldung anzeigen
+        const container = document.getElementById('trends-chart-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    <span>Fehler beim Laden des Trend-Charts</span>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
+}
 
-    if (!chartsGrid) {
-        console.error('❌ Could not create or find charts grid');
-        return null;
+/** Create fallback trends visualization without Chart.js */
+createFallbackTrendsVisualization() {
+    // Suche nach einem Analytics-Container für Fallback
+    const fallbackContainer = document.getElementById('analytics-insights') ||
+                             document.getElementById('analytics-container') ||
+                             document.querySelector('[id*="analytics"]') ||
+                             document.querySelector('.analytics-content');
+    
+    if (!fallbackContainer) {
+        console.warn('⚠️ No fallback container found for trends visualization');
+        return;
     }
 
-    // Erstelle die komplette Trends Card Struktur
-    const trendsCardHtml = `
-        <div class="card bg-gradient-to-br from-base-100 to-base-200/50 border border-base-300/50 shadow-xl hover:shadow-2xl transition-all duration-300 group" id="trends-chart-card">
-            <div class="card-body p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="card-title text-xl flex items-center gap-2">
-                        <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
-                        Trends & Entwicklung
-                    </h3>
-                    <div class="indicator">
-                        <span class="indicator-item indicator-top indicator-end badge badge-primary badge-xs">Live</span>
+    const data = this.analyticsData?.period || [];
+    if (data.length === 0) {
+        fallbackContainer.innerHTML = `
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body text-center">
+                    <h4 class="card-title">📈 Trends-Analyse</h4>
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-2">📊</div>
+                        <p class="font-semibold">Keine Daten verfügbar</p>
+                        <p class="text-sm opacity-70">Erfasse Gesundheitsdaten um Trends zu sehen</p>
                     </div>
                 </div>
+            </div>
+        `;
+        return;
+    }
 
-                <!-- Chart Container -->
-                <div class="h-64 relative" id="fallback-trends-container">
-                    <!-- Canvas wird hier eingefügt -->
+    // Erstelle eine einfache Trends-Visualisierung mit HTML/CSS
+    const trendData = this.calculateSimpleTrends(data);
+    
+    fallbackContainer.innerHTML = `
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title mb-4">📈 Trends (${this.currentPeriod} Tage)</h4>
+                
+                <div class="space-y-4">
+                    ${trendData.map(trend => `
+                        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">${trend.icon}</span>
+                                <div>
+                                    <div class="font-medium">${trend.label}</div>
+                                    <div class="text-sm opacity-70">Durchschnitt: ${trend.average}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl">${trend.trendIcon}</span>
+                                    <span class="font-bold ${trend.trendColor}">${trend.trendText}</span>
+                                </div>
+                                <div class="text-xs opacity-60">${trend.trendDescription}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Einfache Bar-Darstellung -->
+                <div class="mt-6">
+                    <h5 class="font-semibold mb-3">Letzte ${Math.min(data.length, 7)} Einträge</h5>
+                    <div class="space-y-2">
+                        ${data.slice(-7).map((entry, index) => {
+                            const date = new Date(entry.date).toLocaleDateString('de-DE', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                            const stepsProgress = entry.steps ? Math.min((entry.steps / 10000) * 100, 100) : 0;
+                            const waterProgress = entry.waterIntake ? Math.min((entry.waterIntake / 2) * 100, 100) : 0;
+                            
+                            return `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-16 text-xs font-medium">${date}</div>
+                                    <div class="flex-1 space-y-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-4 text-xs">🚶</span>
+                                            <div class="flex-1 bg-base-300 rounded-full h-2">
+                                                <div class="bg-primary h-2 rounded-full transition-all duration-300" 
+                                                     style="width: ${stepsProgress}%"></div>
+                                            </div>
+                                            <span class="w-16 text-xs text-right">${entry.steps?.toLocaleString() || '—'}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-4 text-xs">💧</span>
+                                            <div class="flex-1 bg-base-300 rounded-full h-2">
+                                                <div class="bg-info h-2 rounded-full transition-all duration-300" 
+                                                     style="width: ${waterProgress}%"></div>
+                                            </div>
+                                            <span class="w-16 text-xs text-right">${entry.waterIntake || '—'}L</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             </div>
         </div>
     `;
-
-    // Füge Card zum Grid hinzu
-    chartsGrid.insertAdjacentHTML('beforeend', trendsCardHtml);
     
-    // Icons neu initialisieren
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    console.log('✅ Fallback trends visualization created');
+}
+
+/** Calculate simple trends for fallback visualization */
+calculateSimpleTrends(data) {
+    const trends = [];
+    
+    // Steps trend
+    const stepsData = data.filter(d => d.steps && d.steps > 0).map(d => d.steps);
+    if (stepsData.length >= 2) {
+        const avgSteps = stepsData.reduce((a, b) => a + b, 0) / stepsData.length;
+        const firstHalf = stepsData.slice(0, Math.floor(stepsData.length / 2));
+        const secondHalf = stepsData.slice(Math.floor(stepsData.length / 2));
+        
+        const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+        const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+        
+        trends.push({
+            label: 'Schritte',
+            icon: '🚶‍♂️',
+            average: Math.round(avgSteps).toLocaleString(),
+            trendIcon: change > 5 ? '📈' : change < -5 ? '📉' : '➡️',
+            trendText: `${change > 0 ? '+' : ''}${Math.round(change)}%`,
+            trendColor: change > 5 ? 'text-success' : change < -5 ? 'text-error' : 'text-base-content',
+            trendDescription: change > 5 ? 'Steigend' : change < -5 ? 'Fallend' : 'Stabil'
+        });
+    }
+    
+    // Water trend
+    const waterData = data.filter(d => d.waterIntake && d.waterIntake > 0).map(d => d.waterIntake);
+    if (waterData.length >= 2) {
+        const avgWater = waterData.reduce((a, b) => a + b, 0) / waterData.length;
+        const firstHalf = waterData.slice(0, Math.floor(waterData.length / 2));
+        const secondHalf = waterData.slice(Math.floor(waterData.length / 2));
+        
+        const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+        const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+        
+        trends.push({
+            label: 'Wasser',
+            icon: '💧',
+            average: `${Math.round(avgWater * 10) / 10}L`,
+            trendIcon: change > 5 ? '📈' : change < -5 ? '📉' : '➡️',
+            trendText: `${change > 0 ? '+' : ''}${Math.round(change)}%`,
+            trendColor: change > 5 ? 'text-success' : change < -5 ? 'text-error' : 'text-base-content',
+            trendDescription: change > 5 ? 'Steigend' : change < -5 ? 'Fallend' : 'Stabil'
+        });
+    }
+    
+    // Sleep trend
+    const sleepData = data.filter(d => d.sleepHours && d.sleepHours > 0).map(d => d.sleepHours);
+    if (sleepData.length >= 2) {
+        const avgSleep = sleepData.reduce((a, b) => a + b, 0) / sleepData.length;
+        const firstHalf = sleepData.slice(0, Math.floor(sleepData.length / 2));
+        const secondHalf = sleepData.slice(Math.floor(sleepData.length / 2));
+        
+        const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+        const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+        
+        trends.push({
+            label: 'Schlaf',
+            icon: '😴',
+            average: `${Math.round(avgSleep * 10) / 10}h`,
+            trendIcon: change > 5 ? '📈' : change < -5 ? '📉' : '➡️',
+            trendText: `${change > 0 ? '+' : ''}${Math.round(change)}%`,
+            trendColor: change > 5 ? 'text-success' : change < -5 ? 'text-error' : 'text-base-content',
+            trendDescription: change > 5 ? 'Steigend' : change < -5 ? 'Fallend' : 'Stabil'
+        });
+    }
+    
+    return trends;
+}
+
+    /** Prepare chart data */
+    prepareChartData(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+            return { labels: [], steps: [], water: [], sleep: [], weight: [] };
+        }
+
+        const groupedData = {};
+        
+        data.forEach(entry => {
+            if (!entry || !entry.date) return;
+            
+            const date = new Date(entry.date);
+            if (isNaN(date.getTime())) return;
+            
+            const dateKey = date.toLocaleDateString('de-DE', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            if (!groupedData[dateKey]) {
+                groupedData[dateKey] = {
+                    steps: 0,
+                    water: 0,
+                    sleep: 0,
+                    weight: null,
+                    count: 0
+                };
+            }
+            
+            groupedData[dateKey].steps += entry.steps || 0;
+            groupedData[dateKey].water += entry.waterIntake || 0;
+            groupedData[dateKey].sleep += entry.sleepHours || 0;
+            if (entry.weight) groupedData[dateKey].weight = entry.weight;
+            groupedData[dateKey].count++;
+        });
+
+        const labels = Object.keys(groupedData);
+        const steps = labels.map(date => groupedData[date].steps);
+        const water = labels.map(date => Math.round(groupedData[date].water * 10) / 10);
+        const sleep = labels.map(date => Math.round(groupedData[date].sleep * 10) / 10);
+        const weight = labels.map(date => groupedData[date].weight);
+
+        return { labels, steps, water, sleep, weight };
     }
 
-    // Return the chart container
-    const container = document.getElementById('fallback-trends-container');
-    console.log('✅ Fallback trends container created');
-    return container;
-}
+    /** Create chart datasets */
+    createChartDatasets(chartData) {
+        const datasets = [];
+        
+        const datasetConfigs = {
+            steps: {
+                label: 'Schritte',
+                data: chartData.steps,
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                yAxisID: 'y'
+            },
+            water: {
+                label: 'Wasser (L)',
+                data: chartData.water,
+                borderColor: '#06B6D4',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+            },
+            sleep: {
+                label: 'Schlaf (h)',
+                data: chartData.sleep,
+                borderColor: '#8B5CF6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                yAxisID: this.currentMetric === 'all' ? 'y1' : 'y'
+            },
+            weight: {
+                label: 'Gewicht (kg)',
+                data: chartData.weight,
+                borderColor: '#EF4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                yAxisID: 'y'
+            }
+        };
+
+        // Add datasets based on current metric
+        if (this.currentMetric === 'all') {
+            Object.values(datasetConfigs).forEach(config => {
+                datasets.push({
+                    ...config,
+                    tension: 0.4,
+                    fill: false,
+                    pointBackgroundColor: config.borderColor,
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                });
+            });
+        } else if (datasetConfigs[this.currentMetric]) {
+            datasets.push({
+                ...datasetConfigs[this.currentMetric],
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: datasetConfigs[this.currentMetric].borderColor,
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            });
+        }
+
+        return datasets;
+    }
+
+    /** Get chart options */
+    getChartOptions() {
+        const scales = {
+            x: {
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Datum',
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { color: 'rgba(156, 163, 175, 0.2)' },
+                ticks: { color: '#6B7280' }
+            },
+            y: {
+                display: true,
+                title: {
+                    display: true,
+                    text: this.getYAxisLabel(),
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { color: 'rgba(156, 163, 175, 0.2)' },
+                ticks: { color: '#6B7280' },
+                beginAtZero: true
+            }
+        };
+
+        if (this.currentMetric === 'all') {
+            scales.y1 = {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Liter / Stunden',
+                    color: '#374151',
+                    font: { size: 12, weight: 'bold' }
+                },
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#6B7280' },
+                beginAtZero: true
+            };
+        }
+
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        color: '#374151',
+                        font: { size: 12 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: `${this.getMetricTitle()} (${this.currentPeriod} Tage)`,
+                    color: '#1F2937',
+                    font: { size: 16, weight: 'bold' }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#FFFFFF',
+                    bodyColor: '#FFFFFF',
+                    borderColor: '#3B82F6',
+                    borderWidth: 1
+                }
+            },
+            scales,
+            elements: {
+                line: { tension: 0.4 },
+                point: { hoverRadius: 6 }
+            }
+        };
+    }
 
     /** Update heatmap chart */
     async updateHeatmapChart() {

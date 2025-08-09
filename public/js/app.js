@@ -3633,40 +3633,845 @@ countAchievedGoals() {
     }
 }
 
+/**
+ * Zeige optimierte Hilfe & Anleitung ohne Tab-Funktionalität
+ */
 showHelp() {
-    console.log('❓ Hilfe wird angezeigt');
-    const modal = document.createElement('div');
-    modal.className = 'modal modal-open';
-    modal.innerHTML = `
-        <div class="modal-box max-w-3xl">
-            <h3 class="font-bold text-lg mb-4">❓ Hilfe & Anleitung</h3>
-            <div class="collapse collapse-arrow bg-base-200 mb-2">
-                <input type="radio" name="help-accordion" checked="checked" /> 
-                <div class="collapse-title text-lg font-medium">📊 Wie tracke ich meine Gesundheitsdaten?</div>
-                <div class="collapse-content"> 
-                    <p>Verwende die Schnellerfassung im Dashboard oder navigiere zu den spezifischen Bereichen für detaillierte Eingaben.</p>
+    console.log('❓ Hilfe wird angezeigt (optimiert ohne Tabs)');
+    
+    try {
+        // Prüfe ob bereits ein Help-Modal existiert
+        const existingModal = document.querySelector('.help-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal modal-open help-modal';
+        modal.innerHTML = `
+            <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+                <!-- Header mit Animation -->
+                <div class="flex items-center gap-3 mb-6 sticky top-0 bg-base-100 py-2 border-b border-base-300/50 z-10">
+                    <div class="avatar placeholder">
+                        <div class="bg-gradient-to-br from-info to-info/80 text-info-content rounded-xl w-12 h-12">
+                            <i data-lucide="help-circle" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-2xl bg-gradient-to-r from-info to-info/80 bg-clip-text text-transparent">
+                            Hilfe & Anleitung
+                        </h3>
+                        <p class="text-sm text-base-content/70">Alles was du wissen musst</p>
+                    </div>
+                    <button class="btn btn-ghost btn-sm btn-circle" onclick="this.closest('.modal').remove()">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <!-- Alle Hilfe-Inhalte in einem scrollbaren Bereich -->
+                <div class="space-y-8">
+                    
+                    <!-- Quick Start Guide -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="play-circle" class="w-5 h-5 text-success"></i>
+                            Schnellstart
+                        </h4>
+                        
+                        <div class="grid md:grid-cols-2 gap-4 mb-6">
+                            <div class="card bg-success/5 border border-success/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-success mb-3 flex items-center gap-2">
+                                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                        1. Erste Schritte
+                                    </h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-success">•</span>
+                                            <span>Ziele im <strong>Fortschritt-Hub</strong> definieren</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-success">•</span>
+                                            <span>Erste Gesundheitsdaten eingeben</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-success">•</span>
+                                            <span>App als PWA installieren (optional)</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-info/5 border border-info/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-info mb-3 flex items-center gap-2">
+                                        <i data-lucide="zap" class="w-4 h-4"></i>
+                                        2. Schnell-Eingabe
+                                    </h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-info">•</span>
+                                            <span>Klicke den <strong>+ Button</strong> in der Navigation</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-info">•</span>
+                                            <span>Wähle die gewünschte Metrik aus</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span class="text-info">•</span>
+                                            <span>Nutze die Voreinstellungen für häufige Werte</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-success mb-6">
+                            <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                            <div>
+                                <h4 class="font-semibold">Pro-Tipp für Einsteiger</h4>
+                                <p class="text-sm">Beginne mit 2-3 Metriken (z.B. Schritte, Wasser, Schlaf) statt alle auf einmal zu tracken. Das erhöht die Erfolgschancen!</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Gesundheitsdaten Tracking -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
+                            Gesundheitsdaten verfolgen
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <!-- Schritte -->
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                        <i data-lucide="footprints" class="w-4 h-4 text-success"></i>
+                                        Schritte & Aktivität
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Eingabe:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Tägliche Schrittzahl eingeben</li>
+                                                <li>• Mehrere Einträge werden addiert</li>
+                                                <li>• Schnellwerte: 1.000, 2.500, 5.000, 10.000</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Empfehlungen:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Ziel: 10.000 Schritte täglich</li>
+                                                <li>• Beginne mit realistischen Zielen</li>
+                                                <li>• Steigere schrittweise</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Wasser -->
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                        <i data-lucide="droplets" class="w-4 h-4 text-info"></i>
+                                        Wasserzufuhr
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Eingabe:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Wassermenge in Litern</li>
+                                                <li>• Schnellwerte: Glas (0.2L), Flasche (0.33L)</li>
+                                                <li>• Mehrfach-Eingaben werden summiert</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Empfehlungen:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Ziel: 2-3 Liter täglich</li>
+                                                <li>• Morgens mit 1-2 Gläsern starten</li>
+                                                <li>• Regelmäßig über den Tag verteilen</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Schlaf -->
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                        <i data-lucide="moon" class="w-4 h-4 text-warning"></i>
+                                        Schlaf & Erholung
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Eingabe:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Schlafstunden (inkl. Dezimalstellen)</li>
+                                                <li>• Powernaps können separat erfasst werden</li>
+                                                <li>• Schnellwerte: 0.5h, 1.5h, 8h, 9h</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Empfehlungen:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Ziel: 7-9 Stunden Nachtschlaf</li>
+                                                <li>• Regelmäßige Schlafzeiten</li>
+                                                <li>• Kurze Tagschlafpausen (max. 30 Min.)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Gewicht -->
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                        <i data-lucide="scale" class="w-4 h-4 text-secondary"></i>
+                                        Gewicht & Körperdaten
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Eingabe:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Gewicht in Kilogramm</li>
+                                                <li>• Ein Wert pro Tag (überschreibt vorherige)</li>
+                                                <li>• Bereich: 30-300 kg</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Empfehlungen:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Täglich zur gleichen Zeit wiegen</li>
+                                                <li>• Morgens nach dem Aufstehen</li>
+                                                <li>• Gewichtsziel optional setzen</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stimmung & Notizen -->
+                            <div class="card bg-base-200">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                        <i data-lucide="smile" class="w-4 h-4 text-accent"></i>
+                                        Stimmung & Notizen
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Stimmung:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• 😄 Ausgezeichnet bis 😢 Furchtbar</li>
+                                                <li>• Ein Wert pro Tag</li>
+                                                <li>• Hilft bei Muster-Erkennung</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Notizen:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• Freie Texteingabe (max. 500 Zeichen)</li>
+                                                <li>• Mehrere Notizen werden mit Zeitstempel gesammelt</li>
+                                                <li>• Schnellvorlagen verfügbar</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Ziele & Fortschritt -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="target" class="w-5 h-5 text-secondary"></i>
+                            Ziele setzen & verfolgen
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="card bg-secondary/5 border border-secondary/20">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold text-secondary mb-3">Ziele definieren</h5>
+                                        <ol class="text-sm space-y-2">
+                                            <li>1. Gehe zum <strong>Fortschritt-Hub</strong></li>
+                                            <li>2. Wähle den <strong>"Ziele"</strong> Tab</li>
+                                            <li>3. Klicke <strong>"Ziele bearbeiten"</strong></li>
+                                            <li>4. Setze realistische, erreichbare Ziele</li>
+                                            <li>5. Speichere deine Einstellungen</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                
+                                <div class="card bg-accent/5 border border-accent/20">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold text-accent mb-3">Fortschritt verfolgen</h5>
+                                        <ul class="text-sm space-y-2">
+                                            <li class="flex items-start gap-2">
+                                                <span class="text-accent">•</span>
+                                                <span><strong>Heute-View:</strong> Aktueller Tagesfortschritt</span>
+                                            </li>
+                                            <li class="flex items-start gap-2">
+                                                <span class="text-accent">•</span>
+                                                <span><strong>Wochen-View:</strong> 7-Tage Durchschnitte</span>
+                                            </li>
+                                            <li class="flex items-start gap-2">
+                                                <span class="text-accent">•</span>
+                                                <span><strong>Ziele-View:</strong> Detaillierte Zielverfolgung</span>
+                                            </li>
+                                            <li class="flex items-start gap-2">
+                                                <span class="text-accent">•</span>
+                                                <span><strong>Erfolge-View:</strong> Meilensteine & Achievements</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i data-lucide="compass" class="w-5 h-5"></i>
+                                <div>
+                                    <h4 class="font-semibold">SMART-Ziele Prinzip</h4>
+                                    <p class="text-sm">
+                                        <strong>S</strong>pezifisch, <strong>M</strong>essbar, <strong>A</strong>erreichbar, 
+                                        <strong>R</strong>elevant, <strong>T</strong>erminiert - 
+                                        Beispiel: "10.000 Schritte täglich in den nächsten 4 Wochen"
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Analytics verstehen -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-info"></i>
+                            Analytics & Trends verstehen
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="trending-up" class="w-4 h-4 text-success"></i>
+                                            Trends Chart
+                                        </h5>
+                                        <ul class="text-sm space-y-1">
+                                            <li>• Zeitraum: 7, 14, 30, 90 Tage</li>
+                                            <li>• Filter: Alle oder einzelne Metriken</li>
+                                            <li>• Trends erkennen und Muster verstehen</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="flame" class="w-4 h-4 text-warning"></i>
+                                            Aktivitäts-Heatmap
+                                        </h5>
+                                        <ul class="text-sm space-y-1">
+                                            <li>• Visuelle Darstellung deiner Aktivität</li>
+                                            <li>• Erkennt Muster und Lücken</li>
+                                            <li>• Kalender-ähnliche Übersicht</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="brain" class="w-4 h-4 text-primary"></i>
+                                            KI-Insights
+                                        </h5>
+                                        <ul class="text-sm space-y-1">
+                                            <li>• Automatische Muster-Erkennung</li>
+                                            <li>• Korrelationen zwischen Metriken</li>
+                                            <li>• Personalisierte Empfehlungen</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-3 flex items-center gap-2">
+                                        <i data-lucide="lightbulb" class="w-4 h-4 text-primary"></i>
+                                        Analytics interpretieren
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <strong>Positive Trends:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>📈 Steigende Linien = Verbesserung</li>
+                                                <li>🎯 Zielerreichung > 80% = Sehr gut</li>
+                                                <li>🔥 Längere Streaks = Konstanz</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <strong>Verbesserungspotential:</strong>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>📉 Fallende Trends = Aufmerksamkeit nötig</li>
+                                                <li>⚠️ Zielerreichung < 50% = Ziele anpassen</li>
+                                                <li>🔍 Lücken in Heatmap = Routine verbessern</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Offline & Sync -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="wifi-off" class="w-5 h-5 text-success"></i>
+                            Offline-Funktionalität & Synchronisation
+                        </h4>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="card bg-success/5 border border-success/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-success mb-3">Offline-Funktionen</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Vollständige App-Funktionalität ohne Internet</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Lokale Datenspeicherung im Browser</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Analytics & Charts funktionieren offline</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="check" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Alle Einstellungen bleiben erhalten</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-info/5 border border-info/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-info mb-3">Automatische Synchronisation</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="sync" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Offline erfasste Daten werden automatisch hochgeladen</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="shield" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Verschlüsselte und sichere Datenübertragung</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="clock" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Sync-Status in der Navigation sichtbar</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="refresh-cw" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Manueller Sync über Verbindungsstatus-Button</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i data-lucide="info" class="w-5 h-5"></i>
+                            <div>
+                                <h4 class="font-semibold">Verbindungshinweis</h4>
+                                <p class="text-sm">
+                                    Der Verbindungsstatus wird in der oberen rechten Ecke angezeigt: 
+                                    <span class="badge badge-success mx-1">🌐 Online</span> oder 
+                                    <span class="badge badge-warning mx-1">📵 Offline</span>
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- PWA Installation -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="smartphone" class="w-5 h-5 text-accent"></i>
+                            App-Installation (PWA)
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="smartphone" class="w-4 h-4 text-primary"></i>
+                                            Android / Chrome
+                                        </h5>
+                                        <ol class="text-sm space-y-1">
+                                            <li>1. Menü (⋮) → "App installieren"</li>
+                                            <li>2. Oder: "Zum Startbildschirm hinzufügen"</li>
+                                            <li>3. App-Icon erscheint auf Homescreen</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="smartphone" class="w-4 h-4 text-secondary"></i>
+                                            iPhone / Safari
+                                        </h5>
+                                        <ol class="text-sm space-y-1">
+                                            <li>1. Teilen-Button (□↗) tippen</li>
+                                            <li>2. "Zum Home-Bildschirm" wählen</li>
+                                            <li>3. Namen bestätigen → "Hinzufügen"</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                
+                                <div class="card bg-base-200">
+                                    <div class="card-body p-4">
+                                        <h5 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i data-lucide="monitor" class="w-4 h-4 text-accent"></i>
+                                            Desktop
+                                        </h5>
+                                        <ol class="text-sm space-y-1">
+                                            <li>1. Install-Button in Adressleiste</li>
+                                            <li>2. Oder: Browser-Menü → "App installieren"</li>
+                                            <li>3. App startet in eigenem Fenster</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold mb-3 flex items-center gap-2">
+                                        <i data-lucide="star" class="w-4 h-4 text-accent"></i>
+                                        Vorteile der App-Installation
+                                    </h5>
+                                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                        <ul class="space-y-1">
+                                            <li>🚀 Schnellerer App-Start</li>
+                                            <li>📱 Eigenes App-Icon auf dem Homescreen</li>
+                                            <li>🔔 Push-Benachrichtigungen möglich</li>
+                                        </ul>
+                                        <ul class="space-y-1">
+                                            <li>📵 Funktioniert komplett offline</li>
+                                            <li>🎯 Fokussiertes Arbeiten ohne Browser-Tabs</li>
+                                            <li>💾 Automatische Updates im Hintergrund</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Troubleshooting -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="tool" class="w-5 h-5 text-warning"></i>
+                            Problemlösung & FAQ
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <div class="collapse collapse-arrow bg-base-200">
+                                <input type="radio" name="faq-accordion" checked="checked" /> 
+                                <div class="collapse-title text-lg font-medium">
+                                    📊 Charts werden nicht angezeigt oder sind leer
+                                </div>
+                                <div class="collapse-content"> 
+                                    <div class="space-y-2 text-sm">
+                                        <p><strong>Mögliche Ursachen & Lösungen:</strong></p>
+                                        <ul class="ml-4 space-y-1">
+                                            <li>• <strong>Nicht genug Daten:</strong> Mindestens 3-5 Tage mit Daten erfassen</li>
+                                            <li>• <strong>Zeitraum-Filter:</strong> Längeren Zeitraum wählen (30 oder 90 Tage)</li>
+                                            <li>• <strong>Browser-Cache:</strong> Seite neu laden (Strg+F5 / Cmd+Shift+R)</li>
+                                            <li>• <strong>JavaScript deaktiviert:</strong> In Browser-Einstellungen aktivieren</li>
+                                        </ul>
+                                        <div class="alert alert-info mt-2">
+                                            <i data-lucide="info" class="w-4 h-4"></i>
+                                            <span class="text-xs">Refresh-Button neben dem Chart zum erneuten Laden verwenden</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="collapse collapse-arrow bg-base-200">
+                                <input type="radio" name="faq-accordion" /> 
+                                <div class="collapse-title text-lg font-medium">
+                                    💾 Daten gehen verloren oder werden nicht gespeichert
+                                </div>
+                                <div class="collapse-content"> 
+                                    <div class="space-y-2 text-sm">
+                                        <p><strong>Datenschutz-Maßnahmen:</strong></p>
+                                        <ul class="ml-4 space-y-1">
+                                            <li>• <strong>Browser-Daten:</strong> Cookies & LocalStorage nicht löschen</li>
+                                            <li>• <strong>Inkognito-Modus:</strong> Vermeiden, da Daten nicht persistent sind</li>
+                                            <li>• <strong>Regelmäßiger Export:</strong> Über Mehr-Menü → Export/Import</li>
+                                            <li>• <strong>Browser-Updates:</strong> Können Daten zurücksetzen</li>
+                                        </ul>
+                                        <div class="alert alert-warning mt-2">
+                                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                            <span class="text-xs">Wichtige Daten regelmäßig exportieren als Backup!</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="collapse collapse-arrow bg-base-200">
+                                <input type="radio" name="faq-accordion" /> 
+                                <div class="collapse-title text-lg font-medium">
+                                    📱 App funktioniert nicht richtig auf dem Smartphone
+                                </div>
+                                <div class="collapse-content"> 
+                                    <div class="space-y-2 text-sm">
+                                        <p><strong>Mobile Optimierungen:</strong></p>
+                                        <ul class="ml-4 space-y-1">
+                                            <li>• <strong>Browser aktualisieren:</strong> Neueste Version verwenden</li>
+                                            <li>• <strong>PWA installieren:</strong> Bessere Performance als Browser-Version</li>
+                                            <li>• <strong>Landscape-Modus:</strong> Charts und Analytics besser sichtbar</li>
+                                            <li>• <strong>Touch-Gesten:</strong> Wischen und Pinch-to-Zoom unterstützt</li>
+                                        </ul>
+                                        <div class="alert alert-success mt-2">
+                                            <i data-lucide="smartphone" class="w-4 h-4"></i>
+                                            <span class="text-xs">Mobile Navigation unten für einfachere Bedienung</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="collapse collapse-arrow bg-base-200">
+                                <input type="radio" name="faq-accordion" /> 
+                                <div class="collapse-title text-lg font-medium">
+                                    🔄 Synchronisation funktioniert nicht
+                                </div>
+                                <div class="collapse-content"> 
+                                    <div class="space-y-2 text-sm">
+                                        <p><strong>Sync-Probleme beheben:</strong></p>
+                                        <ul class="ml-4 space-y-1">
+                                            <li>• <strong>Internetverbindung:</strong> Status oben rechts prüfen</li>
+                                            <li>• <strong>Manueller Sync:</strong> Auf Verbindungsstatus-Button klicken</li>
+                                            <li>• <strong>Browser-Berechtigungen:</strong> Background-Sync aktivieren</li>
+                                            <li>• <strong>Server-Status:</strong> Möglicherweise temporäre Wartung</li>
+                                        </ul>
+                                        <div class="alert alert-info mt-2">
+                                            <i data-lucide="sync" class="w-4 h-4"></i>
+                                            <span class="text-xs">Offline-Daten werden automatisch nachgeholt bei nächster Verbindung</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="collapse collapse-arrow bg-base-200">
+                                <input type="radio" name="faq-accordion" /> 
+                                <div class="collapse-title text-lg font-medium">
+                                    🎯 Ziele werden nicht korrekt angezeigt
+                                </div>
+                                <div class="collapse-content"> 
+                                    <div class="space-y-2 text-sm">
+                                        <p><strong>Ziel-System verstehen:</strong></p>
+                                        <ul class="ml-4 space-y-1">
+                                            <li>• <strong>Ziele definieren:</strong> Erst im Fortschritt-Hub → Ziele setzen</li>
+                                            <li>• <strong>Tägliche Basis:</strong> Alle Ziele sind täglich, nicht wöchentlich</li>
+                                            <li>• <strong>Realistic setzen:</strong> Zu hohe Ziele führen zu Frustration</li>
+                                            <li>• <strong>Schrittweise steigern:</strong> Beginne mit 70% deiner Maximum-Leistung</li>
+                                        </ul>
+                                        <div class="alert alert-success mt-2">
+                                            <i data-lucide="target" class="w-4 h-4"></i>
+                                            <span class="text-xs">Ziele können jederzeit angepasst werden - sie sollten herausfordernd aber erreichbar sein</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Datenschutz & Sicherheit -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-success"></i>
+                            Datenschutz & Sicherheit
+                        </h4>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="card bg-success/5 border border-success/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-success mb-3">Deine Daten sind sicher</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="lock" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Alle Daten werden lokal auf deinem Gerät gespeichert</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="shield" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Verschlüsselte Übertragung bei Synchronisation</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="eye-off" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Keine Weitergabe an Dritte</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="user-check" class="w-4 h-4 text-success mt-0.5"></i>
+                                            <span>Du behältst vollständige Kontrolle</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-info/5 border border-info/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-info mb-3">Weitere Schutzmaßnahmen</h5>
+                                    <ul class="text-sm space-y-2">
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="download" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Regelmäßige Datenexports als Backup</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="trash-2" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Automatische Bereinigung alter Daten (optional)</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="fingerprint" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Biometrische Entsperrung (in Entwicklung)</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <i data-lucide="wifi-off" class="w-4 h-4 text-info mt-0.5"></i>
+                                            <span>Offline-Modus für maximale Privatsphäre</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-success">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            <div>
+                                <h4 class="font-semibold">GDPR-Konform & Privacy-First</h4>
+                                <p class="text-sm">
+                                    Health Tracker Pro folgt den strengsten Datenschutzstandards. 
+                                    Deine Gesundheitsdaten verlassen dein Gerät nur verschlüsselt und bleiben unter deiner vollständigen Kontrolle.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Kontakt & Support -->
+                    <section>
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="mail" class="w-5 h-5 text-accent"></i>
+                            Kontakt & Weitere Hilfe
+                        </h4>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="card bg-accent/5 border border-accent/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-accent mb-3">Support kontaktieren</h5>
+                                    <div class="space-y-3">
+                                        <button class="btn btn-outline btn-accent btn-sm w-full gap-2" onclick="window.open('mailto:support@healthtracker.com?subject=Health Tracker Pro Hilfe')">
+                                            <i data-lucide="mail" class="w-4 h-4"></i>
+                                            E-Mail Support
+                                        </button>
+                                        <button class="btn btn-outline btn-info btn-sm w-full gap-2" onclick="healthTracker?.showDataUsage?.()">
+                                            <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                                            Speicher-Diagnose
+                                        </button>
+                                        <button class="btn btn-outline btn-warning btn-sm w-full gap-2" onclick="healthTracker?.exportAppData?.()">
+                                            <i data-lucide="download" class="w-4 h-4"></i>
+                                            Debug-Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card bg-primary/5 border border-primary/20">
+                                <div class="card-body p-4">
+                                    <h5 class="font-semibold text-primary mb-3">Hilfreiche Ressourcen</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="book-open" class="w-4 h-4 text-primary"></i>
+                                            <span>Online-Dokumentation (Coming Soon)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="video" class="w-4 h-4 text-primary"></i>
+                                            <span>Video-Tutorials (In Planung)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="users" class="w-4 h-4 text-primary"></i>
+                                            <span>Community-Forum (Bald verfügbar)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="github" class="w-4 h-4 text-primary"></i>
+                                            <span>Open Source auf GitHub</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i data-lucide="heart" class="w-5 h-5"></i>
+                            <div>
+                                <h4 class="font-semibold">Feedback willkommen!</h4>
+                                <p class="text-sm">
+                                    Deine Meinung ist wichtig! Teile Verbesserungsvorschläge, Bugs oder 
+                                    Feature-Wünsche mit uns. Gemeinsam machen wir Health Tracker Pro noch besser.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="modal-action mt-8 pt-4 border-t border-base-300/50 sticky bottom-0 bg-base-100">
+                    <div class="flex flex-wrap gap-2 w-full justify-between">
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="window.print()">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                                Drucken
+                            </button>
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.exportAppData?.()">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                Debug-Export
+                            </button>
+                            <button class="btn btn-ghost btn-sm gap-2" onclick="healthTracker?.showSettings?.()">
+                                <i data-lucide="settings" class="w-4 h-4"></i>
+                                Einstellungen
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="this.closest('.modal').remove()">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            Verstanden
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="collapse collapse-arrow bg-base-200 mb-2">
-                <input type="radio" name="help-accordion" /> 
-                <div class="collapse-title text-lg font-medium">🎯 Wie setze ich Ziele?</div>
-                <div class="collapse-content"> 
-                    <p>Gehe zum Progress Hub → Ziele und erstelle neue Ziele mit spezifischen Zielvorgaben und Zeiträumen.</p>
-                </div>
-            </div>
-            <div class="collapse collapse-arrow bg-base-200 mb-2">
-                <input type="radio" name="help-accordion" /> 
-                <div class="collapse-title text-lg font-medium">📈 Wie interpretiere ich die Analytics?</div>
-                <div class="collapse-content"> 
-                    <p>Das Analytics Dashboard zeigt Trends, Korrelationen und Muster in deinen Daten. Nutze die Filter für spezifische Auswertungen.</p>
-                </div>
-            </div>
-            <div class="modal-action">
-                <button class="btn" onclick="this.closest('.modal').remove()">Schließen</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+            <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Icons initialisieren
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Haptic Feedback
+        if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+            navigator.vibrate(10);
+        }
+        
+        console.log('✅ Help Modal (optimiert ohne Tabs) erfolgreich angezeigt');
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Anzeigen der Hilfe:', error);
+        this.showToast('❌ Fehler beim Öffnen der Hilfe', 'error');
+    }
 }
 
 showSettings() {

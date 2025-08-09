@@ -10901,395 +10901,64 @@ async loadCompleteAnalyticsData() {
     }
 
     /**
- * updateTrendsChart - akzeptiert Metric-Filter
- */
-/**
- * Sichere updateTrendsChart mit Fallback-Mechanismen
+ * updateTrendsChart-Methode - akzeptiert Metric-Filter
  */
 async updateTrendsChart(data, metricFilter = 'all') {
     try {
-        console.log('🎨 Modern Trends Chart wird aktualisiert:', metricFilter);
-        
-        // Container sicher ermitteln
-        const trendsContainer = document.getElementById('trends-chart-container') || 
-                               document.getElementById('trends-chart')?.parentElement;
-        
-        if (!trendsContainer) {
-            console.warn('⚠️ Trends Container nicht gefunden');
-            return;
-        }
-
-        // **Sichere Container-Struktur-Erstellung**
-        try {
-            if (!trendsContainer.querySelector('.modern-trends-wrapper') && 
-                !trendsContainer.querySelector('.simple-trends-wrapper')) {
-                
-                // Versuche moderne Struktur
-                if (typeof this.createModernChartStructure === 'function') {
-                    this.createModernChartStructure(trendsContainer, metricFilter);
-                } else {
-                    // Fallback zu einfacher Struktur
-                    this.createSimpleChartStructure(trendsContainer, metricFilter);
-                }
-            }
-        } catch (structureError) {
-            console.warn('⚠️ Chart-Struktur-Erstellung fehlgeschlagen:', structureError);
-            this.createSimpleChartStructure(trendsContainer, metricFilter);
-        }
+        console.log('📊 updateTrendsChart aufgerufen mit Filter:', metricFilter);
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
-            throw new Error('Canvas nicht gefunden nach Container-Erstellung');
+            console.warn('⚠️ Trends Chart Canvas nicht gefunden');
+            return;
         }
 
-        // Performance-optimierte Chart-Updates
-        if (this.trendsChart && this.trendsChart.canvas.id === 'trends-chart') {
-            return await this.updateExistingChartSafe(data, metricFilter);
+        // Chart-Instanz prüfen bevor Zerstörung
+        if (this.trendsChart) {
+            // Versuche Chart zu updaten statt zu zerstören
+            const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
+            
+            // Update Chart-Daten ohne Zerstörung
+            this.trendsChart.data = chartData;
+            this.trendsChart.options = this.getChartOptions(metricFilter);
+            this.trendsChart.update('none'); // Keine Animation für bessere Performance
+            
+            // Update Chart-Titel
+            this.updateChartTitle(metricFilter);
+            
+            console.log('🔄 Chart aktualisiert (nicht zerstört) für:', metricFilter);
+            return;
         }
 
-        // Neue Chart-Instanz erstellen
-        return await this.createChartSafe(trendsCanvas, data, metricFilter);
-        
-    } catch (error) {
-        console.error('❌ Modern Trends Chart Fehler:', error);
-        
-        // Sichere Error-Behandlung
-        try {
-            if (typeof this.showModernTrendsError === 'function') {
-                this.showModernTrendsError(error.message);
-            } else {
-                this.showSimpleTrendsError(error.message);
-            }
-        } catch (errorHandlingError) {
-            console.error('❌ Error-Handling fehlgeschlagen:', errorHandlingError);
-            this.showFallbackError(error.message);
+        // Nur bei erstem Erstellen: Neue Chart-Instanz
+        const ctx = trendsCanvas.getContext('2d');
+        if (!ctx) {
+            console.error('❌ Canvas-Kontext nicht verfügbar');
+            return;
         }
-    }
-}
 
-/**
- * Sichere Chart-Erstellung mit Fallbacks
- */
-async createChartSafe(canvas, data, metricFilter) {
-    try {
-        console.log('🎨 Sichere Chart-Erstellung gestartet');
-        
-        const ctx = canvas.getContext('2d');
-        
-        // High-DPI Support
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-        ctx.scale(dpr, dpr);
-
-        // Chart-Daten vorbereiten
         const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
         const chartConfig = this.getChartConfiguration(chartData, metricFilter);
         
-        // Alte Chart zerstören
-        if (this.trendsChart) {
-            this.trendsChart.destroy();
-        }
-        
-        // Neue Chart erstellen
+        // Chart mit verbesserter Konfiguration erstellen
         this.trendsChart = new Chart(ctx, chartConfig);
         
-        console.log('✅ Chart erfolgreich erstellt');
-        return this.trendsChart;
+        // Visibility Change Handler hinzufügen (für Browser-Tab-Wechsel)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.trendsChart) {
+                setTimeout(() => {
+                    this.trendsChart.resize();
+                    this.trendsChart.update('none');
+                }, 100);
+            }
+        });
+        
+        console.log('✅ Trends Chart initial erstellt für:', metricFilter);
         
     } catch (error) {
-        console.error('❌ Chart-Erstellung fehlgeschlagen:', error);
-        throw new Error(`Chart-Erstellung: ${error.message}`);
+        console.error('❌ Trends Chart Fehler:', error);
+        this.showTrendsError('Chart-Render-Fehler: ' + error.message);
     }
-}
-
-/**
- * Einfache Error-Anzeige als Fallback
- */
-showSimpleTrendsError(errorMessage) {
-    const trendsContainer = document.getElementById('trends-chart-container') || 
-                           document.querySelector('#trends-chart')?.parentElement;
-    
-    if (trendsContainer) {
-        trendsContainer.innerHTML = `
-            <div class="alert alert-error">
-                <span>📊 Chart-Fehler: ${errorMessage}</span>
-                <div class="mt-2">
-                    <button class="btn btn-sm" onclick="location.reload()">
-                        🔄 Seite neu laden
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-}
-
-/**
- * Absolute Fallback-Error-Anzeige
- */
-showFallbackError(errorMessage) {
-    console.error('❌ Fallback Error Display:', errorMessage);
-    
-    // Minimale Error-Anzeige direkt im DOM
-    const errorDiv = document.createElement('div');
-    errorDiv.style.cssText = 'padding: 16px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; margin: 16px; color: #dc2626;';
-    errorDiv.innerHTML = `
-        <strong>Chart-Fehler aufgetreten:</strong><br>
-        ${errorMessage}<br>
-        <button onclick="location.reload()" style="margin-top: 8px; padding: 4px 8px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer;">
-            Seite neu laden
-        </button>
-    `;
-    
-    const container = document.getElementById('trends-chart-container') || 
-                     document.querySelector('#trends-chart')?.parentElement || 
-                     document.body;
-    
-    container.appendChild(errorDiv);
-}
-
-/**
- * Moderne Container-Struktur erstellen
- */
-createModernChartStructure(container, metricFilter) {
-    if (!container.querySelector('.modern-trends-wrapper')) {
-        container.innerHTML = `
-            <div class="modern-trends-wrapper glass-card-premium">
-                <!-- Header mit Gradient -->
-                <div class="trends-header-modern">
-                    <h3 id="trends-title" class="chart-title-gradient">
-                        ${this.getChartTitle(metricFilter)}
-                    </h3>
-                    <div class="metric-controls-modern">
-                        ${this.createMetricButtons(metricFilter)}
-                    </div>
-                </div>
-
-                <!-- Chart Container -->
-                <div class="chart-container-modern">
-                    <canvas id="trends-chart" class="ultra-modern-canvas"></canvas>
-                    <div id="modern-tooltip" class="glassmorphism-tooltip hidden"></div>
-                </div>
-
-                <!-- Modern Legend -->
-                <div class="ultra-modern-legend" id="chart-legend-modern">
-                    <!-- Wird dynamisch gefüllt -->
-                </div>
-            </div>
-        `;
-    }
-}
-
-/**
- * Metric-Toggle-Buttons erstellen
- */
-createMetricButtons(currentMetricFilter) {
-    const metrics = [
-        { id: 'all', label: '📊 Alle', color: '#6366f1' },
-        { id: 'steps', label: '👟 Schritte', color: '#6366f1' },
-        { id: 'waterIntake', label: '💧 Wasser', color: '#0ea5e9' },
-        { id: 'sleepHours', label: '😴 Schlaf', color: '#10b981' },
-        { id: 'weight', label: '⚖️ Gewicht', color: '#f59e0b' }
-    ];
-
-    return metrics.map(metric => `
-        <button class="metric-btn ${currentMetricFilter === metric.id ? 'active' : ''}" 
-                data-metric="${metric.id}"
-                style="--metric-color: ${metric.color}"
-                onclick="healthTracker.analyticsEngine?.handleMetricChange('${metric.id}') || healthTracker.handleMetricChange?.('${metric.id}')">
-            ${metric.label}
-        </button>
-    `).join('');
-}
-
-/**
- * Trends-Error-Anzeige
- */
-showModernTrendsError(errorMessage) {
-    console.error('❌ Trends Chart Error:', errorMessage);
-    
-    const trendsContainer = document.getElementById('trends-chart-container') || 
-                           document.querySelector('#trends-chart')?.parentElement;
-    
-    if (trendsContainer) {
-        trendsContainer.innerHTML = `
-            <div class="error-container glass-card-error">
-                <div class="error-content">
-                    <div class="error-icon">📊</div>
-                    <h3 class="error-title">Chart-Fehler aufgetreten</h3>
-                    <p class="error-message">${errorMessage}</p>
-                    <div class="error-actions">
-                        <button class="btn btn-primary btn-sm" 
-                                onclick="healthTracker.analyticsEngine?.loadCompleteAnalyticsData() || healthTracker.loadCompleteAnalyticsData?.()">
-                            🔄 Erneut versuchen
-                        </button>
-                        <button class="btn btn-outline btn-sm" 
-                                onclick="healthTracker.showToast('Chart wird zurückgesetzt...', 'info'); setTimeout(() => location.reload(), 1000)">
-                            🔧 Chart zurücksetzen
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // User-freundliche Toast-Benachrichtigung
-    if (typeof this.showToast === 'function') {
-        this.showToast('⚠️ Chart-Darstellung fehlgeschlagen', 'error');
-    } else if (window.healthTracker?.showToast) {
-        window.healthTracker.showToast('⚠️ Chart-Darstellung fehlgeschlagen', 'error');
-    }
-}
-
-/**
- * Vereinfachte Chart-Struktur ohne moderne Features
- */
-createSimpleChartStructure(container, metricFilter) {
-    console.log('🔄 Fallback: Einfache Chart-Struktur wird erstellt');
-    
-    container.innerHTML = `
-        <div class="simple-trends-wrapper">
-            <div class="trends-header">
-                <h3 id="trends-title">${this.getChartTitle(metricFilter)}</h3>
-                <div class="metric-controls-simple">
-                    <select id="metric-filter-select" onchange="healthTracker.analyticsEngine?.handleMetricChange(this.value) || healthTracker.handleMetricChange?.(this.value)">
-                        <option value="all" ${metricFilter === 'all' ? 'selected' : ''}>📊 Alle Metriken</option>
-                        <option value="steps" ${metricFilter === 'steps' ? 'selected' : ''}>👟 Schritte</option>
-                        <option value="waterIntake" ${metricFilter === 'waterIntake' ? 'selected' : ''}>💧 Wasser</option>
-                        <option value="sleepHours" ${metricFilter === 'sleepHours' ? 'selected' : ''}>😴 Schlaf</option>
-                        <option value="weight" ${metricFilter === 'weight' ? 'selected' : ''}>⚖️ Gewicht</option>
-                    </select>
-                </div>
-            </div>
-            <div class="chart-container-simple">
-                <canvas id="trends-chart" width="800" height="400"></canvas>
-            </div>
-            <div class="chart-info">
-                <span class="text-sm text-base-content/70">Vereinfachte Chart-Ansicht</span>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Container-Struktur mit Defensive Programming
- */
-createModernChartStructure(container, metricFilter) {
-    try {
-        if (!container.querySelector('.modern-trends-wrapper')) {
-            // Versuche moderne Struktur zu erstellen
-            const metricButtons = this.createMetricButtons ? 
-                this.createMetricButtons(metricFilter) : 
-                this.createFallbackMetricButtons(metricFilter);
-            
-            container.innerHTML = `
-                <div class="modern-trends-wrapper glass-card-premium">
-                    <div class="trends-header-modern">
-                        <h3 id="trends-title" class="chart-title-gradient">
-                            ${this.getChartTitle(metricFilter)}
-                        </h3>
-                        <div class="metric-controls-modern">
-                            ${metricButtons}
-                        </div>
-                    </div>
-                    <div class="chart-container-modern">
-                        <canvas id="trends-chart" class="ultra-modern-canvas"></canvas>
-                        <div id="modern-tooltip" class="glassmorphism-tooltip hidden"></div>
-                    </div>
-                    <div class="ultra-modern-legend" id="chart-legend-modern">
-                        <!-- Wird dynamisch gefüllt -->
-                    </div>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.warn('⚠️ Moderne Chart-Struktur fehlgeschlagen, verwende Fallback:', error);
-        this.createSimpleChartStructure(container, metricFilter);
-    }
-}
-
-/**
- * Fallback Metric-Buttons für Kompatibilität
- */
-createFallbackMetricButtons(currentMetricFilter) {
-    return `
-        <div class="btn-group">
-            <button class="btn btn-sm ${currentMetricFilter === 'all' ? 'btn-primary' : 'btn-outline'}" 
-                    onclick="healthTracker.analyticsEngine?.handleMetricChange('all') || healthTracker.handleMetricChange?.('all')">
-                📊 Alle
-            </button>
-            <button class="btn btn-sm ${currentMetricFilter === 'steps' ? 'btn-primary' : 'btn-outline'}" 
-                    onclick="healthTracker.analyticsEngine?.handleMetricChange('steps') || healthTracker.handleMetricChange?.('steps')">
-                👟 Schritte
-            </button>
-            <button class="btn btn-sm ${currentMetricFilter === 'waterIntake' ? 'btn-primary' : 'btn-outline'}" 
-                    onclick="healthTracker.analyticsEngine?.handleMetricChange('waterIntake') || healthTracker.handleMetricChange?.('waterIntake')">
-                💧 Wasser
-            </button>
-            <button class="btn btn-sm ${currentMetricFilter === 'sleepHours' ? 'btn-primary' : 'btn-outline'}" 
-                    onclick="healthTracker.analyticsEngine?.handleMetricChange('sleepHours') || healthTracker.handleMetricChange?.('sleepHours')">
-                😴 Schlaf
-            </button>
-        </div>
-    `;
-}
-
-/**
- * Chart-Daten mit Gradients erweitern
- */
-enhanceChartDataWithGradients(chartData, metricFilter) {
-    if (!chartData.datasets) return chartData;
-    
-    // Gradient-Enhancement für jeden Dataset
-    chartData.datasets.forEach(dataset => {
-        if (dataset.gradientColors) {
-            // Wird beim Chart-Rendering angewendet
-            dataset.modernGradient = true;
-        }
-    });
-    
-    return chartData;
-}
-
-/**
- * Ultra-moderne Chart-Erstellung
- */
-async createUltraModernChart(canvas, data, metricFilter) {
-    console.log('🎨 Ultra-moderne Chart wird erstellt...');
-    
-    const ctx = canvas.getContext('2d');
-    
-    // High-DPI Optimization
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    ctx.scale(dpr, dpr);
-
-    // Chart-Daten vorbereiten
-    const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
-    const chartConfig = this.getChartConfiguration(chartData, metricFilter);
-    
-    // Alte Chart zerstören
-    if (this.trendsChart) {
-        this.trendsChart.destroy();
-    }
-    
-    // Neue Ultra-moderne Chart erstellen
-    this.trendsChart = new Chart(ctx, chartConfig);
-    
-    // Moderne Interaktivität hinzufügen
-    this.addUltraModernInteractivity(canvas);
-    
-    console.log('✅ Ultra-moderne Chart erfolgreich erstellt');
-    return this.trendsChart;
 }
 
 getChartOptions(metricFilter) {
@@ -11298,365 +10967,44 @@ getChartOptions(metricFilter) {
     return {
         responsive: true,
         maintainAspectRatio: false,
-        devicePixelRatio: window.devicePixelRatio || 1,
-        
-        // **Ultra-moderne Animationen 2025**
-        animation: {
-            duration: 1400,
-            easing: 'easeInOutQuint',
-            delay: (context) => {
-                // Staggered animation für smooth entrance
-                return context.datasetIndex * 150 + context.dataIndex * 25;
-            }
-        },
-        
-        // **Enhanced Interactions mit Haptic Feedback**
         interaction: {
             intersect: false,
-            mode: 'index',
-            axis: 'x',
-            includeInvisible: false
+            mode: 'index'
         },
-        
-        // **Smooth Hover-Animationen**
-        hover: {
-            animationDuration: 250,
-            intersect: false,
-            mode: 'nearest'
-        },
-        
         plugins: {
             title: {
-                display: false // Custom HTML-Title verwenden
+                display: true,
+                text: this.getChartTitle(metricFilter),
+                font: { size: 16, weight: 'bold' }
             },
-            
             legend: {
-                display: false // Modern Custom Legend
+                display: !isSingleMetric,
+                position: 'top'
             },
-            
             tooltip: {
-                enabled: false, // Custom Glassmorphism Tooltip
-                external: (context) => this.renderModernTooltip(context)
-            },
-            
-            // **Gradient-Plugin für moderne Ästhetik**
-            beforeDraw: (chart) => this.addChartGradientBackground(chart)
-        },
-        
-        scales: this.getModernScalesConfiguration(metricFilter, isSingleMetric),
-        
-        // **Professional Layout-Spacing**
-        layout: {
-            padding: {
-                top: 20,
-                right: 30,
-                bottom: 20,
-                left: 30
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        const label = context.dataset.label || '';
+                        const value = context.parsed.y;
+                        
+                        if (label.includes('Schritte')) {
+                            return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
+                        } else if (label.includes('Wasser')) {
+                            return `${label}: ${value}L`;
+                        } else if (label.includes('Schlaf')) {
+                            return `${label}: ${value}h`;
+                        } else if (label.includes('Gewicht')) {
+                            return `${label}: ${value}kg`;
+                        }
+                        return `${label}: ${value}`;
+                    }
+                }
             }
         },
-        
-        // **Responsive Breakpoints**
-        onResize: (chart, size) => {
-            this.handleChartResize(chart, size);
-        }
+        scales: this.getScalesConfiguration(metricFilter, isSingleMetric)
     };
-}
-
-/**
- * FEHLENDE METHODEN - Zur AnalyticsEngine Klasse hinzufügen
- */
-
-/**
- * Chart-Resize-Handler für responsive Charts
- */
-handleChartResize(chart, size) {
-    try {
-        console.log('📏 Chart wird resized:', size.width + 'x' + size.height);
-        
-        // Mobile Optimierungen
-        const isMobile = size.width < 768;
-        
-        // Chart-Optionen für Mobile anpassen
-        if (chart && chart.options) {
-            // Legend-Position für Mobile
-            if (chart.options.plugins && chart.options.plugins.legend) {
-                chart.options.plugins.legend.position = isMobile ? 'bottom' : 'top';
-            }
-            
-            // Schriftgrößen für Mobile anpassen
-            if (chart.options.scales) {
-                Object.keys(chart.options.scales).forEach(scaleId => {
-                    const scale = chart.options.scales[scaleId];
-                    if (scale.ticks) {
-                        scale.ticks.font = scale.ticks.font || {};
-                        scale.ticks.font.size = isMobile ? 10 : 11;
-                    }
-                    if (scale.title) {
-                        scale.title.font = scale.title.font || {};
-                        scale.title.font.size = isMobile ? 11 : 12;
-                    }
-                });
-            }
-            
-            // Padding für Mobile reduzieren
-            if (chart.options.layout && chart.options.layout.padding) {
-                chart.options.layout.padding = isMobile ? 
-                    { top: 10, right: 15, bottom: 10, left: 15 } :
-                    { top: 20, right: 30, bottom: 20, left: 30 };
-            }
-        }
-        
-        // Smooth Resize-Animation
-        if (chart && typeof chart.update === 'function') {
-            chart.update('none'); // Resize ohne Animation für Performance
-        }
-        
-    } catch (error) {
-        console.warn('⚠️ Chart-Resize-Handler Fehler:', error);
-        // Graceful degradation - Resize trotzdem durchführen
-    }
-}
-
-/**
- * Heatmap Chart Update - Kompatible Implementierung
- */
-async updateHeatmapChart(analyticsData = null) {
-    try {
-        console.log('🔍 Heatmap Chart wird aktualisiert');
-        
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        if (!heatmapContainer) {
-            console.warn('⚠️ Heatmap Container nicht gefunden');
-            return;
-        }
-        
-        // Erweiterte Daten-Validierung
-        if (!analyticsData) {
-            console.warn('❌ Keine analyticsData für Heatmap verfügbar');
-            this.renderEmptyHeatmapState(heatmapContainer);
-            return;
-        }
-        
-        if (!analyticsData.data || !Array.isArray(analyticsData.data)) {
-            console.warn('❌ analyticsData.data ist nicht verfügbar oder kein Array');
-            this.renderEmptyHeatmapState(heatmapContainer);
-            return;
-        }
-        
-        if (analyticsData.data.length === 0) {
-            console.warn('⚠️ analyticsData.data ist leer');
-            this.renderEmptyHeatmapState(heatmapContainer);
-            return;
-        }
-        
-        // Heatmap-Daten verarbeiten
-        const heatmapData = this.processHeatmapData(analyticsData.data);
-        
-        // Heatmap rendern
-        this.renderHeatmapGrid(heatmapContainer, heatmapData);
-        
-        console.log('✅ Heatmap erfolgreich aktualisiert');
-        
-    } catch (error) {
-        console.error('❌ Heatmap Update fehlgeschlagen:', error);
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        if (heatmapContainer) {
-            this.renderHeatmapError(heatmapContainer, error.message);
-        }
-    }
-}
-
-/**
- * Heatmap-Daten verarbeiten
- */
-processHeatmapData(rawData) {
-    const processedData = [];
-    
-    rawData.forEach(entry => {
-        if (entry.date) {
-            const date = new Date(entry.date);
-            const intensity = this.calculateHeatmapIntensity(entry);
-            
-            processedData.push({
-                date: date,
-                intensity: intensity,
-                steps: entry.steps || 0,
-                water: entry.waterIntake || 0,
-                sleep: entry.sleepHours || 0,
-                weight: entry.weight || null
-            });
-        }
-    });
-    
-    return processedData.sort((a, b) => a.date - b.date);
-}
-
-/**
- * Heatmap-Intensität berechnen (0-1)
- */
-calculateHeatmapIntensity(entry) {
-    let score = 0;
-    let maxScore = 0;
-    
-    // Schritte bewerten
-    if (entry.steps !== undefined && entry.steps !== null) {
-        maxScore += 1;
-        const stepsGoal = this.healthTracker?.goals?.stepsGoal || 10000;
-        score += Math.min(entry.steps / stepsGoal, 1);
-    }
-    
-    // Wasser bewerten
-    if (entry.waterIntake !== undefined && entry.waterIntake !== null) {
-        maxScore += 1;
-        const waterGoal = this.healthTracker?.goals?.waterGoal || 2.0;
-        score += Math.min(entry.waterIntake / waterGoal, 1);
-    }
-    
-    // Schlaf bewerten
-    if (entry.sleepHours !== undefined && entry.sleepHours !== null) {
-        maxScore += 1;
-        const sleepGoal = this.healthTracker?.goals?.sleepGoal || 8;
-        score += Math.min(entry.sleepHours / sleepGoal, 1);
-    }
-    
-    return maxScore > 0 ? score / maxScore : 0;
-}
-
-/**
- * Heatmap-Grid rendern
- */
-renderHeatmapGrid(container, data) {
-    if (data.length === 0) {
-        this.renderEmptyHeatmapState(container);
-        return;
-    }
-    
-    const startDate = data[0].date;
-    const endDate = data[data.length - 1].date;
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    
-    let html = '<div class="heatmap-grid-container">';
-    html += '<div class="heatmap-header">Aktivitätsmuster der letzten ' + daysDiff + ' Tage</div>';
-    html += '<div class="heatmap-grid">';
-    
-    // Wochentage-Header
-    const weekdays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-    weekdays.forEach(day => {
-        html += `<div class="heatmap-weekday">${day}</div>`;
-    });
-    
-    // Heatmap-Zellen generieren
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-        const dayData = data.find(d => 
-            d.date.toDateString() === currentDate.toDateString()
-        );
-        
-        const intensity = dayData ? dayData.intensity : 0;
-        const colorClass = this.getHeatmapColorClass(intensity);
-        
-        html += `
-            <div class="heatmap-cell ${colorClass}" 
-                 data-date="${currentDate.toISOString().split('T')[0]}"
-                 data-intensity="${intensity.toFixed(2)}"
-                 title="${this.getHeatmapTooltip(dayData, currentDate)}">
-            </div>
-        `;
-        
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    html += '</div>';
-    html += '<div class="heatmap-legend">';
-    html += '<span class="legend-label">Weniger</span>';
-    html += '<div class="legend-colors">';
-    html += '<div class="legend-color bg-base-200"></div>';
-    html += '<div class="legend-color bg-success/20"></div>';
-    html += '<div class="legend-color bg-success/40"></div>';
-    html += '<div class="legend-color bg-success/60"></div>';
-    html += '<div class="legend-color bg-success"></div>';
-    html += '</div>';
-    html += '<span class="legend-label">Mehr</span>';
-    html += '</div>';
-    html += '</div>';
-    
-    container.innerHTML = html;
-}
-
-/**
- * Heatmap-Farbklasse basierend auf Intensität
- */
-getHeatmapColorClass(intensity) {
-    if (intensity === 0) return 'heatmap-empty';
-    if (intensity <= 0.2) return 'heatmap-low';
-    if (intensity <= 0.4) return 'heatmap-medium-low';
-    if (intensity <= 0.6) return 'heatmap-medium';
-    if (intensity <= 0.8) return 'heatmap-medium-high';
-    return 'heatmap-high';
-}
-
-/**
- * Heatmap-Tooltip-Text
- */
-getHeatmapTooltip(dayData, date) {
-    const formattedDate = date.toLocaleDateString('de-DE');
-    
-    if (!dayData) {
-        return `${formattedDate}: Keine Daten`;
-    }
-    
-    const parts = [`${formattedDate}:`];
-    
-    if (dayData.steps > 0) {
-        parts.push(`${dayData.steps.toLocaleString()} Schritte`);
-    }
-    if (dayData.water > 0) {
-        parts.push(`${dayData.water}L Wasser`);
-    }
-    if (dayData.sleep > 0) {
-        parts.push(`${dayData.sleep}h Schlaf`);
-    }
-    
-    return parts.join('\n');
-}
-
-/**
- * Empty State für Heatmap
- */
-renderEmptyHeatmapState(container) {
-    container.innerHTML = `
-        <div class="heatmap-empty-state">
-            <div class="empty-icon">📊</div>
-            <h3 class="empty-title">Aktivitäts-Heatmap</h3>
-            <p class="empty-description">
-                Füge Gesundheitsdaten hinzu, um deine Aktivitätsmuster zu visualisieren!
-            </p>
-            <button class="btn btn-primary btn-sm" 
-                    onclick="healthTracker.showQuickAddModal()">
-                Erste Daten hinzufügen
-            </button>
-        </div>
-    `;
-}
-
-/**
- * Error State für Heatmap
- */
-renderHeatmapError(container, errorMessage) {
-    container.innerHTML = `
-        <div class="heatmap-error-state">
-            <div class="error-icon">⚠️</div>
-            <h3 class="error-title">Heatmap-Fehler</h3>
-            <p class="error-description">
-                ${errorMessage}
-            </p>
-            <button class="btn btn-outline btn-sm" 
-                    onclick="healthTracker.analyticsEngine.loadCompleteAnalyticsData()">
-                🔄 Erneut versuchen
-            </button>
-        </div>
-    `;
 }
 
 /**
@@ -11665,99 +11013,80 @@ renderHeatmapError(container, errorMessage) {
 getChartConfiguration(chartData, metricFilter) {
     const isSingleMetric = metricFilter !== 'all';
     
-    return {
+    const baseConfig = {
         type: 'line',
-        data: this.enhanceChartDataWithGradients(chartData, metricFilter),
-        options: this.getChartOptions(metricFilter),
-        
-        // **Moderne Plugin-Erweiterungen**
-        plugins: [{
-            id: 'modernBackground',
-            beforeDraw: (chart) => {
-                this.drawModernChartBackground(chart);
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: this.getChartTitle(metricFilter),
+                    font: { size: 16, weight: 'bold' }
+                },
+                legend: {
+                    display: !isSingleMetric, // Verstecke Legende bei Einzelmetriken
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            
+                            // Spezielle Formatierung für verschiedene Metriken
+                            if (label.includes('Schritte')) {
+                                return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
+                            } else if (label.includes('Wasser')) {
+                                return `${label}: ${value}L`;
+                            } else if (label.includes('Schlaf')) {
+                                return `${label}: ${value}h`;
+                            } else if (label.includes('Gewicht')) {
+                                return `${label}: ${value}kg`;
+                            }
+                            return `${label}: ${value}`;
+                        }
+                    }
+                }
+            },
+            scales: this.getScalesConfiguration(metricFilter, isSingleMetric),
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
-        }, {
-            id: 'goalLines',
-            afterDraw: (chart) => {
-                this.drawGoalLinesOverlay(chart, metricFilter);
-            }
-        }, {
-            id: 'trendAnnotations',
-            afterDatasetsDraw: (chart) => {
-                this.drawTrendAnnotations(chart, chartData);
-            }
-        }]
+        }
     };
-}
 
-getScalesConfiguration(metricFilter, isSingleMetric) {
-    // Neue Methode für erweiterte Funktionalität
-    return this.getModernScalesConfiguration(metricFilter, isSingleMetric);
+    return baseConfig;
 }
 
 /**
- * Erweiterte moderne Scales-Konfiguration
+ * NEUE METHODE: Scales-Konfiguration je nach Metric-Filter
  */
-getModernScalesConfiguration(metricFilter, isSingleMetric) {
+getScalesConfiguration(metricFilter, isSingleMetric) {
     const scales = {
         x: {
-            type: 'time',
-            time: {
-                unit: 'day',
-                displayFormats: {
-                    day: 'MMM dd'
-                }
-            },
             display: true,
             title: {
                 display: true,
-                text: 'Zeitraum',
-                font: {
-                    size: 12,
-                    weight: '600'
-                },
-                color: 'rgba(99, 102, 241, 0.8)'
-            },
-            grid: {
-                color: 'rgba(99, 102, 241, 0.1)',
-                lineWidth: 1
-            },
-            ticks: {
-                color: 'rgba(99, 102, 241, 0.7)',
-                font: {
-                    size: 11,
-                    weight: '500'
-                }
+                text: 'Datum'
             }
         }
     };
 
     if (isSingleMetric) {
-        // **Einzelmetrik: Optimierte Y-Achse**
-        const metricConfigs = {
-            'steps': { 
-                label: 'Schritte (in Tausend)', 
-                color: '#6366f1',
-                gradient: ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 0.2)']
-            },
-            'waterIntake': { 
-                label: 'Wasser (Liter)', 
-                color: '#0ea5e9',
-                gradient: ['rgba(14, 165, 233, 0.8)', 'rgba(14, 165, 233, 0.2)']
-            },
-            'sleepHours': { 
-                label: 'Schlaf (Stunden)', 
-                color: '#10b981',
-                gradient: ['rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 0.2)']
-            },
-            'weight': { 
-                label: 'Gewicht (kg)', 
-                color: '#f59e0b',
-                gradient: ['rgba(245, 158, 11, 0.8)', 'rgba(245, 158, 11, 0.2)']
-            }
+        // Einzelmetrik: Nur eine Y-Achse
+        const metricConfig = {
+            'steps': { label: 'Schritte (in Tausend)', color: 'rgb(99, 102, 241)' },
+            'waterIntake': { label: 'Wasser (Liter)', color: 'rgb(59, 130, 246)' },
+            'sleepHours': { label: 'Schlaf (Stunden)', color: 'rgb(16, 185, 129)' },
+            'weight': { label: 'Gewicht (Kilogramm)', color: 'rgb(245, 101, 101)' }
         };
         
-        const config = metricConfigs[metricFilter] || metricConfigs.steps;
+        const config = metricConfig[metricFilter] || { label: 'Werte', color: 'rgb(99, 102, 241)' };
         
         scales.y = {
             type: 'linear',
@@ -11766,49 +11095,21 @@ getModernScalesConfiguration(metricFilter, isSingleMetric) {
             title: {
                 display: true,
                 text: config.label,
-                color: config.color,
-                font: {
-                    size: 12,
-                    weight: '600'
-                }
+                color: config.color
             },
             grid: {
-                color: config.color + '20',
-                lineWidth: 1
-            },
-            ticks: {
-                color: config.color,
-                font: {
-                    size: 11,
-                    weight: '500'
-                },
-                callback: function(value) {
-                    if (metricFilter === 'steps') {
-                        return (value * 1000).toLocaleString();
-                    }
-                    return value;
-                }
+                color: config.color + '20'
             }
         };
     } else {
-        // **Multi-Metric: Dual Y-Achsen mit Farb-Coding**
+        // Alle Metriken: Multiple Y-Achsen
         scales.y = {
             type: 'linear',
             display: true,
             position: 'left',
             title: {
                 display: true,
-                text: 'Schritte (in Tausend)',
-                color: '#6366f1',
-                font: { size: 12, weight: '600' }
-            },
-            grid: {
-                color: 'rgba(99, 102, 241, 0.15)',
-                lineWidth: 1
-            },
-            ticks: {
-                color: '#6366f1',
-                font: { size: 11, weight: '500' }
+                text: 'Schritte (in Tausend)'
             }
         };
         
@@ -11818,18 +11119,17 @@ getModernScalesConfiguration(metricFilter, isSingleMetric) {
             position: 'right',
             title: {
                 display: true,
-                text: 'Wasser (L) / Schlaf (h)',
-                color: '#0ea5e9',
-                font: { size: 12, weight: '600' }
+                text: 'Wasser (L) / Schlaf (h)'
             },
             grid: {
                 drawOnChartArea: false,
-                color: 'rgba(14, 165, 233, 0.15)'
-            },
-            ticks: {
-                color: '#0ea5e9',
-                font: { size: 11, weight: '500' }
             }
+        };
+        
+        scales.y2 = {
+            type: 'linear',
+            display: false,
+            position: 'right'
         };
     }
 
@@ -11837,7 +11137,7 @@ getModernScalesConfiguration(metricFilter, isSingleMetric) {
 }
 
 /**
- * Chart-Titel basierend auf Filter
+ * NEUE METHODE: Chart-Titel basierend auf Filter
  */
 getChartTitle(metricFilter) {
     const titles = {
@@ -11876,85 +11176,73 @@ updateChartTitle(metricFilter) {
  * @returns {Object} Formatierte Chart-Daten
  */
 prepareTrendsData(data, metricFilter = 'all') {
-    console.log('🔄 Moderne Trends-Daten werden vorbereitet...', data?.length || 0, 'Einträge');
+    console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
     
     if (!data || !Array.isArray(data) || data.length === 0) {
         return { labels: [], datasets: [] };
     }
 
-    // Enhanced Data Validation
+    // Datenvalidierung
     const validEntries = data.filter(item => {
-        const hasValidData = item.steps || item.waterIntake || item.sleepHours || item.weight;
+        const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
         const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
-        return hasValidDate && hasValidData;
+        return hasValidDate && hasAnyData;
     });
 
     if (validEntries.length === 0) {
         return { labels: [], datasets: [] };
     }
 
-    // **Sortierung und Zeitbereich-Optimierung**
+    // Daten nach Datum sortieren
     const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // **Moderne Labels mit besserer Formatierung**
+    // Labels erstellen
     const labels = sortedData.map(item => {
-        return new Date(item.date); // Zeit-basierte X-Achse
+        const date = new Date(item.date);
+        return date.toLocaleDateString('de-DE', { 
+            month: 'short', 
+            day: 'numeric' 
+        });
     });
 
-    // **Erweiterte Metric-Definitionen mit Gradients**
-    const modernMetrics = [
+    // Metric-Definitionen
+    const allMetrics = [
         { 
             key: 'steps', 
-            label: '👟 Schritte', 
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-            gradientColors: ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 0.1)'],
+            label: 'Schritte', 
+            color: 'rgb(99, 102, 241)', 
             scale: 0.001,
-            yAxisID: 'y',
-            tension: 0.4,
-            pointStyle: 'circle'
+            yAxisID: 'y'
         },
         { 
             key: 'waterIntake', 
-            label: '💧 Wasser (L)', 
-            borderColor: '#0ea5e9',
-            backgroundColor: 'rgba(14, 165, 233, 0.1)',
-            gradientColors: ['rgba(14, 165, 233, 0.8)', 'rgba(14, 165, 233, 0.1)'],
+            label: 'Wasser (L)', 
+            color: 'rgb(59, 130, 246)', 
             scale: 1,
-            yAxisID: 'y1',
-            tension: 0.3,
-            pointStyle: 'rectRot'
+            yAxisID: 'y1'
         },
         { 
             key: 'sleepHours', 
-            label: '😴 Schlaf (h)', 
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            gradientColors: ['rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 0.1)'],
+            label: 'Schlaf (h)', 
+            color: 'rgb(16, 185, 129)', 
             scale: 1,
-            yAxisID: 'y1',
-            tension: 0.2,
-            pointStyle: 'triangle'
+            yAxisID: 'y1'
         },
         { 
             key: 'weight', 
-            label: '⚖️ Gewicht (kg)', 
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            gradientColors: ['rgba(245, 158, 11, 0.8)', 'rgba(245, 158, 11, 0.1)'],
+            label: 'Gewicht (kg)', 
+            color: 'rgb(245, 101, 101)', 
             scale: 1,
-            yAxisID: 'y2',
-            tension: 0.1,
-            pointStyle: 'rect'
+            yAxisID: 'y2'
         }
     ];
 
-    // **Metric-Filtering mit Enhanced Features**
+    // Metric-Filtering
     const metricsToShow = metricFilter === 'all' 
-        ? modernMetrics 
-        : modernMetrics.filter(metric => metric.key === metricFilter);
+        ? allMetrics 
+        : allMetrics.filter(metric => metric.key === metricFilter);
 
-    // **Ultra-moderne Datasets mit Gradient-Support**
+    // Datasets erstellen
     const datasets = [];
     
     metricsToShow.forEach(metric => {
@@ -11969,30 +11257,15 @@ prepareTrendsData(data, metricFilter = 'all') {
             datasets.push({
                 label: metric.label,
                 data: values,
-                borderColor: metric.borderColor,
-                backgroundColor: metric.backgroundColor,
-                borderWidth: metricFilter === 'all' ? 3 : 4,
-                fill: metricFilter !== 'all' ? 'origin' : false,
-                tension: metric.tension,
-                pointRadius: metricFilter === 'all' ? 6 : 8,
-                pointHoverRadius: metricFilter === 'all' ? 8 : 12,
-                pointStyle: metric.pointStyle,
-                pointBackgroundColor: metric.borderColor,
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointHoverBackgroundColor: metric.borderColor,
-                pointHoverBorderColor: '#ffffff',
-                pointHoverBorderWidth: 3,
+                borderColor: metric.color,
+                backgroundColor: metric.color + '20',
+                borderWidth: metricFilter === 'all' ? 2 : 3,
+                fill: metricFilter !== 'all',
+                tension: 0.1,
+                pointRadius: metricFilter === 'all' ? 4 : 6,
+                pointHoverRadius: metricFilter === 'all' ? 6 : 8,
                 yAxisID: metric.yAxisID || 'y',
-                spanGaps: true,
-                
-                // **Moderne Eigenschaften**
-                cubicInterpolationMode: 'monotone',
-                gradientColors: metric.gradientColors,
-                shadowOffsetX: 0,
-                shadowOffsetY: 4,
-                shadowBlur: 12,
-                shadowColor: metric.borderColor + '40'
+                spanGaps: true
             });
         }
     });
@@ -12000,13 +11273,76 @@ prepareTrendsData(data, metricFilter = 'all') {
     return {
         labels,
         datasets,
-        metricFilter: metricFilter,
-        totalDataPoints: validEntries.length,
-        dateRange: {
-            start: sortedData[0]?.date,
-            end: sortedData[sortedData.length - 1]?.date
-        }
+        metricFilter: metricFilter
     };
+}
+
+    /** Update heatmap chart */
+async updateHeatmapChart(analyticsData) {
+    console.log('🔍 Heatmap Debug - Input Data:', {
+        hasAnalyticsData: !!analyticsData,
+        analyticsDataType: typeof analyticsData,
+        hasDataProperty: !!(analyticsData && analyticsData.data),
+        dataLength: analyticsData?.data?.length || 0,
+        rawData: analyticsData
+    });
+    
+    try {
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        if (!heatmapContainer) {
+            console.warn('⚠️ Heatmap container not found');
+            return;
+        }
+        
+        // Erweiterte Daten-Validierung mit Debug-Info
+        if (!analyticsData) {
+            console.warn('❌ No analyticsData provided to heatmap');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Keine Analytics-Daten verfügbar</div>';
+            return;
+        }
+        
+        if (!analyticsData.data) {
+            console.warn('❌ analyticsData.data is missing');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Analytics-Datenstruktur unvollständig</div>';
+            return;
+        }
+        
+        if (!Array.isArray(analyticsData.data)) {
+            console.warn('❌ analyticsData.data is not an array:', typeof analyticsData.data);
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Ungültige Datenstruktur</div>';
+            return;
+        }
+        
+        if (analyticsData.data.length === 0) {
+            console.warn('⚠️ analyticsData.data is empty array');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Noch keine Gesundheitsdaten erfasst</div>';
+            return;
+        }
+        
+        // Debug: Erste paar Dateneinträge analysieren
+        console.log('📊 First 3 data entries:', analyticsData.data.slice(0, 3));
+        
+        // Rest der ursprünglichen Funktion...
+        const dateRange = this.calculateDateRange(analyticsData.data);
+        
+        if (!dateRange) {
+            console.warn('⚠️ Could not calculate date range for heatmap');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Datumsbereich konnte nicht berechnet werden</div>';
+            return;
+        }
+        
+        console.log('📅 Date range calculated:', dateRange);
+        
+        // Sichere Heatmap-Erstellung
+        this.renderHeatmapGrid(heatmapContainer, analyticsData.data, dateRange);
+        
+    } catch (error) {
+        console.error('❌ Heatmap update failed:', error);
+        const heatmapContainer = document.getElementById('heatmap-chart');
+        if (heatmapContainer) {
+            heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler: ' + error.message + '</div>';
+        }
+    }
 }
 
 // Helper für sichere Datums-Range Berechnung

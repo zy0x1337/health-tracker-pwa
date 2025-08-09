@@ -10762,7 +10762,7 @@ setupCompleteEventListeners() {
             }
         }
 
-        // KRITISCHER FIX: Daten vor Chart-Update sicherstellen
+        // Daten vor Chart-Update sicherstellen
         const currentData = this.analyticsData?.period || [];
         
         if (currentData.length === 0) {
@@ -11270,21 +11270,50 @@ prepareTrendsData(data, metricFilter = 'all') {
 
     /** Update heatmap chart */
 async updateHeatmapChart(analyticsData) {
+    console.log('🔍 Heatmap Debug - Input Data:', {
+        hasAnalyticsData: !!analyticsData,
+        analyticsDataType: typeof analyticsData,
+        hasDataProperty: !!(analyticsData && analyticsData.data),
+        dataLength: analyticsData?.data?.length || 0,
+        rawData: analyticsData
+    });
+    
     try {
-        const heatmapContainer = document.getElementById('heatmap-chart');
+        const heatmapContainer = document.getElementById('heatmap-container');
         if (!heatmapContainer) {
             console.warn('⚠️ Heatmap container not found');
             return;
         }
         
-        // Validiere Analytics-Daten
-        if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
-            console.warn('⚠️ No analytics data for heatmap');
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Keine Daten verfügbar</div>';
+        // Erweiterte Daten-Validierung mit Debug-Info
+        if (!analyticsData) {
+            console.warn('❌ No analyticsData provided to heatmap');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Keine Analytics-Daten verfügbar</div>';
             return;
         }
         
-        // Erstelle sichere Datums-Range
+        if (!analyticsData.data) {
+            console.warn('❌ analyticsData.data is missing');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Analytics-Datenstruktur unvollständig</div>';
+            return;
+        }
+        
+        if (!Array.isArray(analyticsData.data)) {
+            console.warn('❌ analyticsData.data is not an array:', typeof analyticsData.data);
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Ungültige Datenstruktur</div>';
+            return;
+        }
+        
+        if (analyticsData.data.length === 0) {
+            console.warn('⚠️ analyticsData.data is empty array');
+            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Noch keine Gesundheitsdaten erfasst</div>';
+            return;
+        }
+        
+        // Debug: Erste paar Dateneinträge analysieren
+        console.log('📊 First 3 data entries:', analyticsData.data.slice(0, 3));
+        
+        // Rest der ursprünglichen Funktion...
         const dateRange = this.calculateDateRange(analyticsData.data);
         
         if (!dateRange) {
@@ -11293,14 +11322,16 @@ async updateHeatmapChart(analyticsData) {
             return;
         }
         
+        console.log('📅 Date range calculated:', dateRange);
+        
         // Sichere Heatmap-Erstellung
         this.renderHeatmapGrid(heatmapContainer, analyticsData.data, dateRange);
         
     } catch (error) {
         console.error('❌ Heatmap update failed:', error);
-        const heatmapContainer = document.getElementById('heatmap-chart');
+        const heatmapContainer = document.getElementById('heatmap-container');
         if (heatmapContainer) {
-            heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler aufgetreten</div>';
+            heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler: ' + error.message + '</div>';
         }
     }
 }

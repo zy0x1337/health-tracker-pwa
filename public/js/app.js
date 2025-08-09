@@ -792,42 +792,175 @@ initializeSettings() {
     }
 }
     
-    /**
-     * Setup all event listeners for forms and UI interactions
-     */
     setupEventListeners() {
-    // Entferne bestehende Event Listener vor Neuregistrierung
-    const healthForm = document.getElementById('health-form');
-    const quickAddForm = document.getElementById('quick-add-form');
+    console.log('🎯 Setting up event listeners...');
     
-    if (healthForm) {
-        // Clone element to remove all existing listeners
-        const newHealthForm = healthForm.cloneNode(true);
-        healthForm.parentNode.replaceChild(newHealthForm, healthForm);
+    try {
+        // Form Event Listeners mit Existenz-Check
+        const healthForm = document.getElementById('health-form');
+        if (healthForm && this.handleHealthFormSubmit) {
+            // Cleanup existing listeners
+            const newHealthForm = healthForm.cloneNode(true);
+            healthForm.parentNode.replaceChild(newHealthForm, healthForm);
+            newHealthForm.addEventListener('submit', this.handleHealthFormSubmit.bind(this));
+            console.log('✅ Health form listener setup');
+        }
+
+        const quickAddForm = document.getElementById('quick-add-form');
+        if (quickAddForm && this.handleQuickFormSubmit) {
+            const newQuickForm = quickAddForm.cloneNode(true);
+            quickAddForm.parentNode.replaceChild(newQuickForm, quickAddForm);
+            newQuickForm.addEventListener('submit', this.handleQuickFormSubmit.bind(this));
+            console.log('✅ Quick add form listener setup');
+        }
+
+        const goalsForm = document.getElementById('goals-form');
+        if (goalsForm && this.handleGoalsSave) {
+            const newGoalsForm = goalsForm.cloneNode(true);
+            goalsForm.parentNode.replaceChild(newGoalsForm, goalsForm);
+            newGoalsForm.addEventListener('submit', this.handleGoalsSave.bind(this));
+            console.log('✅ Goals form listener setup');
+        }
+
+        // Online/Offline Events mit Fallback-Methoden
+        if (typeof this.handleOnline !== 'function') {
+            this.handleOnline = () => {
+                console.log('🌐 App ist online');
+                this.isOnline = true;
+                this.showToast('🌐 Verbindung wiederhergestellt', 'success');
+                this.syncOfflineData();
+            };
+        }
+
+        if (typeof this.handleOffline !== 'function') {
+            this.handleOffline = () => {
+                console.log('📴 App ist offline');
+                this.isOnline = false;
+                this.showToast('📴 Offline-Modus aktiv', 'info');
+            };
+        }
+
+        // Network status listeners
+        window.removeEventListener('online', this.handleOnline);
+        window.removeEventListener('offline', this.handleOffline);
+        window.addEventListener('online', this.handleOnline.bind(this));
+        window.addEventListener('offline', this.handleOffline.bind(this));
+
+        // PWA Install Button (falls vorhanden)
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) {
+            // PWA install wird durch pwa.js gehandelt
+            console.log('✅ Install button found - handled by pwa.js');
+        }
+
+        // Service Worker Updates (falls vorhanden)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SW_UPDATE') {
+                    this.showToast('🔄 App-Update verfügbar - Seite neu laden', 'info');
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            // Ctrl/Cmd + S für Quick Save
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                const quickAddBtn = document.querySelector('[onclick="healthTracker.showQuickAddModal()"]');
+                if (quickAddBtn) {
+                    this.showQuickAddModal();
+                }
+            }
+        });
+
+        console.log('✅ All event listeners setup complete');
         
-        // Single event listener with duplicate prevention
-        newHealthForm.addEventListener('submit', this.handleHealthFormSubmit.bind(this), { once: false });
+    } catch (error) {
+        console.error('❌ Event listener setup failed:', error);
+        // Graceful degradation - App sollte trotzdem funktionieren
+        this.showToast('⚠️ Einige Features möglicherweise eingeschränkt', 'warning');
+    }
+}
+
+// ESSENTIAL EVENT HANDLER METHODS - Nach constructor()
+handleHealthFormSubmit(event) {
+    event.preventDefault();
+    console.log('📝 Health form submitted');
+    
+    if (this.isLoading) {
+        console.log('🚫 Form submission blocked - already processing');
+        return;
     }
     
-    if (quickAddForm) {
-        const newQuickForm = quickAddForm.cloneNode(true);
-        quickAddForm.parentNode.replaceChild(newQuickForm, quickAddForm);
-        newQuickForm.addEventListener('submit', this.handleQuickFormSubmit.bind(this), { once: false });
-    }
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Convert numeric fields
+    if (data.weight) data.weight = parseFloat(data.weight);
+    if (data.steps) data.steps = parseInt(data.steps);
+    if (data.waterIntake) data.waterIntake = parseFloat(data.waterIntake);
+    if (data.sleepHours) data.sleepHours = parseFloat(data.sleepHours);
+    
+    this.saveHealthData(data);
+}
 
-    // Online/Offline Status mit Cleanup
-    window.removeEventListener('online', this.handleOnline);
-    window.removeEventListener('offline', this.handleOffline);
-    window.addEventListener('online', this.handleOnline.bind(this));
-    window.addEventListener('offline', this.handleOffline.bind(this));
-
-    // Goals Form Cleanup
-    const goalsForm = document.getElementById('goals-form');
-    if (goalsForm) {
-        const newGoalsForm = goalsForm.cloneNode(true);
-        goalsForm.parentNode.replaceChild(newGoalsForm, goalsForm);
-        newGoalsForm.addEventListener('submit', this.handleGoalsSave.bind(this));
+handleQuickFormSubmit(event) {
+    event.preventDefault();
+    console.log('⚡ Quick form submitted');
+    
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Quick data processing
+    Object.keys(data).forEach(key => {
+        if (data[key] && !isNaN(data[key])) {
+            data[key] = key === 'steps' ? parseInt(data[key]) : parseFloat(data[key]);
+        }
+    });
+    
+    this.saveHealthData(data);
+    
+    // Close modal if exists
+    const modal = document.querySelector('.quick-add-modal');
+    if (modal) {
+        modal.remove();
     }
+}
+
+handleGoalsSave(event) {
+    event.preventDefault();
+    console.log('🎯 Goals form submitted');
+    
+    const formData = new FormData(event.target);
+    const goals = Object.fromEntries(formData.entries());
+    
+    // Convert to numbers
+    Object.keys(goals).forEach(key => {
+        if (goals[key] && !isNaN(goals[key])) {
+            goals[key] = parseFloat(goals[key]);
+        }
+    });
+    
+    this.saveUserGoals(goals);
+}
+
+// Network status handlers (falls nicht existieren)
+handleOnline() {
+    console.log('🌐 Connection restored');
+    this.isOnline = true;
+    this.showToast('🌐 Verbindung wiederhergestellt', 'success');
+    
+    // Sync offline data if available
+    if (typeof this.syncOfflineData === 'function') {
+        this.syncOfflineData();
+    }
+}
+
+handleOffline() {
+    console.log('📴 Connection lost');
+    this.isOnline = false;
+    this.showToast('📴 Offline-Modus aktiv - Daten werden lokal gespeichert', 'info');
 }
     
     /**

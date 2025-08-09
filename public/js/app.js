@@ -9246,7 +9246,31 @@ updateTrendsChart(metric = 'weight') {
     }
 }
 
-// ERSETZTER createFallbackTrendsContainer - HTML-Struktur-spezifisch
+showEmptyChart(container, message) {
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center">
+                <div class="mb-4">
+                    <i data-lucide="trending-up" class="w-16 h-16 mx-auto text-base-content/20"></i>
+                </div>
+                <h4 class="font-semibold text-base-content/60 mb-2">Keine Chart-Daten</h4>
+                <p class="text-sm text-base-content/50 mb-4">${message}</p>
+                <button class="btn btn-primary btn-sm" onclick="healthTracker?.showQuickAddModal?.()">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Daten hinzufügen
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Icons initialisieren
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
 createFallbackTrendsContainer() {
     console.log('🔧 Creating fallback trends container...');
     

@@ -2942,6 +2942,26 @@ document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
     }
 }
 
+/** Handle period change */
+    async handlePeriodChange(period) {
+        this.currentPeriod = period;
+        console.log(`📊 Changing period to ${period} days`);
+        
+        // Update button states
+        document.querySelectorAll('[data-period]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-ghost');
+        });
+        
+        const activeBtn = document.querySelector(`[data-period="${period}"]`);
+        if (activeBtn) {
+            activeBtn.classList.remove('btn-ghost');
+            activeBtn.classList.add('btn-primary');
+        }
+        
+        await this.loadCompleteAnalyticsData();
+    }
+
 /**
  * Set Initial Analytics State
  */

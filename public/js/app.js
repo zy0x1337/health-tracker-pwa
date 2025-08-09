@@ -795,83 +795,30 @@ initializeSettings() {
      * Setup all event listeners for forms and UI interactions
      */
     setupEventListeners() {
-    // KRITISCHER FIX: Event-Listener nur EINMAL registrieren
-    const healthForm = document.getElementById('health-form');
-    if (healthForm) {
-        // Entferne vorhandene Listener
-        healthForm.removeEventListener('submit', this.handleHealthFormSubmit);
-        // Füge neuen Listener hinzu (mit Binding)
-        this.handleHealthFormSubmit = this.handleHealthFormSubmit.bind(this);
-        healthForm.addEventListener('submit', this.handleHealthFormSubmit);
-    }
-
-    // Quick Add Form ebenfalls absichern
-    const quickAddForm = document.getElementById('quick-add-form');
-    if (quickAddForm) {
-        quickAddForm.removeEventListener('submit', this.handleQuickAddSubmit);
-        this.handleQuickAddSubmit = this.handleQuickAddSubmit.bind(this);
-        quickAddForm.addEventListener('submit', this.handleQuickAddSubmit);
-    }
-
-    // Weitere Event-Listener mit Duplikationsschutz
-    this.setupNetworkListeners();
-    this.setupStorageListeners();
-}
-
-async handleHealthFormSubmit(event) {
-    event.preventDefault();
-    event.stopImmediatePropagation(); // KRITISCH: Verhindere Event-Bubbling
-
-    // Debouncing gegen mehrfache Submissions
-    const submitKey = 'health-form-submit';
-    if (this.debounceTimers.has(submitKey)) {
-        return; // Submission bereits in Progress
-    }
-
-    this.debounceTimers.set(submitKey, true);
-
-    try {
-        const submitButton = event.target.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Speichern...';
+        // Health form submission
+        const healthForm = document.getElementById('health-form');
+        if (healthForm) {
+            healthForm.addEventListener('submit', this.handleFormSubmission.bind(this));
         }
-
-        const formData = new FormData(event.target);
-        const data = this.extractFormData(formData);
-
-        // Validation
-        if (!this.validateHealthData(data)) {
-            return;
-        }
-
-        // EINMALIGER API-Call
-        const result = await this.saveHealthData(data);
         
-        if (result.success) {
-            // EINMALIGE Notification
-            this.showToast('✅ Daten erfolgreich gespeichert!', 'success');
-            
-            // Form reset
-            event.target.reset();
-            
-            // UI refresh
-            await this.refreshDashboard();
+        // Goals form submission
+        const goalsForm = document.getElementById('goals-form');
+        if (goalsForm) {
+            goalsForm.addEventListener('submit', this.handleGoalsSubmission.bind(this));
         }
-
-    } catch (error) {
-        console.error('Form submission error:', error);
-        this.showToast('❌ Fehler beim Speichern der Daten', 'error');
-    } finally {
-        // Cleanup
-        this.debounceTimers.delete(submitKey);
-        const submitButton = event.target.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Daten speichern';
-        }
+        
+        // Network status changes
+        window.addEventListener('online', this.handleOnlineStatus.bind(this));
+        window.addEventListener('offline', this.handleOfflineStatus.bind(this));
+        
+        // Form input debouncing for better UX
+        this.setupFormInputDebouncing();
+        
+        // Progress Hub tab switching
+        this.setupProgressHubTabs();
+        
+        console.log('👂 Event Listeners konfiguriert');
     }
-}
     
     /**
      * Setup debounced form inputs for better performance
@@ -1027,41 +974,6 @@ async handleFormSubmission(event) {
         this.setLoadingState(false);
     }
 }
-
-showToast(message, type = 'info', duration = 3000) {
-    // Verhindere doppelte Notifications mit gleichem Inhalt
-    const toastId = `toast-${Date.now()}-${message.substring(0, 20)}`;
-    if (this.activeToasts && this.activeToasts.has(message)) {
-        return; // Gleiche Message bereits aktiv
-    }
-
-    if (!this.activeToasts) {
-        this.activeToasts = new Set();
-    }
-    this.activeToasts.add(message);
-
-    // DaisyUI Toast mit Auto-Cleanup
-    const toast = document.createElement('div');
-    toast.className = `toast toast-top toast-end z-50`;
-    toast.innerHTML = `
-        <div class="alert alert-${type === 'success' ? 'success' : type === 'error' ? 'error' : 'info'} shadow-lg">
-            <div class="flex items-center">
-                <span>${message}</span>
-                <button class="btn btn-ghost btn-xs ml-2" onclick="this.closest('.toast').remove()">✕</button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Auto-remove mit Cleanup
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.remove();
-        }
-        this.activeToasts.delete(message);
-    }, duration);
-}
     
     /**
      * Handle goals form submission
@@ -1182,55 +1094,54 @@ extractFormData(form) {
      * Save health data with offline-first strategy
      */
     async saveHealthData(data) {
-    // Request-Deduplizierung
-    const requestKey = `save-${data.userId}-${data.date}-${JSON.stringify(data)}`;
-    if (this.pendingRequests && this.pendingRequests.has(requestKey)) {
-        console.log('🔄 Request bereits in Progress, überspringe Duplikat');
-        return this.pendingRequests.get(requestKey);
+  try {
+    console.log('💾 Speichere Gesundheitsdaten:', data);
+    
+    // Offline-First: Lokal speichern
+    this.saveToLocalStorage(data);
+    
+    // Online-Sync versuchen
+    if (this.isOnline) {
+      const response = await fetch('/api/health-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          userId: this.userId,
+          date: data.date || new Date().toISOString()
+        }),
+        // Timeout nach 5 Sekunden
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Daten erfolgreich in Cloud gespeichert');
+      
+      // Sync-Status aktualisieren
+      this.updateSyncStatus('success');
+      
+      return result;
+    } else {
+      console.log('📡 Offline - Daten nur lokal gespeichert');
+      this.showToast('📡 Offline - Daten werden später synchronisiert', 'info');
+      return { success: true, offline: true };
     }
-
-    if (!this.pendingRequests) {
-        this.pendingRequests = new Map();
-    }
-
-    // Erstelle Promise für Request
-    const requestPromise = this.executeHealthDataSave(data);
-    this.pendingRequests.set(requestKey, requestPromise);
-
-    try {
-        const result = await requestPromise;
-        return result;
-    } finally {
-        // Cleanup nach Request
-        this.pendingRequests.delete(requestKey);
-    }
-}
-
-async executeHealthDataSave(data) {
-    // Originale Save-Logik hier
-    try {
-        const response = await fetch('/api/health-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        // Lokalen Storage aktualisieren (einmalig)
-        await this.updateLocalStorage(data);
-        
-        return { success: true, data: result };
-    } catch (error) {
-        console.error('API Save Error:', error);
-        // Fallback zu localStorage
-        await this.saveToLocalStorage(data);
-        return { success: true, data: data, offline: true };
-    }
+    
+  } catch (error) {
+    console.error('❌ Fehler beim Speichern:', error);
+    
+    // Fallback: Daten sind bereits lokal gespeichert
+    this.updateSyncStatus('error');
+    
+    // Throw für ErrorHandler
+    throw error;
+  }
 }
 
 // Sync-Status Management für bessere UX

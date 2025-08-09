@@ -3426,75 +3426,231 @@ showAbout() {
 }
 
 /**
- * VERBESSERTE Tab-Funktionalität für About Modal
+ * Tab-Funktionalität für About Modal
  */
 initializeAboutTabsImproved(modal) {
-    console.log('🔧 Initialisiere About Tabs (Improved)');
+    console.log('🔧 Initialisiere About Tabs (Fixed)');
     
-    const tabs = modal.querySelectorAll('[data-about-tab]');
-    const panels = modal.querySelectorAll('.tab-panel');
-    
-    if (tabs.length === 0 || panels.length === 0) {
-        console.warn('⚠️ Keine Tabs oder Panels gefunden');
-        return;
-    }
-    
-    console.log(`📊 Gefunden: ${tabs.length} Tabs, ${panels.length} Panels`);
-    
-    function showTab(tabName) {
-        console.log(`🔄 Wechsle zu Tab: ${tabName}`);
-        
-        // Alle Panels verstecken
-        panels.forEach(panel => {
-            panel.classList.add('hidden');
-            panel.classList.remove('block');
-        });
-        
-        // Alle Tabs deaktivieren
-        tabs.forEach(tab => {
-            tab.classList.remove('tab-active');
-        });
-        
-        // Ziel-Panel anzeigen
-        const targetPanel = modal.querySelector(`#about-${tabName}`);
-        const targetTab = modal.querySelector(`[data-about-tab="${tabName}"]`);
-        
-        if (targetPanel && targetTab) {
-            targetPanel.classList.remove('hidden');
-            targetPanel.classList.add('block');
-            targetTab.classList.add('tab-active');
+    try {
+        // WICHTIG: Warten bis DOM vollständig aufgebaut ist
+        setTimeout(() => {
+            const tabs = modal.querySelectorAll('[data-about-tab]');
+            const panels = modal.querySelectorAll('.tab-panel');
             
-            console.log(`✅ Tab ${tabName} aktiviert`);
+            console.log(`📊 Gefunden: ${tabs.length} Tabs, ${panels.length} Panels`);
             
-            // Icons neu initialisieren für den angezeigten Panel
-            setTimeout(() => {
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
+            if (tabs.length === 0 || panels.length === 0) {
+                console.warn('⚠️ Keine Tabs oder Panels gefunden - versuche Fallback');
+                this.createFallbackTabContent(modal);
+                return;
+            }
+            
+            // KORRIGIERT: Alle Panels initial verstecken außer dem ersten
+            panels.forEach((panel, index) => {
+                if (index === 0) {
+                    panel.style.display = 'block';
+                    panel.classList.remove('hidden');
+                } else {
+                    panel.style.display = 'none';
+                    panel.classList.add('hidden');
                 }
-            }, 10);
-        } else {
-            console.error(`❌ Panel oder Tab für ${tabName} nicht gefunden`);
-        }
-    }
-    
-    // Event Listeners für Tabs
-    tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.preventDefault();
-            const tabName = tab.dataset.aboutTab;
-            if (tabName) {
-                showTab(tabName);
+            });
+            
+            // KORRIGIERT: Ersten Tab als aktiv markieren
+            tabs.forEach((tab, index) => {
+                if (index === 0) {
+                    tab.classList.add('tab-active');
+                } else {
+                    tab.classList.remove('tab-active');
+                }
+            });
+            
+            // VERBESSERTE showTab Funktion
+            function showTab(tabName) {
+                console.log(`🔄 Wechsle zu Tab: ${tabName}`);
                 
-                // Haptic Feedback
-                if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
-                    navigator.vibrate(5);
+                try {
+                    // Alle Panels verstecken (mehrere Methoden für Robustheit)
+                    panels.forEach(panel => {
+                        panel.style.display = 'none';
+                        panel.classList.add('hidden');
+                        panel.classList.remove('block');
+                    });
+                    
+                    // Alle Tabs deaktivieren
+                    tabs.forEach(tab => {
+                        tab.classList.remove('tab-active');
+                    });
+                    
+                    // Ziel-Panel finden und anzeigen
+                    const targetPanel = modal.querySelector(`#about-${tabName}`);
+                    const targetTab = modal.querySelector(`[data-about-tab="${tabName}"]`);
+                    
+                    if (targetPanel && targetTab) {
+                        // Panel anzeigen (mehrere Methoden)
+                        targetPanel.style.display = 'block';
+                        targetPanel.classList.remove('hidden');
+                        targetPanel.classList.add('block');
+                        
+                        // Tab aktivieren
+                        targetTab.classList.add('tab-active');
+                        
+                        console.log(`✅ Tab ${tabName} erfolgreich aktiviert`);
+                        
+                        // Icons neu initialisieren
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                        
+                        return true;
+                    } else {
+                        console.error(`❌ Panel (#about-${tabName}) oder Tab nicht gefunden`);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error(`❌ Fehler beim Tab-Wechsel zu ${tabName}:`, error);
+                    return false;
                 }
             }
-        });
-    });
+            
+            // VERBESSERTE Event Listeners
+            tabs.forEach(tab => {
+                // Alle existierenden Listener entfernen (Clone-Trick)
+                const newTab = tab.cloneNode(true);
+                tab.parentNode.replaceChild(newTab, tab);
+                
+                // Neuen Event Listener hinzufügen
+                newTab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const tabName = newTab.dataset.aboutTab;
+                    if (tabName) {
+                        const success = showTab(tabName);
+                        
+                        if (success) {
+                            // Haptic Feedback nur bei Erfolg
+                            if (navigator.vibrate && localStorage.getItem('hapticFeedback') === 'true') {
+                                navigator.vibrate(5);
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // KORRIGIERT: Initialer Tab nach Event Listener Setup
+            setTimeout(() => {
+                showTab('overview');
+                console.log('✅ About Tabs erfolgreich initialisiert');
+            }, 50);
+            
+        }, 100); // Delay für DOM-Aufbau
+        
+    } catch (error) {
+        console.error('❌ About Tabs Initialisierung fehlgeschlagen:', error);
+        this.createFallbackTabContent(modal);
+    }
+}
+
+/**
+ * Fallback-Inhalt für About Modal
+ */
+createFallbackTabContent(modal) {
+    console.log('🔧 Erstelle Fallback-Inhalt für About Modal');
     
-    // Initialer Tab (Overview)
-    showTab('overview');
+    const contentContainer = modal.querySelector('.tab-content') || modal.querySelector('.modal-box');
+    if (!contentContainer) return;
+    
+    // Entferne existierende Tab-Struktur
+    const existingTabs = modal.querySelector('.tabs');
+    const existingPanels = modal.querySelectorAll('.tab-panel');
+    
+    if (existingTabs) existingTabs.remove();
+    existingPanels.forEach(panel => panel.remove());
+    
+    // Erstelle einfachen Content ohne Tabs
+    const fallbackContent = document.createElement('div');
+    fallbackContent.className = 'space-y-6';
+    
+    const appStats = this.getAppStats();
+    const buildInfo = this.getBuildInfo();
+    
+    fallbackContent.innerHTML = `
+        <!-- Vereinfachter Inhalt ohne Tabs -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title text-lg flex items-center gap-2">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                        App-Informationen
+                    </h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Version:</span>
+                            <span class="font-semibold">${buildInfo.version}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Build:</span>
+                            <span class="font-mono text-xs">${buildInfo.buildDate}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Typ:</span>
+                            <div class="badge badge-primary badge-sm">PWA</div>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Status:</span>
+                            <div class="badge badge-success badge-sm">
+                                ${this.isOnline ? '🌐 Online' : '📵 Offline'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h4 class="card-title text-lg flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        Nutzungsstatistiken
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="stat">
+                            <div class="stat-title text-xs">Tage mit Daten</div>
+                            <div class="stat-value text-2xl">${appStats.totalDays}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title text-xs">Einträge gesamt</div>
+                            <div class="stat-value text-2xl">${appStats.totalEntries}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title text-xs">Speicherverbrauch</div>
+                            <div class="stat-value text-lg">${appStats.storageSize}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <div>
+                <h4 class="font-semibold">Health Tracker Pro</h4>
+                <p class="text-sm">Eine moderne, sichere PWA für professionelles Gesundheitsmanagement mit vollständigem Datenschutz.</p>
+            </div>
+        </div>
+    `;
+    
+    // Existierenden Inhalt ersetzen
+    const targetContainer = contentContainer.querySelector('.tab-content') || contentContainer;
+    targetContainer.innerHTML = '';
+    targetContainer.appendChild(fallbackContent);
+    
+    // Icons initialisieren
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    console.log('✅ Fallback-Inhalt erstellt');
 }
 
 /**

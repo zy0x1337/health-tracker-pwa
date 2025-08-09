@@ -11,6 +11,19 @@
 [build.environment]
 NODE_VERSION = "20.12.2"
 
+# CSS-spezifische Headers hinzufügen
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Content-Type = "text/css"
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/dist/*.css"
+  [headers.values]
+    Content-Type = "text/css"
+    Cache-Control = "public, max-age=31536000"
+
 # Erweiterte SVG-Headers
 [[headers]]
   for = "*.svg"

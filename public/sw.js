@@ -25,6 +25,7 @@ const STATIC_ASSETS = [
     '/js/app.js',
     '/js/pwa.js',
     '/css/style.css',
+    '/dist/output.css',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
     '/images/health-dashboard.svg'

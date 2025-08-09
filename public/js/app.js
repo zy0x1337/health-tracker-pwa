@@ -9406,38 +9406,33 @@ window.addEventListener('beforeunload', () => {
     }
 
     /** Setup all event listeners for the specific HTML structure */
-    setupCompleteEventListeners() {
-        console.log('📊 Setting up complete event listeners...');
-        
-        // Period filter buttons (data-period attributes)
-        document.querySelectorAll('[data-period]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const period = parseInt(e.target.dataset.period);
-                console.log('📊 Period clicked:', period);
-                this.handlePeriodChange(period);
-            });
+setupCompleteEventListeners() {
+    console.log('📊 Setting up event listeners...');
+    
+    // Period filter buttons
+    document.querySelectorAll('[data-period]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const period = parseInt(e.target.dataset.period);
+            this.handlePeriodChange(period);
         });
+    });
 
-        // Metric tabs (data-metric attributes)
-        document.querySelectorAll('[data-metric]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const metric = e.target.dataset.metric;
-                console.log('📈 Metric clicked:', metric);
-                this.handleMetricChange(metric);
-            });
+    // Metric tabs
+    document.querySelectorAll('[data-metric]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const metric = e.target.dataset.metric;
+            this.handleMetricChange(metric);
         });
+    });
 
-        // Refresh button
-        const refreshBtn = document.querySelector('button[onclick*="analyticsEngine"]');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                console.log('🔄 Refresh clicked');
-                this.loadCompleteAnalyticsData();
-            });
-        }
-
-        console.log('✅ Event listeners setup complete');
+    // Refresh button (vereinfacht)
+    const refreshBtn = document.querySelector('button[onclick*="analyticsEngine"]');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            this.loadCompleteAnalyticsData();
+        });
     }
+}
 
     /** Handle period change */
     async handlePeriodChange(period) {
@@ -9785,7 +9780,7 @@ getChartTitle(metricFilter) {
 }
 
 /**
- * NEUE METHODE: Chart-Titel UI Update
+ * Chart-Titel UI Update
  */
 updateChartTitle(metricFilter) {
     const titleElement = document.getElementById('trends-title');
@@ -9809,229 +9804,165 @@ updateChartTitle(metricFilter) {
  * @returns {Object} Formatierte Chart-Daten
  */
 prepareTrendsData(data, metricFilter = 'all') {
-    try {
-        console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
-        
-        if (!data || !Array.isArray(data) || data.length === 0) {
-            console.log('❌ Keine Daten array verfügbar');
-            return {
-                labels: [],
-                datasets: [],
-                isEmpty: true
-            };
-        }
-
-        // Datenvalidierung
-        const validEntries = data.filter(item => {
-            const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
-            const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
-            return hasValidDate && hasAnyData;
-        });
-
-        if (validEntries.length === 0) {
-            console.log('❌ Keine gültigen Einträge nach Filterung');
-            return {
-                labels: [],
-                datasets: [],
-                isEmpty: true
-            };
-        }
-
-        // Daten nach Datum sortieren
-        const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        // Labels erstellen
-        const labels = sortedData.map(item => {
-            const date = new Date(item.date);
-            return date.toLocaleDateString('de-DE', { 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        });
-
-        // ALLE VERFÜGBAREN METRIKEN DEFINIEREN
-        const allMetrics = [
-            { 
-                key: 'steps', 
-                label: 'Schritte', 
-                color: 'rgb(99, 102, 241)', 
-                scale: 0.001,
-                yAxisID: 'y',
-                unit: ' (in Tausend)'
-            },
-            { 
-                key: 'waterIntake', 
-                label: 'Wasser (L)', 
-                color: 'rgb(59, 130, 246)', 
-                scale: 1,
-                yAxisID: 'y1',
-                unit: ' (Liter)'
-            },
-            { 
-                key: 'sleepHours', 
-                label: 'Schlaf (h)', 
-                color: 'rgb(16, 185, 129)', 
-                scale: 1,
-                yAxisID: 'y1',
-                unit: ' (Stunden)'
-            },
-            { 
-                key: 'weight', 
-                label: 'Gewicht (kg)', 
-                color: 'rgb(245, 101, 101)', 
-                scale: 1,
-                yAxisID: 'y2',
-                unit: ' (Kilogramm)'
-            }
-        ];
-
-        // METRIC-FILTERING: Wähle nur relevante Metriken
-        let metricsToShow;
-        
-        if (metricFilter === 'all') {
-            metricsToShow = allMetrics;
-            console.log('📊 Zeige alle Metriken');
-        } else {
-            // Zeige nur spezifische Metrik
-            metricsToShow = allMetrics.filter(metric => metric.key === metricFilter);
-            console.log('📊 Zeige nur Metrik:', metricFilter);
-            
-            if (metricsToShow.length === 0) {
-                console.warn('⚠️ Unbekannte Metrik:', metricFilter, '- zeige alle');
-                metricsToShow = allMetrics;
-            }
-        }
-
-        // DATASETS ERSTELLEN (nur für gewählte Metriken)
-        const datasets = [];
-        
-        metricsToShow.forEach(metric => {
-            const values = sortedData.map(item => {
-                const value = item[metric.key];
-                return (value !== null && value !== undefined) ? (value * metric.scale) : null;
-            });
-
-            const validValues = values.filter(v => v !== null && v !== undefined);
-            console.log(`📊 Metric ${metric.key}:`, {
-                totalValues: values.length,
-                validValues: validValues.length,
-                sample: values.slice(0, 3)
-            });
-
-            if (validValues.length > 0) {
-                datasets.push({
-                    label: metric.label,
-                    data: values,
-                    borderColor: metric.color,
-                    backgroundColor: metric.color + '20',
-                    borderWidth: metricFilter === 'all' ? 2 : 3, // Dickere Linie für Einzelmetriken
-                    fill: metricFilter !== 'all', // Füllung nur bei Einzelmetriken
-                    tension: 0.1,
-                    pointRadius: metricFilter === 'all' ? 4 : 6, // Größere Punkte für Einzelmetriken
-                    pointHoverRadius: metricFilter === 'all' ? 6 : 8,
-                    yAxisID: metric.yAxisID || 'y',
-                    spanGaps: true
-                });
-            }
-        });
-
-        const result = {
-            labels,
-            datasets,
-            isEmpty: datasets.length === 0,
-            metricFilter: metricFilter,
-            singleMetric: metricFilter !== 'all' && datasets.length === 1
-        };
-
-        console.log('✅ Trends-Daten vorbereitet:', {
-            labels: labels.length,
-            datasets: datasets.length,
-            metrics: datasets.map(d => d.label),
-            filter: metricFilter,
-            isEmpty: result.isEmpty
-        });
-
-        return result;
-
-    } catch (error) {
-        console.error('❌ Fehler beim Vorbereiten der Trends-Daten:', error);
-        return {
-            labels: [],
-            datasets: [],
-            isEmpty: true,
-            error: error.message
-        };
+    console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
+    
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        return { labels: [], datasets: [] };
     }
+
+    // Datenvalidierung
+    const validEntries = data.filter(item => {
+        const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
+        const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
+        return hasValidDate && hasAnyData;
+    });
+
+    if (validEntries.length === 0) {
+        return { labels: [], datasets: [] };
+    }
+
+    // Daten nach Datum sortieren
+    const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Labels erstellen
+    const labels = sortedData.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('de-DE', { 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    });
+
+    // Metric-Definitionen
+    const allMetrics = [
+        { 
+            key: 'steps', 
+            label: 'Schritte', 
+            color: 'rgb(99, 102, 241)', 
+            scale: 0.001,
+            yAxisID: 'y'
+        },
+        { 
+            key: 'waterIntake', 
+            label: 'Wasser (L)', 
+            color: 'rgb(59, 130, 246)', 
+            scale: 1,
+            yAxisID: 'y1'
+        },
+        { 
+            key: 'sleepHours', 
+            label: 'Schlaf (h)', 
+            color: 'rgb(16, 185, 129)', 
+            scale: 1,
+            yAxisID: 'y1'
+        },
+        { 
+            key: 'weight', 
+            label: 'Gewicht (kg)', 
+            color: 'rgb(245, 101, 101)', 
+            scale: 1,
+            yAxisID: 'y2'
+        }
+    ];
+
+    // Metric-Filtering
+    const metricsToShow = metricFilter === 'all' 
+        ? allMetrics 
+        : allMetrics.filter(metric => metric.key === metricFilter);
+
+    // Datasets erstellen
+    const datasets = [];
+    
+    metricsToShow.forEach(metric => {
+        const values = sortedData.map(item => {
+            const value = item[metric.key];
+            return (value !== null && value !== undefined) ? (value * metric.scale) : null;
+        });
+
+        const validValues = values.filter(v => v !== null && v !== undefined);
+        
+        if (validValues.length > 0) {
+            datasets.push({
+                label: metric.label,
+                data: values,
+                borderColor: metric.color,
+                backgroundColor: metric.color + '20',
+                borderWidth: metricFilter === 'all' ? 2 : 3,
+                fill: metricFilter !== 'all',
+                tension: 0.1,
+                pointRadius: metricFilter === 'all' ? 4 : 6,
+                pointHoverRadius: metricFilter === 'all' ? 6 : 8,
+                yAxisID: metric.yAxisID || 'y',
+                spanGaps: true
+            });
+        }
+    });
+
+    return {
+        labels,
+        datasets,
+        metricFilter: metricFilter
+    };
 }
 
     /** Update heatmap chart */
     async updateHeatmapChart() {
-        console.log('🔥 Updating heatmap chart...');
-        
-        const container = document.getElementById('heatmap-chart');
-        if (!container) {
-            console.warn('⚠️ Heatmap container not found');
-            return;
-        }
-
-        try {
-            const data = this.analyticsData?.period || [];
-            const heatmapData = this.generateHeatmapData(data);
-            
-            container.innerHTML = `
-                <div class="heatmap-grid">
-                    <div class="text-center mb-4">
-                        <h4 class="font-semibold text-lg mb-2">🔥 Aktivitäts-Heatmap</h4>
-                        <p class="text-sm text-base-content/70">Letzten ${this.currentPeriod} Tage</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-7 gap-1 mb-4">
-                        ${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => `
-                            <div class="text-xs text-center font-medium opacity-70 p-1">${day}</div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="grid grid-cols-7 gap-1 mb-4">
-                        ${heatmapData.map(day => `
-                            <div class="heatmap-cell ${this.getHeatmapColor(day.intensity)} 
-                                 tooltip tooltip-top cursor-pointer"
-                                 data-tip="${day.date}: ${day.steps} Schritte">
-                                ${day.dayOfMonth}
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="flex justify-between items-center text-xs opacity-70">
-                        <span>Weniger</span>
-                        <div class="flex gap-1">
-                            <div class="w-3 h-3 rounded bg-base-300"></div>
-                            <div class="w-3 h-3 rounded bg-primary/20"></div>
-                            <div class="w-3 h-3 rounded bg-primary/50"></div>
-                            <div class="w-3 h-3 rounded bg-primary/80"></div>
-                            <div class="w-3 h-3 rounded bg-primary"></div>
-                        </div>
-                        <span>Mehr</span>
-                    </div>
-                </div>
-            `;
-
-            // Hide placeholder
-            const placeholder = document.getElementById('heatmap-placeholder');
-            if (placeholder) {
-                placeholder.style.display = 'none';
-            }
-
-            console.log('✅ Heatmap updated successfully');
-
-        } catch (error) {
-            console.error('❌ Heatmap error:', error);
-            container.innerHTML = `
-                <div class="alert alert-error">
-                    <span>❌ Heatmap-Fehler: ${error.message}</span>
-                </div>
-            `;
-        }
+    console.log('🔥 Updating heatmap chart...');
+    
+    const container = document.getElementById('heatmap-chart');
+    if (!container) {
+        console.warn('⚠️ Heatmap container not found');
+        return;
     }
+
+    try {
+        const data = this.analyticsData?.period || [];
+        const heatmapData = this.generateHeatmapData(data);
+        
+        container.innerHTML = `
+            <div class="heatmap-grid">
+                <div class="text-center mb-4">
+                    <h4 class="font-semibold text-lg mb-2">🔥 Aktivitäts-Heatmap</h4>
+                    <p class="text-sm text-base-content/70">Letzten ${this.currentPeriod} Tage</p>
+                </div>
+                
+                <div class="grid grid-cols-7 gap-1 mb-4">
+                    ${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => `
+                        <div class="text-xs text-center font-medium opacity-70 p-1">${day}</div>
+                    `).join('')}
+                </div>
+                
+                <div class="grid grid-cols-7 gap-1 mb-4">
+                    ${heatmapData.map(day => `
+                        <div class="heatmap-cell ${this.getHeatmapColor(day.intensity)} 
+                             tooltip tooltip-top cursor-pointer"
+                             data-tip="${day.date}: ${day.steps} Schritte">
+                            ${day.dayOfMonth}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="flex justify-between items-center text-xs opacity-70">
+                    <span>Weniger</span>
+                    <div class="flex gap-1">
+                        <div class="w-3 h-3 rounded bg-base-300"></div>
+                        <div class="w-3 h-3 rounded bg-primary/20"></div>
+                        <div class="w-3 h-3 rounded bg-primary/50"></div>
+                        <div class="w-3 h-3 rounded bg-primary/80"></div>
+                        <div class="w-3 h-3 rounded bg-primary"></div>
+                    </div>
+                    <span>Mehr</span>
+                </div>
+            </div>
+        `;
+
+        console.log('✅ Heatmap updated successfully');
+
+    } catch (error) {
+        console.error('❌ Heatmap error:', error);
+        this.logChartError('Heatmap', error);
+    }
+}
 
     /** Generate heatmap data */
     generateHeatmapData(data) {

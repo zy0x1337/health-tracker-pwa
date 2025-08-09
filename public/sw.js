@@ -26,7 +26,8 @@ const STATIC_ASSETS = [
     '/js/pwa.js',
     '/css/style.css',
     '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
+    '/icons/icon-512x512.png',
+    '/images/health-dashboard.svg'
 ];
 
 // Cache-TTL Konfiguration (in Millisunden)
@@ -96,7 +97,9 @@ self.addEventListener('activate', (event) => {
             initializeBackgroundTasks(),
             
             // Performance-Monitoring starten
-            startPerformanceMonitoring()
+            startPerformanceMonitoring(),
+
+            prewarmSVGCache()
             
         ]).then(() => {
             console.log('✅ Service Worker v3.1 aktiviert und bereit');
@@ -106,6 +109,36 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
+async function prewarmSVGCache() {
+    try {
+        const cache = await caches.open(STATIC_CACHE_NAME);
+        const svgUrls = [
+            '/images/health-dashboard.svg',
+            '/images/analytics-dashboard.svg',
+            '/images/no-data.svg', 
+            '/images/progress-hub.svg'
+        ];
+        
+        console.log('🎨 Pre-warming SVG cache...');
+        
+        for (const url of svgUrls) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    await cache.put(url, response.clone());
+                    console.log(`✅ Cached SVG: ${url}`);
+                } else {
+                    console.warn(`⚠️ SVG not found: ${url} (${response.status})`);
+                }
+            } catch (error) {
+                console.warn(`❌ Failed to cache SVG: ${url}`, error);
+            }
+        }
+    } catch (error) {
+        console.error('❌ SVG cache prewarm failed:', error);
+    }
+}
 
 // ==================================================================== 
 // FETCH EVENT HANDLING - Intelligente Routing-Strategie
@@ -143,6 +176,11 @@ function getRequestHandler(request, url) {
     // Standard API-Requests
     if (url.pathname.startsWith('/api/')) {
         return handleAPIRequest;
+    }
+
+    // SVG-spezifischer Handler
+    if (url.pathname.endsWith('.svg')) {
+        return handleSVGRequest;
     }
     
     // Navigation-Requests (HTML-Seiten)
@@ -518,12 +556,21 @@ function isCacheExpired(response) {
 }
 
 // Statisches Asset erkennen
-// Erweitere deine isStaticAsset() Funktion
 function isStaticAsset(pathname) {
     const staticExtensions = ['.js', '.css', '.html', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf'];
     const staticPaths = ['/static/', '/assets/', '/images/', '/css/', '/js/'];
+    
+    // Explizite SVG-Pfade
+    const svgFiles = [
+        '/images/health-dashboard.svg',
+        '/images/analytics-dashboard.svg', 
+        '/images/no-data.svg',
+        '/images/progress-hub.svg'
+    ];
+    
     return staticExtensions.some(ext => pathname.endsWith(ext)) || 
-           staticPaths.some(path => pathname.startsWith(path)) || 
+           staticPaths.some(path => pathname.startsWith(path)) ||
+           svgFiles.includes(pathname) ||
            pathname === '/';
 }
 

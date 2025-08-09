@@ -11,23 +11,31 @@
 [build.environment]
 NODE_VERSION = "20.12.2"
 
-# SVG-spezifische Headers - Erweitert
+# Erweiterte SVG-Headers
 [[headers]]
   for = "*.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=31536000"
     X-Content-Type-Options = "nosniff"
 
 [[headers]]  
   for = "/images/*.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
-    Cache-Control = "public, max-age=31536000, immutable"
-    
-# Alle Static Assets (inkl. SVGs)
+    Cache-Control = "public, max-age=31536000"
+    Access-Control-Allow-Origin = "*"
+
+# Sicherstellen dass /images/ Verzeichnis korrekt served wird
 [[headers]]
   for = "/images/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=31536000"
+
+# Debug-Headers
+[[headers]]
+  for = "/images/*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    X-Debug-SVG = "true"
     Access-Control-Allow-Origin = "*"

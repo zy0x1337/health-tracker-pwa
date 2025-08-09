@@ -2804,7 +2804,7 @@ initializeAnalyticsEventListeners() {
         });
 
         /**
- * Metric Tab Event Listener
+ * KORRIGIERTE Metric Tab Event Listener
  */
 document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2829,10 +2829,11 @@ document.querySelectorAll('.metric-tab[data-metric]').forEach(btn => {
             // Store current metric
             this.currentMetricFilter = metric;
             
-            // Update chart mit spezifischem Metric-Filter
+            // Metric-Filter als Parameter übergeben
             if (typeof this.analyticsEngine.updateTrendsChart === 'function') {
-                const filteredData = this.getFilteredHealthData(this.currentAnalyticsPeriod);
-                this.analyticsEngine.updateTrendsChart(filteredData, metric); // ← WICHTIG: Metric-Filter übergeben
+                const filteredData = this.getFilteredHealthData(this.currentAnalyticsPeriod || 14);
+                // Beide Parameter übergeben - Daten UND Metric-Filter
+                this.analyticsEngine.updateTrendsChart(filteredData, metric);
             } else {
                 console.warn('⚠️ updateTrendsChart method not available');
                 this.showToast('📊 Chart-Update nicht verfügbar', 'warning');
@@ -9340,10 +9341,12 @@ async loadCompleteAnalyticsData() {
         }
     }
 
-    // updateTrendsChart-Methode mit besserer Datenübergabe
-async updateTrendsChart(data) {
+    /**
+ * KORRIGIERTE updateTrendsChart-Methode - akzeptiert Metric-Filter
+ */
+async updateTrendsChart(data, metricFilter = 'all') {
     try {
-        console.log('📊 updateTrendsChart aufgerufen mit:', typeof data, data?.length);
+        console.log('📊 updateTrendsChart aufgerufen mit Filter:', metricFilter);
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
@@ -9352,26 +9355,20 @@ async updateTrendsChart(data) {
             return;
         }
 
-        // BESSERE DATENBEHANDLUNG
-        let chartData;
-        
-        // Falls keine Daten übergeben wurden, verwende Analytics-Daten
+        // Datenquellen ermitteln
         if (!data || (Array.isArray(data) && data.length === 0)) {
             console.log('📊 Keine Daten übergeben, verwende Analytics-Daten');
             
-            // Versuche Daten aus verschiedenen Quellen zu laden
             const sources = [
                 () => this.analyticsData?.period,
                 () => this.analyticsData?.all,
-                () => this.healthTracker.cache?.get?.('allHealthData')?.data,
-                () => this.healthTracker.getAllHealthData?.()
+                () => this.healthTracker.cache?.get?.('allHealthData')?.data
             ];
             
             for (const source of sources) {
                 try {
                     const sourceData = await source();
                     if (sourceData && Array.isArray(sourceData) && sourceData.length > 0) {
-                        console.log(`📊 Daten gefunden in Quelle:`, sourceData.length, 'Einträge');
                         data = sourceData;
                         break;
                     }
@@ -9381,15 +9378,8 @@ async updateTrendsChart(data) {
             }
         }
 
-        // Prüfe ob prepareTrendsData verfügbar ist
-        if (typeof this.prepareTrendsData !== 'function') {
-            console.error('❌ prepareTrendsData Methode nicht verfügbar');
-            this.showTrendsError('Trends-Funktion nicht verfügbar');
-            return;
-        }
-
-        // Bereite Daten vor
-        chartData = this.prepareTrendsData(data || []);
+        // KRITISCHER FIX: Bereite Daten mit Metric-Filter vor
+        const chartData = this.prepareTrendsData(data || [], metricFilter);
         
         if (chartData.isEmpty) {
             console.log('📊 Chart-Daten sind leer, zeige Placeholder');
@@ -9403,88 +9393,19 @@ async updateTrendsChart(data) {
             this.trendsChart = null;
         }
 
-        // VERBESSERTE CHART-KONFIGURATION
+        // Chart-Konfiguration basierend auf Metric-Filter
+        const chartConfig = this.getChartConfiguration(chartData, metricFilter);
+        
+        // Erstelle Chart
         const ctx = trendsCanvas.getContext('2d');
-        this.trendsChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Gesundheitstrends',
-                        font: { size: 16, weight: 'bold' }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.dataset.label || '';
-                                const value = context.parsed.y;
-                                
-                                // Spezielle Formatierung für Schritte
-                                if (label.includes('Schritte')) {
-                                    return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
-                                }
-                                return `${label}: ${value}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Datum'
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Schritte (in Tausend)'
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Wasser (L) / Schlaf (h)'
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                    },
-                    y2: {
-                        type: 'linear',
-                        display: false,
-                        position: 'right'
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                }
-            }
-        });
+        this.trendsChart = new Chart(ctx, chartConfig);
 
         // Update UI-Elemente
         this.updateTrendsDataCount();
         this.updateTrendsLastUpdate();
+        this.updateChartTitle(metricFilter);
 
-        console.log('✅ Trends Chart erfolgreich erstellt');
+        console.log('✅ Trends Chart erfolgreich erstellt für:', metricFilter);
 
     } catch (error) {
         console.error('❌ Fehler beim Aktualisieren des Trends Charts:', error);
@@ -9554,17 +9475,13 @@ showTrendsPlaceholder() {
 }
 
 /**
- * VERBESSERTE prepareTrendsData Methode mit Metric-Filtering
- * @param {Array} data - Rohe Gesundheitsdaten
- * @param {string} metricFilter - Spezifische Metrik oder 'all'
- * @returns {Object} Formatierte Chart-Daten
+ * FINAL KORRIGIERTE prepareTrendsData Methode
  */
 prepareTrendsData(data, metricFilter = 'all') {
     try {
         console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
         
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.log('❌ Keine Daten array verfügbar');
             return {
                 labels: [],
                 datasets: [],
@@ -9580,7 +9497,6 @@ prepareTrendsData(data, metricFilter = 'all') {
         });
 
         if (validEntries.length === 0) {
-            console.log('❌ Keine gültigen Einträge nach Filterung');
             return {
                 labels: [],
                 datasets: [],
@@ -9636,20 +9552,22 @@ prepareTrendsData(data, metricFilter = 'all') {
             }
         ];
 
-        // METRIC-FILTERING: Wähle nur relevante Metriken
+        // KRITISCHER TEIL: METRIC-FILTERING
         let metricsToShow;
+        
+        console.log('🔍 Aktueller Filter:', metricFilter);
         
         if (metricFilter === 'all') {
             metricsToShow = allMetrics;
             console.log('📊 Zeige alle Metriken');
         } else {
-            // Zeige nur spezifische Metrik
+            // NUR die spezifische Metrik anzeigen
             metricsToShow = allMetrics.filter(metric => metric.key === metricFilter);
-            console.log('📊 Zeige nur Metrik:', metricFilter);
+            console.log('📊 Zeige nur Metrik:', metricFilter, '- Gefunden:', metricsToShow.length);
             
             if (metricsToShow.length === 0) {
-                console.warn('⚠️ Unbekannte Metrik:', metricFilter, '- zeige alle');
-                metricsToShow = allMetrics;
+                console.warn('⚠️ Unbekannte Metrik:', metricFilter);
+                metricsToShow = allMetrics; // Fallback
             }
         }
 
@@ -9663,12 +9581,7 @@ prepareTrendsData(data, metricFilter = 'all') {
             });
 
             const validValues = values.filter(v => v !== null && v !== undefined);
-            console.log(`📊 Metric ${metric.key}:`, {
-                totalValues: values.length,
-                validValues: validValues.length,
-                sample: values.slice(0, 3)
-            });
-
+            
             if (validValues.length > 0) {
                 datasets.push({
                     label: metric.label,

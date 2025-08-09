@@ -4892,23 +4892,19 @@ showHelp() {
                         
                         <div class="grid md:grid-cols-2 gap-4">
                             <div class="card bg-accent/5 border border-accent/20">
-                                <div class="card-body p-4">
+                                <div class="card-body p-3">
                                     <h5 class="font-semibold text-accent mb-3">Support kontaktieren</h5>
                                     <div class="space-y-3">
                                         <button class="btn btn-outline btn-accent btn-sm w-full gap-2" onclick="window.open('mailto:support@healthtracker.com?subject=Health Tracker Pro Hilfe')">
                                             <i data-lucide="mail" class="w-4 h-4"></i>
                                             E-Mail Support
                                         </button>
-                                        <button class="btn btn-outline btn-info btn-sm w-full gap-2" onclick="healthTracker?.showDataUsage?.()">
-                                            <i data-lucide="hard-drive" class="w-4 h-4"></i>
-                                            Speicher-Diagnose
-                                        </button>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="card bg-primary/5 border border-primary/20">
-                                <div class="card-body p-4">
+                                <div class="card-body p-3">
                                     <h5 class="font-semibold text-primary mb-3">Hilfreiche Ressourcen</h5>
                                     <div class="space-y-2 text-sm">
                                         <div class="flex items-center gap-2">

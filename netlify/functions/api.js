@@ -155,7 +155,7 @@ const handler = async (event, context) => {
             };
         }
 
-        // NEW: Goals POST Route (Save/Update)
+        // Goals POST Route (Save/Update)
         if (httpMethod === 'POST' && (path === '/goals' || path.endsWith('/goals'))) {
             const body = JSON.parse(event.body || '{}');
             console.log('🎯 Saving goals:', body);
@@ -241,46 +241,77 @@ const handler = async (event, context) => {
             };
         }
 
-        // Health Data POST Route
-        if (httpMethod === 'POST' && (path === '/health-data' || path.endsWith('/health-data'))) {
-            const body = JSON.parse(event.body || '{}');
-            console.log('💾 Saving to healthdatas collection:', body);
+        // Health Data POST Route mit Duplicate Check
+if (httpMethod === 'POST' && (path === '/health-data' || path.endsWith('/health-data'))) {
+    const body = JSON.parse(event.body || '{}');
+    console.log('💾 Saving to healthdatas collection:', body);
 
-            if (!body.userId) {
-                return {
-                    statusCode: 400,
-                    headers,
-                    body: JSON.stringify({
-                        error: 'userId is required',
-                        received: body
-                    })
-                };
-            }
+    if (!body.userId) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+                error: 'userId is required',
+                received: body
+            })
+        };
+    }
 
-            const healthData = new HealthData({
-                userId: body.userId,
-                date: body.date ? new Date(body.date) : new Date(),
-                weight: body.weight || null,
-                steps: body.steps || null,
-                waterIntake: body.waterIntake || null,
-                sleepHours: body.sleepHours || null,
-                mood: body.mood || null,
-                notes: body.notes || null
-            });
-
-            const savedData = await healthData.save();
-            console.log('✅ Data saved to healthdatas collection with ID:', savedData._id);
-
+    // DUPLICATE CHECK: Same day, similar data
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    
+    const existingToday = await HealthData.findOne({
+        userId: body.userId,
+        date: { $gte: startOfDay, $lte: endOfDay }
+    }).lean();
+    
+    if (existingToday && body.submissionId !== existingToday.submissionId) {
+        // Check for identical values
+        const isIdentical = ['weight', 'steps', 'waterIntake', 'sleepHours', 'mood']
+            .every(key => body[key] === existingToday[key]);
+            
+        if (isIdentical) {
+            console.log('🚫 Duplicate prevented on API level');
             return {
-                statusCode: 200,
+                statusCode: 409, // Conflict
                 headers,
                 body: JSON.stringify({
-                    success: true,
-                    message: 'Health data saved successfully',
-                    data: savedData
+                    error: 'Duplicate entry detected',
+                    message: 'Identical data already exists for today',
+                    existingId: existingToday._id
                 })
             };
         }
+    }
+
+    // Continue with normal save process...
+    const healthData = new HealthData({
+        userId: body.userId,
+        date: body.date ? new Date(body.date) : new Date(),
+        weight: body.weight || null,
+        steps: body.steps || null,
+        waterIntake: body.waterIntake || null,
+        sleepHours: body.sleepHours || null,
+        mood: body.mood || null,
+        notes: body.notes || null,
+        submissionId: body.submissionId // Track unique submissions
+    });
+
+    const savedData = await healthData.save();
+    console.log('✅ Unique data saved with ID:', savedData._id);
+    
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            success: true,
+            message: 'Health data saved successfully',
+            data: savedData
+        })
+    };
+}
 
         // Route für aggregierte Tagesdaten
 if (httpMethod === 'GET' && path.startsWith('/health-data-aggregated/')) {

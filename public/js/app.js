@@ -796,30 +796,39 @@ initializeSettings() {
      * Setup all event listeners for forms and UI interactions
      */
     setupEventListeners() {
-        // Health form submission
-        const healthForm = document.getElementById('health-form');
-        if (healthForm) {
-            healthForm.addEventListener('submit', this.handleFormSubmission.bind(this));
-        }
+    // Entferne bestehende Event Listener vor Neuregistrierung
+    const healthForm = document.getElementById('health-form');
+    const quickAddForm = document.getElementById('quick-add-form');
+    
+    if (healthForm) {
+        // Clone element to remove all existing listeners
+        const newHealthForm = healthForm.cloneNode(true);
+        healthForm.parentNode.replaceChild(newHealthForm, healthForm);
         
-        // Goals form submission
-        const goalsForm = document.getElementById('goals-form');
-        if (goalsForm) {
-            goalsForm.addEventListener('submit', this.handleGoalsSubmission.bind(this));
-        }
-        
-        // Network status changes
-        window.addEventListener('online', this.handleOnlineStatus.bind(this));
-        window.addEventListener('offline', this.handleOfflineStatus.bind(this));
-        
-        // Form input debouncing for better UX
-        this.setupFormInputDebouncing();
-        
-        // Progress Hub tab switching
-        this.setupProgressHubTabs();
-        
-        console.log('👂 Event Listeners konfiguriert');
+        // Single event listener with duplicate prevention
+        newHealthForm.addEventListener('submit', this.handleHealthFormSubmit.bind(this), { once: false });
     }
+    
+    if (quickAddForm) {
+        const newQuickForm = quickAddForm.cloneNode(true);
+        quickAddForm.parentNode.replaceChild(newQuickForm, quickAddForm);
+        newQuickForm.addEventListener('submit', this.handleQuickFormSubmit.bind(this), { once: false });
+    }
+
+    // Online/Offline Status mit Cleanup
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
+    window.addEventListener('online', this.handleOnline.bind(this));
+    window.addEventListener('offline', this.handleOffline.bind(this));
+
+    // Goals Form Cleanup
+    const goalsForm = document.getElementById('goals-form');
+    if (goalsForm) {
+        const newGoalsForm = goalsForm.cloneNode(true);
+        goalsForm.parentNode.replaceChild(newGoalsForm, goalsForm);
+        newGoalsForm.addEventListener('submit', this.handleGoalsSave.bind(this));
+    }
+}
     
     /**
      * Setup debounced form inputs for better performance
@@ -1090,44 +1099,76 @@ extractFormData(form) {
         
         return { isValid: true };
     }
+
+    // NEUE METHODE: Duplicate Prevention
+isDuplicateEntry(newData) {
+    const today = new Date().toISOString().split('T')[0];
+    const existingTodayData = this.healthData.find(entry => 
+        entry.date.split('T')[0] === today
+    );
     
-    /**
-     * Save health data with offline-first strategy
-     */
-    async saveHealthData(data) {
-        try {
-            // Always save locally first
-            await this.saveToLocalStorage(data);
-            
-            // Try to save to server if online
-            if (this.isOnline) {
-                try {
-                    const response = await this.makeAPICall('/api/health-data', {
-                        method: 'POST',
-                        body: JSON.stringify(data)
-                    });
-                    
-                    if (response.success) {
-                        // Mark as synced
-                        await this.markAsSynced(data);
-                        return true;
-                    }
-                } catch (error) {
-                    console.log('Server speichern fehlgeschlagen, lokal gespeichert:', error.message);
-                }
-            }
-            
-            // Mark for later sync
-            await this.markForSync(data);
-            this.dispatchHealthDataEvent('health-data-saved-offline', data);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Speichern komplett fehlgeschlagen:', error);
+    if (!existingTodayData) return false;
+    
+    // Check if exact same data already exists
+    const dataKeys = ['weight', 'steps', 'waterIntake', 'sleepHours', 'mood'];
+    const isDuplicate = dataKeys.every(key => {
+        if (!newData[key] && !existingTodayData[key]) return true;
+        return newData[key] === existingTodayData[key];
+    });
+    
+    if (isDuplicate) {
+        console.log('🚫 Duplicate entry prevented:', newData);
+        return true;
+    }
+    
+    return false;
+}
+
+async saveHealthData(formData) {
+    // PREVENT DOUBLE SUBMISSION
+    if (this.isLoading) {
+        console.log('🚫 Form submission blocked - already processing');
+        return false;
+    }
+    
+    this.isLoading = true;
+    
+    try {
+        // Duplicate Check BEFORE processing
+        if (this.isDuplicateEntry(formData)) {
+            this.showToast('ℹ️ Daten bereits heute erfasst - Verwende "Aktualisieren" stattdessen', 'info');
             return false;
         }
+        
+        // Add submission timestamp for tracking
+        formData.submissionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        console.log('💾 Saving unique health data:', formData);
+
+        const success = await this.performDataSave(formData);
+        
+        if (success) {
+            // Update local data immediately
+            this.healthData.unshift({
+                ...formData,
+                date: new Date().toISOString(),
+                _id: formData.submissionId
+            });
+            
+            this.updateUI();
+            this.showToast('✅ Gesundheitsdaten erfolgreich gespeichert', 'success');
+        }
+        
+        return success;
+        
+    } catch (error) {
+        console.error('❌ Save error:', error);
+        this.showToast('⚠️ Speichern fehlgeschlagen', 'error');
+        return false;
+    } finally {
+        this.isLoading = false;
     }
+}
     
     /**
      * Load user goals from server or localStorage

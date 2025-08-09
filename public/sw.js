@@ -49,52 +49,63 @@ self.addEventListener('fetch', (event) => {
 
 // Optimized API Handler mit Timeout
 async function handleAPIRequestOptimized(request) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
-  
-  try {
-    const networkResponse = await fetch(request, { 
-      signal: controller.signal 
-    });
-    clearTimeout(timeoutId);
-    
-    if (networkResponse.ok) {
-      // Smart caching basierend auf Content-Type
-      const cache = await caches.open(API_CACHE_NAME);
-      const clonedResponse = networkResponse.clone();
-      cache.put(request, clonedResponse);
-      return networkResponse;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    try {
+        const networkResponse = await fetch(request, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (networkResponse.ok) {
+            // CACHE-FIX: Nur GET requests cachen, nicht POST
+            if (request.method === 'GET') {
+                try {
+                    const cache = await caches.open(API_CACHE_NAME);
+                    const clonedResponse = networkResponse.clone();
+                    await cache.put(request, clonedResponse);
+                    console.log('✅ GET request cached:', request.url);
+                } catch (cacheError) {
+                    console.warn('⚠️ Cache put failed (non-critical):', cacheError.message);
+                    // Cache-Fehler nicht weiterwerfen, Response trotzdem zurückgeben
+                }
+            } else {
+                console.log(`🚫 ${request.method} request not cached (by design):`, request.url);
+            }
+            
+            return networkResponse;
+        }
+        throw new Error(`API Error: ${networkResponse.status}`);
+        
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.log('🔄 Network failed, serving from cache:', request.url);
+        
+        // Cache-Fallback nur für GET requests
+        if (request.method === 'GET') {
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+                const headers = new Headers(cachedResponse.headers);
+                headers.set('X-Served-From', 'sw-cache');
+                return new Response(cachedResponse.body, {
+                    status: cachedResponse.status,
+                    statusText: cachedResponse.statusText,
+                    headers
+                });
+            }
+        }
+
+        // Structured offline response
+        return new Response(JSON.stringify({
+            error: 'Offline - Bitte später versuchen',
+            offline: true,
+            timestamp: new Date().toISOString(),
+            retryAfter: 30,
+            method: request.method
+        }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
-    throw new Error(`API Error: ${networkResponse.status}`);
-    
-  } catch (error) {
-    clearTimeout(timeoutId);
-    console.log('🔄 Network failed, serving from cache:', request.url);
-    
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      // Füge Offline-Header hinzu
-      const headers = new Headers(cachedResponse.headers);
-      headers.set('X-Served-From', 'sw-cache');
-      
-      return new Response(cachedResponse.body, {
-        status: cachedResponse.status,
-        statusText: cachedResponse.statusText,
-        headers
-      });
-    }
-    
-    // Structured offline response
-    return new Response(JSON.stringify({
-      error: 'Offline - Bitte später versuchen',
-      offline: true,
-      timestamp: new Date().toISOString(),
-      retryAfter: 30
-    }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
 }
 
 // Fehlende Handler-Funktionen für optimierte Cache-Strategie

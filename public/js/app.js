@@ -30,7 +30,7 @@ class HealthTracker {
         // Performance optimization
         this.debounceTimers = new Map();
         this.cache = new Map();
-        
+
         // Duplicate prevention & debouncing
         this.activeToasts = new Set();
         this.boundHealthFormHandler = null;
@@ -915,6 +915,62 @@ async handleHealthFormSubmit(e) {
 }
 
 /**
+ * Validate and normalize form data before saving
+ */
+validateFormData(formData) {
+    console.log('🔍 Validiere Formulardaten:', formData);
+    
+    const validated = {
+        userId: this.userId,
+        date: new Date(), // Always use current date as default
+        weight: null,
+        steps: null,
+        waterIntake: null,
+        sleepHours: null,
+        mood: null,
+        notes: null
+    };
+
+    // Date validation
+    if (formData.date) {
+        const parsedDate = new Date(formData.date);
+        if (!isNaN(parsedDate.getTime())) {
+            validated.date = parsedDate;
+        } else {
+            console.warn('⚠️ Invalid date in form, using current date');
+        }
+    }
+
+    // Numeric field validation
+    const numericFields = ['weight', 'steps', 'waterIntake', 'sleepHours'];
+    numericFields.forEach(field => {
+        if (formData[field] !== undefined && formData[field] !== null && formData[field] !== '') {
+            const parsed = parseFloat(formData[field]);
+            if (!isNaN(parsed) && parsed >= 0) {
+                validated[field] = parsed;
+            } else {
+                console.warn(`⚠️ Invalid ${field} value:`, formData[field]);
+            }
+        }
+    });
+
+    // String field validation
+    if (formData.mood && typeof formData.mood === 'string') {
+        const validMoods = ['excellent', 'good', 'neutral', 'bad', 'terrible'];
+        if (validMoods.includes(formData.mood)) {
+            validated.mood = formData.mood;
+        }
+    }
+
+    if (formData.notes && typeof formData.notes === 'string') {
+        validated.notes = formData.notes.trim().substring(0, 500); // Max 500 chars
+    }
+
+    console.log('✅ Validierte Daten:', validated);
+    return validated;
+}
+
+/**
  * Debounced goals form submit handler
  */
 async handleGoalsFormSubmit(e) {
@@ -1232,57 +1288,80 @@ extractFormData(form) {
     }
     
     /**
-     * Save health data with offline-first strategy
-     */
-    async saveHealthData(data) {
-  try {
-    console.log('💾 Speichere Gesundheitsdaten:', data);
-    
-    // Offline-First: Lokal speichern
-    this.saveToLocalStorage(data);
-    
-    // Online-Sync versuchen
-    if (this.isOnline) {
-      const response = await fetch('/api/health-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...data,
-          userId: this.userId,
-          date: data.date || new Date().toISOString()
-        }),
-        // Timeout nach 5 Sekunden
-        signal: AbortSignal.timeout(5000)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      console.log('✅ Daten erfolgreich in Cloud gespeichert');
-      
-      // Sync-Status aktualisieren
-      this.updateSyncStatus('success');
-      
-      return result;
-    } else {
-      console.log('📡 Offline - Daten nur lokal gespeichert');
-      this.showToast('📡 Offline - Daten werden später synchronisiert', 'info');
-      return { success: true, offline: true };
+ * Save health data with enhanced error handling
+ */
+async saveHealthData(event) {
+    if (event) {
+        event.preventDefault();
     }
+
+    console.log('💾 Speichere Gesundheitsdaten:', event);
     
-  } catch (error) {
-    console.error('❌ Fehler beim Speichern:', error);
-    
-    // Fallback: Daten sind bereits lokal gespeichert
-    this.updateSyncStatus('error');
-    
-    // Throw für ErrorHandler
-    throw error;
-  }
+    try {
+        const form = event.target || document.getElementById('health-form');
+        if (!form) {
+            throw new Error('Health form not found');
+        }
+
+        const formData = new FormData(form);
+        
+        // Convert FormData to object with validation
+        const rawData = {};
+        for (let [key, value] of formData.entries()) {
+            rawData[key] = value;
+        }
+
+        // Validate and normalize data BEFORE saving
+        const healthData = this.validateFormData(rawData);
+
+        // Save to localStorage with validated data
+        try {
+            this.saveToLocalStorage(healthData);
+            console.log('✅ Lokale Speicherung erfolgreich');
+        } catch (localError) {
+            console.error('❌ Lokale Speicherung fehlgeschlagen:', localError);
+            this.showToast('⚠️ Lokale Speicherung fehlgeschlagen', 'warning');
+            // Continue with cloud save even if local fails
+        }
+
+        // Save to cloud if online
+        if (this.isOnline) {
+            try {
+                const response = await fetch('/api/health-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(healthData)
+                });
+
+                if (response.ok) {
+                    console.log('✅ Daten erfolgreich in Cloud gespeichert');
+                    this.showToast('✅ Gesundheitsdaten gespeichert!', 'success');
+                } else {
+                    throw new Error(`Cloud save failed: ${response.status}`);
+                }
+            } catch (cloudError) {
+                console.error('❌ Cloud-Speicherung fehlgeschlagen:', cloudError);
+                this.showToast('⚠️ Cloud-Speicherung fehlgeschlagen - Daten lokal gesichert', 'warning');
+            }
+        } else {
+            this.showToast('📴 Offline gespeichert - Wird später synchronisiert', 'info');
+        }
+
+        // Update displays
+        this.loadTodayData();
+        this.updateProgressHub();
+        this.updateActivityFeed();
+        
+        // Reset form
+        form.reset();
+        
+    } catch (error) {
+        console.error('❌ Fehler beim Speichern:', error);
+        this.showToast('❌ Fehler beim Speichern der Daten', 'error');
+        throw error; // For upstream error handling
+    }
 }
 
 // Sync-Status Management für bessere UX
@@ -2461,32 +2540,79 @@ playNotificationSound(type) {
     /**
  * Save data to localStorage
  */
-async saveToLocalStorage(data) {
+/**
+ * Save data to localStorage with proper date validation
+ */
+saveToLocalStorage(data) {
     try {
-        const existingData = JSON.parse(localStorage.getItem('healthData') || '[]');
+        console.log('💾 Speichere in localStorage:', data);
         
-        // KRITISCHER FIX: Sicherstellen dass date als String gespeichert wird
-        const dataWithMetadata = {
+        // Date validation and normalization
+        let processedDate;
+        if (data.date) {
+            if (data.date instanceof Date) {
+                processedDate = data.date;
+            } else if (typeof data.date === 'string') {
+                processedDate = new Date(data.date);
+            } else {
+                console.warn('⚠️ Invalid date format, using current date');
+                processedDate = new Date();
+            }
+        } else {
+            processedDate = new Date();
+        }
+
+        // Validate processed date
+        if (isNaN(processedDate.getTime())) {
+            console.warn('⚠️ Invalid date detected, using current date');
+            processedDate = new Date();
+        }
+
+        const processedData = {
             ...data,
-            date: typeof data.date === 'string' ? data.date : data.date.toISOString().split('T')[0],
-            _localId: 'local_' + Date.now(),
-            _synced: false,
-            _createdAt: new Date().toISOString()
+            date: processedDate,
+            timestamp: processedDate.toISOString(), // Safe nach Date-Validierung
+            userId: this.userId
         };
-        
-        console.log('💾 SAVING TO LOCALSTORAGE:', dataWithMetadata);
-        
-        existingData.push(dataWithMetadata);
-        
-        // Keep only last 100 entries
-        const trimmedData = existingData.slice(-100);
-        localStorage.setItem('healthData', JSON.stringify(trimmedData));
-        
-        console.log('✅ SAVED TO LOCALSTORAGE. Total entries:', trimmedData.length);
+
+        const storageKey = `health_data_${this.userId}`;
+        let existingData = [];
+
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                existingData = JSON.parse(stored);
+                if (!Array.isArray(existingData)) {
+                    existingData = [];
+                }
+            }
+        } catch (parseError) {
+            console.error('⚠️ localStorage parse error, starting fresh:', parseError);
+            existingData = [];
+        }
+
+        // Remove duplicates by date (same day)
+        const dateStr = processedDate.toISOString().split('T')[0];
+        existingData = existingData.filter(item => {
+            if (!item.date) return true;
+            const itemDate = new Date(item.date);
+            return itemDate.toISOString().split('T')[0] !== dateStr;
+        });
+
+        existingData.unshift(processedData);
+
+        // Keep last 100 entries for performance
+        if (existingData.length > 100) {
+            existingData = existingData.slice(0, 100);
+        }
+
+        localStorage.setItem(storageKey, JSON.stringify(existingData));
+        console.log('✅ Daten erfolgreich in localStorage gespeichert');
         
     } catch (error) {
         console.error('❌ localStorage Fehler:', error);
-        throw error;
+        this.showToast('⚠️ Lokale Speicherung fehlgeschlagen', 'warning');
+        throw error; // Re-throw for upstream handling
     }
 }
     

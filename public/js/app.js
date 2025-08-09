@@ -39,7 +39,7 @@ console.log('🚀 Health Tracker Pro loading...');
 /**
  * Health Tracker Pro - Progressive Web Application mit Offline-First Architecture
  * @author Health Tracker Admin
- * @version 2.2.0
+ * @version 3.2.0
  */
 
 // ====================================================================
@@ -3459,7 +3459,7 @@ showDataPrivacy() {
                                 <h4 class="font-bold">Datenschutzerklärung Version 1.0</h4>
                                 <p class="text-sm mt-1">
                                     Letzte Aktualisierung: ${new Date().toLocaleDateString('de-DE')} | 
-                                    Health Tracker Pro v${this.getBuildInfo?.()?.version || '2.2.0'} | 
+                                    Health Tracker Pro v${this.getBuildInfo?.()?.version || '3.2.0'} | 
                                 </p>
                             </div>
                         </div>

@@ -10901,64 +10901,130 @@ async loadCompleteAnalyticsData() {
     }
 
     /**
- * KORRIGIERTE updateTrendsChart-Methode - akzeptiert Metric-Filter
+ * updateTrendsChart - akzeptiert Metric-Filter
  */
 async updateTrendsChart(data, metricFilter = 'all') {
     try {
-        console.log('📊 updateTrendsChart aufgerufen mit Filter:', metricFilter);
+        console.log('🎨 Modern Trends Chart wird aktualisiert:', metricFilter);
+        
+        // Container vorbereiten mit modernem Design
+        const trendsContainer = document.getElementById('trends-chart-container') || 
+                               document.getElementById('trends-chart')?.parentElement;
+        
+        if (!trendsContainer) {
+            console.warn('⚠️ Trends Container nicht gefunden');
+            return;
+        }
+
+        // Moderne Container-Struktur erstellen (nur einmal)
+        if (!trendsContainer.querySelector('.modern-trends-wrapper')) {
+            this.createModernChartStructure(trendsContainer, metricFilter);
+        }
         
         const trendsCanvas = document.getElementById('trends-chart');
         if (!trendsCanvas) {
-            console.warn('⚠️ Trends Chart Canvas nicht gefunden');
+            console.error('❌ Canvas nicht gefunden');
             return;
         }
 
-        // Chart-Instanz prüfen bevor Zerstörung
-        if (this.trendsChart) {
-            // Versuche Chart zu updaten statt zu zerstören
-            const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
-            
-            // Update Chart-Daten ohne Zerstörung
-            this.trendsChart.data = chartData;
-            this.trendsChart.options = this.getChartOptions(metricFilter);
-            this.trendsChart.update('none'); // Keine Animation für bessere Performance
-            
-            // Update Chart-Titel
-            this.updateChartTitle(metricFilter);
-            
-            console.log('🔄 Chart aktualisiert (nicht zerstört) für:', metricFilter);
-            return;
+        // Performance-optimierte Chart-Updates
+        if (this.trendsChart && this.trendsChart.canvas.id === 'trends-chart') {
+            return await this.updateExistingChartModern(data, metricFilter);
         }
 
-        // Nur bei erstem Erstellen: Neue Chart-Instanz
-        const ctx = trendsCanvas.getContext('2d');
-        if (!ctx) {
-            console.error('❌ Canvas-Kontext nicht verfügbar');
-            return;
-        }
-
-        const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
-        const chartConfig = this.getChartConfiguration(chartData, metricFilter);
-        
-        // Chart mit verbesserter Konfiguration erstellen
-        this.trendsChart = new Chart(ctx, chartConfig);
-        
-        // Visibility Change Handler hinzufügen (für Browser-Tab-Wechsel)
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && this.trendsChart) {
-                setTimeout(() => {
-                    this.trendsChart.resize();
-                    this.trendsChart.update('none');
-                }, 100);
-            }
-        });
-        
-        console.log('✅ Trends Chart initial erstellt für:', metricFilter);
+        // Neue Chart-Instanz mit Ultra-modernem Design
+        return await this.createUltraModernChart(trendsCanvas, data, metricFilter);
         
     } catch (error) {
-        console.error('❌ Trends Chart Fehler:', error);
-        this.showTrendsError('Chart-Render-Fehler: ' + error.message);
+        console.error('❌ Modern Trends Chart Fehler:', error);
+        this.showModernTrendsError(error.message);
     }
+}
+
+/**
+ * Moderne Container-Struktur erstellen
+ */
+createModernChartStructure(container, metricFilter) {
+    if (!container.querySelector('.modern-trends-wrapper')) {
+        container.innerHTML = `
+            <div class="modern-trends-wrapper glass-card-premium">
+                <!-- Header mit Gradient -->
+                <div class="trends-header-modern">
+                    <h3 id="trends-title" class="chart-title-gradient">
+                        ${this.getChartTitle(metricFilter)}
+                    </h3>
+                    <div class="metric-controls-modern">
+                        ${this.createMetricButtons(metricFilter)}
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="chart-container-modern">
+                    <canvas id="trends-chart" class="ultra-modern-canvas"></canvas>
+                    <div id="modern-tooltip" class="glassmorphism-tooltip hidden"></div>
+                </div>
+
+                <!-- Modern Legend -->
+                <div class="ultra-modern-legend" id="chart-legend-modern">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Chart-Daten mit Gradients erweitern
+ */
+enhanceChartDataWithGradients(chartData, metricFilter) {
+    if (!chartData.datasets) return chartData;
+    
+    // Gradient-Enhancement für jeden Dataset
+    chartData.datasets.forEach(dataset => {
+        if (dataset.gradientColors) {
+            // Wird beim Chart-Rendering angewendet
+            dataset.modernGradient = true;
+        }
+    });
+    
+    return chartData;
+}
+
+/**
+ * Ultra-moderne Chart-Erstellung
+ */
+async createUltraModernChart(canvas, data, metricFilter) {
+    console.log('🎨 Ultra-moderne Chart wird erstellt...');
+    
+    const ctx = canvas.getContext('2d');
+    
+    // High-DPI Optimization
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.scale(dpr, dpr);
+
+    // Chart-Daten vorbereiten
+    const chartData = this.prepareTrendsData(data || this.analyticsData?.period || [], metricFilter);
+    const chartConfig = this.getChartConfiguration(chartData, metricFilter);
+    
+    // Alte Chart zerstören
+    if (this.trendsChart) {
+        this.trendsChart.destroy();
+    }
+    
+    // Neue Ultra-moderne Chart erstellen
+    this.trendsChart = new Chart(ctx, chartConfig);
+    
+    // Moderne Interaktivität hinzufügen
+    this.addUltraModernInteractivity(canvas);
+    
+    console.log('✅ Ultra-moderne Chart erfolgreich erstellt');
+    return this.trendsChart;
 }
 
 getChartOptions(metricFilter) {
@@ -10967,43 +11033,67 @@ getChartOptions(metricFilter) {
     return {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-            intersect: false,
-            mode: 'index'
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: this.getChartTitle(metricFilter),
-                font: { size: 16, weight: 'bold' }
-            },
-            legend: {
-                display: !isSingleMetric,
-                position: 'top'
-            },
-            tooltip: {
-                mode: 'index',
-                intersect: false,
-                callbacks: {
-                    label: function(context) {
-                        const label = context.dataset.label || '';
-                        const value = context.parsed.y;
-                        
-                        if (label.includes('Schritte')) {
-                            return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
-                        } else if (label.includes('Wasser')) {
-                            return `${label}: ${value}L`;
-                        } else if (label.includes('Schlaf')) {
-                            return `${label}: ${value}h`;
-                        } else if (label.includes('Gewicht')) {
-                            return `${label}: ${value}kg`;
-                        }
-                        return `${label}: ${value}`;
-                    }
-                }
+        devicePixelRatio: window.devicePixelRatio || 1,
+        
+        // **Ultra-moderne Animationen 2025**
+        animation: {
+            duration: 1400,
+            easing: 'easeInOutQuint',
+            delay: (context) => {
+                // Staggered animation für smooth entrance
+                return context.datasetIndex * 150 + context.dataIndex * 25;
             }
         },
-        scales: this.getScalesConfiguration(metricFilter, isSingleMetric)
+        
+        // **Enhanced Interactions mit Haptic Feedback**
+        interaction: {
+            intersect: false,
+            mode: 'index',
+            axis: 'x',
+            includeInvisible: false
+        },
+        
+        // **Smooth Hover-Animationen**
+        hover: {
+            animationDuration: 250,
+            intersect: false,
+            mode: 'nearest'
+        },
+        
+        plugins: {
+            title: {
+                display: false // Custom HTML-Title verwenden
+            },
+            
+            legend: {
+                display: false // Modern Custom Legend
+            },
+            
+            tooltip: {
+                enabled: false, // Custom Glassmorphism Tooltip
+                external: (context) => this.renderModernTooltip(context)
+            },
+            
+            // **Gradient-Plugin für moderne Ästhetik**
+            beforeDraw: (chart) => this.addChartGradientBackground(chart)
+        },
+        
+        scales: this.getModernScalesConfiguration(metricFilter, isSingleMetric),
+        
+        // **Professional Layout-Spacing**
+        layout: {
+            padding: {
+                top: 20,
+                right: 30,
+                bottom: 20,
+                left: 30
+            }
+        },
+        
+        // **Responsive Breakpoints**
+        onResize: (chart, size) => {
+            this.handleChartResize(chart, size);
+        }
     };
 }
 
@@ -11013,80 +11103,99 @@ getChartOptions(metricFilter) {
 getChartConfiguration(chartData, metricFilter) {
     const isSingleMetric = metricFilter !== 'all';
     
-    const baseConfig = {
+    return {
         type: 'line',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: this.getChartTitle(metricFilter),
-                    font: { size: 16, weight: 'bold' }
-                },
-                legend: {
-                    display: !isSingleMetric, // Verstecke Legende bei Einzelmetriken
-                    position: 'top'
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y;
-                            
-                            // Spezielle Formatierung für verschiedene Metriken
-                            if (label.includes('Schritte')) {
-                                return `${label}: ${Math.round(value * 1000).toLocaleString()}`;
-                            } else if (label.includes('Wasser')) {
-                                return `${label}: ${value}L`;
-                            } else if (label.includes('Schlaf')) {
-                                return `${label}: ${value}h`;
-                            } else if (label.includes('Gewicht')) {
-                                return `${label}: ${value}kg`;
-                            }
-                            return `${label}: ${value}`;
-                        }
-                    }
-                }
-            },
-            scales: this.getScalesConfiguration(metricFilter, isSingleMetric),
-            interaction: {
-                intersect: false,
-                mode: 'index'
+        data: this.enhanceChartDataWithGradients(chartData, metricFilter),
+        options: this.getChartOptions(metricFilter),
+        
+        // **Moderne Plugin-Erweiterungen**
+        plugins: [{
+            id: 'modernBackground',
+            beforeDraw: (chart) => {
+                this.drawModernChartBackground(chart);
             }
-        }
+        }, {
+            id: 'goalLines',
+            afterDraw: (chart) => {
+                this.drawGoalLinesOverlay(chart, metricFilter);
+            }
+        }, {
+            id: 'trendAnnotations',
+            afterDatasetsDraw: (chart) => {
+                this.drawTrendAnnotations(chart, chartData);
+            }
+        }]
     };
+}
 
-    return baseConfig;
+getScalesConfiguration(metricFilter, isSingleMetric) {
+    // Neue Methode für erweiterte Funktionalität
+    return this.getModernScalesConfiguration(metricFilter, isSingleMetric);
 }
 
 /**
- * NEUE METHODE: Scales-Konfiguration je nach Metric-Filter
+ * Erweiterte moderne Scales-Konfiguration
  */
-getScalesConfiguration(metricFilter, isSingleMetric) {
+getModernScalesConfiguration(metricFilter, isSingleMetric) {
     const scales = {
         x: {
+            type: 'time',
+            time: {
+                unit: 'day',
+                displayFormats: {
+                    day: 'MMM dd'
+                }
+            },
             display: true,
             title: {
                 display: true,
-                text: 'Datum'
+                text: 'Zeitraum',
+                font: {
+                    size: 12,
+                    weight: '600'
+                },
+                color: 'rgba(99, 102, 241, 0.8)'
+            },
+            grid: {
+                color: 'rgba(99, 102, 241, 0.1)',
+                lineWidth: 1
+            },
+            ticks: {
+                color: 'rgba(99, 102, 241, 0.7)',
+                font: {
+                    size: 11,
+                    weight: '500'
+                }
             }
         }
     };
 
     if (isSingleMetric) {
-        // Einzelmetrik: Nur eine Y-Achse
-        const metricConfig = {
-            'steps': { label: 'Schritte (in Tausend)', color: 'rgb(99, 102, 241)' },
-            'waterIntake': { label: 'Wasser (Liter)', color: 'rgb(59, 130, 246)' },
-            'sleepHours': { label: 'Schlaf (Stunden)', color: 'rgb(16, 185, 129)' },
-            'weight': { label: 'Gewicht (Kilogramm)', color: 'rgb(245, 101, 101)' }
+        // **Einzelmetrik: Optimierte Y-Achse**
+        const metricConfigs = {
+            'steps': { 
+                label: 'Schritte (in Tausend)', 
+                color: '#6366f1',
+                gradient: ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 0.2)']
+            },
+            'waterIntake': { 
+                label: 'Wasser (Liter)', 
+                color: '#0ea5e9',
+                gradient: ['rgba(14, 165, 233, 0.8)', 'rgba(14, 165, 233, 0.2)']
+            },
+            'sleepHours': { 
+                label: 'Schlaf (Stunden)', 
+                color: '#10b981',
+                gradient: ['rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 0.2)']
+            },
+            'weight': { 
+                label: 'Gewicht (kg)', 
+                color: '#f59e0b',
+                gradient: ['rgba(245, 158, 11, 0.8)', 'rgba(245, 158, 11, 0.2)']
+            }
         };
         
-        const config = metricConfig[metricFilter] || { label: 'Werte', color: 'rgb(99, 102, 241)' };
+        const config = metricConfigs[metricFilter] || metricConfigs.steps;
         
         scales.y = {
             type: 'linear',
@@ -11095,21 +11204,49 @@ getScalesConfiguration(metricFilter, isSingleMetric) {
             title: {
                 display: true,
                 text: config.label,
-                color: config.color
+                color: config.color,
+                font: {
+                    size: 12,
+                    weight: '600'
+                }
             },
             grid: {
-                color: config.color + '20'
+                color: config.color + '20',
+                lineWidth: 1
+            },
+            ticks: {
+                color: config.color,
+                font: {
+                    size: 11,
+                    weight: '500'
+                },
+                callback: function(value) {
+                    if (metricFilter === 'steps') {
+                        return (value * 1000).toLocaleString();
+                    }
+                    return value;
+                }
             }
         };
     } else {
-        // Alle Metriken: Multiple Y-Achsen
+        // **Multi-Metric: Dual Y-Achsen mit Farb-Coding**
         scales.y = {
             type: 'linear',
             display: true,
             position: 'left',
             title: {
                 display: true,
-                text: 'Schritte (in Tausend)'
+                text: 'Schritte (in Tausend)',
+                color: '#6366f1',
+                font: { size: 12, weight: '600' }
+            },
+            grid: {
+                color: 'rgba(99, 102, 241, 0.15)',
+                lineWidth: 1
+            },
+            ticks: {
+                color: '#6366f1',
+                font: { size: 11, weight: '500' }
             }
         };
         
@@ -11119,17 +11256,18 @@ getScalesConfiguration(metricFilter, isSingleMetric) {
             position: 'right',
             title: {
                 display: true,
-                text: 'Wasser (L) / Schlaf (h)'
+                text: 'Wasser (L) / Schlaf (h)',
+                color: '#0ea5e9',
+                font: { size: 12, weight: '600' }
             },
             grid: {
                 drawOnChartArea: false,
+                color: 'rgba(14, 165, 233, 0.15)'
+            },
+            ticks: {
+                color: '#0ea5e9',
+                font: { size: 11, weight: '500' }
             }
-        };
-        
-        scales.y2 = {
-            type: 'linear',
-            display: false,
-            position: 'right'
         };
     }
 
@@ -11137,7 +11275,7 @@ getScalesConfiguration(metricFilter, isSingleMetric) {
 }
 
 /**
- * NEUE METHODE: Chart-Titel basierend auf Filter
+ * Chart-Titel basierend auf Filter
  */
 getChartTitle(metricFilter) {
     const titles = {
@@ -11176,73 +11314,85 @@ updateChartTitle(metricFilter) {
  * @returns {Object} Formatierte Chart-Daten
  */
 prepareTrendsData(data, metricFilter = 'all') {
-    console.log('🔄 Bereite Trends-Daten vor...', data?.length || 0, 'Einträge, Filter:', metricFilter);
+    console.log('🔄 Moderne Trends-Daten werden vorbereitet...', data?.length || 0, 'Einträge');
     
     if (!data || !Array.isArray(data) || data.length === 0) {
         return { labels: [], datasets: [] };
     }
 
-    // Datenvalidierung
+    // Enhanced Data Validation
     const validEntries = data.filter(item => {
-        const hasAnyData = item.steps || item.waterIntake || item.sleepHours || item.weight;
+        const hasValidData = item.steps || item.waterIntake || item.sleepHours || item.weight;
         const hasValidDate = item.date && !isNaN(new Date(item.date).getTime());
-        return hasValidDate && hasAnyData;
+        return hasValidDate && hasValidData;
     });
 
     if (validEntries.length === 0) {
         return { labels: [], datasets: [] };
     }
 
-    // Daten nach Datum sortieren
+    // **Sortierung und Zeitbereich-Optimierung**
     const sortedData = [...validEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // Labels erstellen
+    // **Moderne Labels mit besserer Formatierung**
     const labels = sortedData.map(item => {
-        const date = new Date(item.date);
-        return date.toLocaleDateString('de-DE', { 
-            month: 'short', 
-            day: 'numeric' 
-        });
+        return new Date(item.date); // Zeit-basierte X-Achse
     });
 
-    // Metric-Definitionen
-    const allMetrics = [
+    // **Erweiterte Metric-Definitionen mit Gradients**
+    const modernMetrics = [
         { 
             key: 'steps', 
-            label: 'Schritte', 
-            color: 'rgb(99, 102, 241)', 
+            label: '👟 Schritte', 
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            gradientColors: ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 0.1)'],
             scale: 0.001,
-            yAxisID: 'y'
+            yAxisID: 'y',
+            tension: 0.4,
+            pointStyle: 'circle'
         },
         { 
             key: 'waterIntake', 
-            label: 'Wasser (L)', 
-            color: 'rgb(59, 130, 246)', 
+            label: '💧 Wasser (L)', 
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+            gradientColors: ['rgba(14, 165, 233, 0.8)', 'rgba(14, 165, 233, 0.1)'],
             scale: 1,
-            yAxisID: 'y1'
+            yAxisID: 'y1',
+            tension: 0.3,
+            pointStyle: 'rectRot'
         },
         { 
             key: 'sleepHours', 
-            label: 'Schlaf (h)', 
-            color: 'rgb(16, 185, 129)', 
+            label: '😴 Schlaf (h)', 
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            gradientColors: ['rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 0.1)'],
             scale: 1,
-            yAxisID: 'y1'
+            yAxisID: 'y1',
+            tension: 0.2,
+            pointStyle: 'triangle'
         },
         { 
             key: 'weight', 
-            label: 'Gewicht (kg)', 
-            color: 'rgb(245, 101, 101)', 
+            label: '⚖️ Gewicht (kg)', 
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            gradientColors: ['rgba(245, 158, 11, 0.8)', 'rgba(245, 158, 11, 0.1)'],
             scale: 1,
-            yAxisID: 'y2'
+            yAxisID: 'y2',
+            tension: 0.1,
+            pointStyle: 'rect'
         }
     ];
 
-    // Metric-Filtering
+    // **Metric-Filtering mit Enhanced Features**
     const metricsToShow = metricFilter === 'all' 
-        ? allMetrics 
-        : allMetrics.filter(metric => metric.key === metricFilter);
+        ? modernMetrics 
+        : modernMetrics.filter(metric => metric.key === metricFilter);
 
-    // Datasets erstellen
+    // **Ultra-moderne Datasets mit Gradient-Support**
     const datasets = [];
     
     metricsToShow.forEach(metric => {
@@ -11257,15 +11407,30 @@ prepareTrendsData(data, metricFilter = 'all') {
             datasets.push({
                 label: metric.label,
                 data: values,
-                borderColor: metric.color,
-                backgroundColor: metric.color + '20',
-                borderWidth: metricFilter === 'all' ? 2 : 3,
-                fill: metricFilter !== 'all',
-                tension: 0.1,
-                pointRadius: metricFilter === 'all' ? 4 : 6,
-                pointHoverRadius: metricFilter === 'all' ? 6 : 8,
+                borderColor: metric.borderColor,
+                backgroundColor: metric.backgroundColor,
+                borderWidth: metricFilter === 'all' ? 3 : 4,
+                fill: metricFilter !== 'all' ? 'origin' : false,
+                tension: metric.tension,
+                pointRadius: metricFilter === 'all' ? 6 : 8,
+                pointHoverRadius: metricFilter === 'all' ? 8 : 12,
+                pointStyle: metric.pointStyle,
+                pointBackgroundColor: metric.borderColor,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: metric.borderColor,
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 3,
                 yAxisID: metric.yAxisID || 'y',
-                spanGaps: true
+                spanGaps: true,
+                
+                // **Moderne Eigenschaften**
+                cubicInterpolationMode: 'monotone',
+                gradientColors: metric.gradientColors,
+                shadowOffsetX: 0,
+                shadowOffsetY: 4,
+                shadowBlur: 12,
+                shadowColor: metric.borderColor + '40'
             });
         }
     });
@@ -11273,76 +11438,13 @@ prepareTrendsData(data, metricFilter = 'all') {
     return {
         labels,
         datasets,
-        metricFilter: metricFilter
+        metricFilter: metricFilter,
+        totalDataPoints: validEntries.length,
+        dateRange: {
+            start: sortedData[0]?.date,
+            end: sortedData[sortedData.length - 1]?.date
+        }
     };
-}
-
-    /** Update heatmap chart */
-async updateHeatmapChart(analyticsData) {
-    console.log('🔍 Heatmap Debug - Input Data:', {
-        hasAnalyticsData: !!analyticsData,
-        analyticsDataType: typeof analyticsData,
-        hasDataProperty: !!(analyticsData && analyticsData.data),
-        dataLength: analyticsData?.data?.length || 0,
-        rawData: analyticsData
-    });
-    
-    try {
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        if (!heatmapContainer) {
-            console.warn('⚠️ Heatmap container not found');
-            return;
-        }
-        
-        // Erweiterte Daten-Validierung mit Debug-Info
-        if (!analyticsData) {
-            console.warn('❌ No analyticsData provided to heatmap');
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Keine Analytics-Daten verfügbar</div>';
-            return;
-        }
-        
-        if (!analyticsData.data) {
-            console.warn('❌ analyticsData.data is missing');
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Analytics-Datenstruktur unvollständig</div>';
-            return;
-        }
-        
-        if (!Array.isArray(analyticsData.data)) {
-            console.warn('❌ analyticsData.data is not an array:', typeof analyticsData.data);
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Ungültige Datenstruktur</div>';
-            return;
-        }
-        
-        if (analyticsData.data.length === 0) {
-            console.warn('⚠️ analyticsData.data is empty array');
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Noch keine Gesundheitsdaten erfasst</div>';
-            return;
-        }
-        
-        // Debug: Erste paar Dateneinträge analysieren
-        console.log('📊 First 3 data entries:', analyticsData.data.slice(0, 3));
-        
-        // Rest der ursprünglichen Funktion...
-        const dateRange = this.calculateDateRange(analyticsData.data);
-        
-        if (!dateRange) {
-            console.warn('⚠️ Could not calculate date range for heatmap');
-            heatmapContainer.innerHTML = '<div class="text-center text-base-content/60 py-8">Datumsbereich konnte nicht berechnet werden</div>';
-            return;
-        }
-        
-        console.log('📅 Date range calculated:', dateRange);
-        
-        // Sichere Heatmap-Erstellung
-        this.renderHeatmapGrid(heatmapContainer, analyticsData.data, dateRange);
-        
-    } catch (error) {
-        console.error('❌ Heatmap update failed:', error);
-        const heatmapContainer = document.getElementById('heatmap-chart');
-        if (heatmapContainer) {
-            heatmapContainer.innerHTML = '<div class="text-center text-error py-8">Heatmap-Fehler: ' + error.message + '</div>';
-        }
-    }
 }
 
 // Helper für sichere Datums-Range Berechnung
